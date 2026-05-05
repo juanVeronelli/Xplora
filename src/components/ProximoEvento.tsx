@@ -13,6 +13,7 @@ interface Props {
 export default function ProximoEvento({ evento: ev, openEvento, goTo }: Props) {
   const { ref, inView } = useInView(0.15);
   const isMobile = useIsMobile();
+  const hasThumb = Boolean(ev.thumbnailUrl?.trim());
 
   return (
     <section
@@ -31,7 +32,8 @@ export default function ProximoEvento({ evento: ev, openEvento, goTo }: Props) {
           type="button"
           style={{
             ...s.card,
-            padding: isMobile ? 20 : 28,
+            padding: 0,
+            overflow: 'hidden',
             width: '100%',
             textAlign: 'left',
             cursor: 'pointer',
@@ -48,37 +50,90 @@ export default function ProximoEvento({ evento: ev, openEvento, goTo }: Props) {
             e.currentTarget.style.borderColor = 'var(--border-warm)';
           }}
         >
-          <div style={{ ...s.row, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center' }}>
-            <div style={s.dateCol}>
-              <span style={s.day}>{ev.day || '—'}</span>
-              <span style={s.month}>{ev.month || ''}</span>
-            </div>
-            <div style={s.main}>
-              <div style={s.topMeta}>
-                <Tag type={ev.tagType}>{ev.tagLabel || 'Evento'}</Tag>
+          {hasThumb ? (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) minmax(0, 1.05fr)',
+                gap: 0,
+                alignItems: 'stretch',
+              }}
+            >
+              <div style={s.thumbShell}>
+                <img src={ev.thumbnailUrl} alt={ev.title} style={s.thumbImg} />
+                <div style={s.thumbScrim} aria-hidden />
+                <div style={s.dateFloat}>
+                  <span style={s.dateFloatDay}>{ev.day || '—'}</span>
+                  <span style={s.dateFloatMonth}>{ev.month || ''}</span>
+                </div>
               </div>
-              <h2 style={s.title}>{ev.title}</h2>
-              <p style={s.meta}>
-                {ev.date}
-                {ev.location ? ` · ${ev.location}` : ''}
-                {ev.modality ? ` · ${ev.modality}` : ''}
-              </p>
-              <p style={s.desc}>{ev.desc}</p>
-              <div style={s.actions}>
-                <span style={s.cta}>Ver detalle e inscripción →</span>
-                <button
-                  type="button"
-                  style={s.secondary}
-                  onClick={e => {
-                    e.stopPropagation();
-                    goTo('eventos');
-                  }}
-                >
-                  Todos los eventos
-                </button>
+              <div style={{ ...s.bodyPad, padding: isMobile ? '20px 20px 22px' : '28px 32px 28px 28px' }}>
+                <div style={s.topMeta}>
+                  <Tag type={ev.tagType}>{ev.tagLabel || 'Evento'}</Tag>
+                </div>
+                <h2 style={s.title}>{ev.title}</h2>
+                <p style={s.meta}>
+                  {ev.date}
+                  {ev.location ? ` · ${ev.location}` : ''}
+                  {ev.modality ? ` · ${ev.modality}` : ''}
+                </p>
+                <p style={s.desc}>{ev.desc}</p>
+                <div style={s.actions}>
+                  <span style={s.cta}>Ver detalle e inscripción →</span>
+                  <button
+                    type="button"
+                    style={s.secondary}
+                    onClick={e => {
+                      e.stopPropagation();
+                      goTo('eventos');
+                    }}
+                  >
+                    Todos los eventos
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div style={{ padding: isMobile ? 20 : 28 }}>
+              <div
+                style={{
+                  ...s.row,
+                  flexDirection: isMobile ? 'column' : 'row',
+                  alignItems: isMobile ? 'stretch' : 'center',
+                }}
+              >
+                <div style={s.dateCol}>
+                  <span style={s.day}>{ev.day || '—'}</span>
+                  <span style={s.month}>{ev.month || ''}</span>
+                </div>
+                <div style={s.main}>
+                  <div style={s.topMeta}>
+                    <Tag type={ev.tagType}>{ev.tagLabel || 'Evento'}</Tag>
+                  </div>
+                  <h2 style={s.title}>{ev.title}</h2>
+                  <p style={s.meta}>
+                    {ev.date}
+                    {ev.location ? ` · ${ev.location}` : ''}
+                    {ev.modality ? ` · ${ev.modality}` : ''}
+                  </p>
+                  <p style={s.desc}>{ev.desc}</p>
+                  <div style={s.actions}>
+                    <span style={s.cta}>Ver detalle e inscripción →</span>
+                    <button
+                      type="button"
+                      style={s.secondary}
+                      onClick={e => {
+                        e.stopPropagation();
+                        goTo('eventos');
+                      }}
+                    >
+                      Todos los eventos
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </button>
       </div>
     </section>
@@ -100,6 +155,63 @@ const s: Record<string, React.CSSProperties> = {
     border: '1.5px solid var(--border-warm)',
     boxShadow: '0 12px 40px rgba(26,16,40,.08)',
     transition: 'box-shadow .25s, border-color .25s',
+  },
+  thumbShell: {
+    position: 'relative',
+    overflow: 'hidden',
+    aspectRatio: '4 / 3',
+    background: 'linear-gradient(145deg, #1A1028 0%, #2D1B50 100%)',
+    alignSelf: 'stretch',
+  },
+  thumbImg: {
+    position: 'absolute',
+    inset: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    display: 'block',
+  },
+  thumbScrim: {
+    position: 'absolute',
+    inset: 0,
+    background: 'linear-gradient(180deg, rgba(26,16,40,0.15) 0%, rgba(26,16,40,0.55) 100%)',
+    pointerEvents: 'none',
+  },
+  dateFloat: {
+    position: 'absolute',
+    left: 16,
+    bottom: 16,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    padding: '12px 14px',
+    borderRadius: 14,
+    background: 'rgba(255,255,255,0.94)',
+    boxShadow: '0 8px 24px rgba(26,16,40,.2)',
+    border: '1px solid rgba(255,255,255,0.6)',
+    minWidth: 64,
+  },
+  dateFloatDay: {
+    fontSize: 26,
+    fontWeight: 800,
+    fontFamily: "'Fraunces', serif",
+    lineHeight: 1,
+    color: 'var(--ink)',
+  },
+  dateFloatMonth: {
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: '2px',
+    textTransform: 'uppercase',
+    color: 'var(--ink-muted)',
+  },
+  bodyPad: {
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    minWidth: 0,
   },
   row: { display: 'flex', gap: 28 },
   dateCol: {
