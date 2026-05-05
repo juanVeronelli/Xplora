@@ -112,7 +112,7 @@ export interface DbEvento {
   total_inscriptos?: number | null;
   total_asistieron?: number | null;
   luma_csv_imported_at?: string | null;
-  /** No listar en próximos eventos del sitio si ya pasó / está archivado en Eventos pasados. */
+  /** No listar en próximos eventos del sitio si ya pasó / está archivado en Archivo. */
   realizado?: boolean | null;
   created_at: string;
 }

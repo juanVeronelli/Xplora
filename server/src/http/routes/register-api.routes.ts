@@ -164,7 +164,7 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
     'empleos_edit_delete',
   ]);
   const staffManage = perm(['staff_accounts_manage', 'access_total']);
-  const candidatosManage = perm(['candidatos_manage', 'access_total']);
+  const postulacionesManage = perm(['postulaciones_manage', 'access_total']);
   const contactLists = perm(['database_full', 'contact_lists_manage']);
   const dbExport = perm(['database_full', 'database_export']);
   const dbImport = perm(['database_full', 'database_import']);
@@ -273,15 +273,15 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
     createAdminCrmStaffResetPasswordHandler(deps.config),
   );
 
-  app.get('/api/admin/candidatos', requireAuth, loadStaff, candidatosManage, createAdminCandidatosListHandler(deps.config));
+  app.get('/api/admin/candidatos', requireAuth, loadStaff, postulacionesManage, createAdminCandidatosListHandler(deps.config));
   app.delete(
     '/api/admin/candidatos/:id',
     requireAuth,
     loadStaff,
-    candidatosManage,
+    postulacionesManage,
     createAdminCandidatosDeleteHandler(deps.config),
   );
-  app.get('/api/admin/sponsors', requireAuth, loadStaff, candidatosManage, createAdminSponsorsLeadListHandler(deps.config));
+  app.get('/api/admin/sponsors', requireAuth, loadStaff, postulacionesManage, createAdminSponsorsLeadListHandler(deps.config));
 
   // ── Subida de imágenes (Cloudinary) ─────────────────────────────────────
   const uploadLimiter = rateLimit({

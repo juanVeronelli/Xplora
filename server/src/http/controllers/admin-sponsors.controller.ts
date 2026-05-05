@@ -1,6 +1,6 @@
 /**
  * Admin: listar leads de sponsors (empresas/marcas).
- * Usa service role para leer `sponsor_leads` (RLS cerrada) y permisos CRM para autorizar.
+ * Usa service role para leer `sponsor_leads` (RLS cerrada) y permiso `postulaciones_manage` para autorizar.
  */
 import type { RequestHandler } from 'express';
 import type { AppConfig } from '../../config/env.js';

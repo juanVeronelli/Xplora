@@ -7,6 +7,13 @@ export const DEFAULT_HERO_URL = '/images/IMG-20250910-WA0086.webp';
 export const DEFAULT_HIGHLIGHT_VIDEO_URL =
   'https://res.cloudinary.com/dd477n60s/video/upload/v1777932852/WhatsApp_Video_2026-05-04_at_18.58.24_ybmped.mp4';
 
+/** Reels verticales en Somos Xplora (si `VITE_MEDIA_VIDEO_*` no está definido). */
+export const DEFAULT_MEDIA_VIDEO_URLS = [
+  'https://res.cloudinary.com/dd477n60s/video/upload/v1778016559/Cu%C3%A1l_es_la_clave_del_liderazgoEsta_pregunta_y_muchas_m%C3%A1s_las_responderemos_en_este_Panel_de_M_j9imk6.mp4',
+  'https://res.cloudinary.com/dd477n60s/video/upload/v1778016558/WhatsApp_Video_2026-05-05_at_15.25.47_hi4oxe.mp4',
+  'https://res.cloudinary.com/dd477n60s/video/upload/v1778016557/WhatsApp_Video_2026-05-05_at_15.25.46_n6babr.mp4',
+] as const;
+
 export const DEFAULT_LOGO_URL = '/images/logo%20sin%20fondo.webp';
 
 /** Carrusel inicial (mismas rutas que antes en el código) */

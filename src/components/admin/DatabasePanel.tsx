@@ -119,7 +119,7 @@ export default function DatabasePanel() {
       <CrmSection
       kicker="Comunidad"
       title="Miembros"
-      subtitle="Explorá miembros con filtros o creá listas de contacto con datos congelados. Envíos por mail están en Email; inscriptos por evento en Eventos pasados."
+      subtitle="Explorá miembros con filtros o creá listas de contacto con datos congelados. Envíos por mail están en Email; inscriptos por evento en Archivo."
       onNew={() => {}}
       showNew={false}
     >
@@ -165,7 +165,7 @@ export function CampaignAudiencePanel() {
   return <CampaignAudienceTable />;
 }
 
-/** Misma vista que **Eventos pasados → Inscriptos por evento**. */
+/** Misma vista que **Archivo → Inscriptos por evento**. */
 export function EventAudiencePanel() {
   return <EventAudienceTable />;
 }
@@ -577,7 +577,7 @@ function EventAudienceTable() {
 
   const eventOptions = useMemo(
     () => [
-      { value: "", label: "— Elegí un evento pasado —" },
+      { value: "", label: "— Elegí un evento del Archivo —" },
       ...pastEventos.map((e) => ({
         value: e.id,
         label: eventSelectLabel(e),
@@ -621,7 +621,7 @@ function EventAudienceTable() {
   if (pastEventos.length === 0) {
     return (
       <Empty
-        title="No hay eventos pasados"
+        title="No hay eventos en Archivo"
         text="Marcá eventos como realizados en el panel de eventos para listarlos acá junto con sus inscriptos."
       />
     );
@@ -643,7 +643,7 @@ function EventAudienceTable() {
     <div ref={topRef} style={{ marginTop: 8 }}>
       <TwoCol>
         <Sel
-          label="Evento (pasados)"
+          label="Evento (Archivo)"
           hint="Solo eventos marcados como realizados."
           value={eventoId}
           onChange={setEventoId}

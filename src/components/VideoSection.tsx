@@ -124,7 +124,7 @@ export default function VideoSection({ goTo }: Props) {
             padding: isMobile ? '0 4px' : '0 8px 0 0',
           }}
         >
-          <div style={{ ...s.chip, marginBottom: 14 }}>📹 Eventos pasados</div>
+          <div style={{ ...s.chip, marginBottom: 14 }}>📹 Archivo</div>
           <h2 style={s.h2}>Charlas y momentos que quedan</h2>
           <p style={{ ...s.p, marginBottom: isMobile ? 20 : 22 }}>
             En el archivo hay conversaciones con fundadores, inversores y gente que ya pasó por lo mismo que

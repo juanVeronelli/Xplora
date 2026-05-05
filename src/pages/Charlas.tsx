@@ -22,7 +22,7 @@ export default function Charlas({ openCharla }: Props) {
     <>
       <PageHeader
         label="Archivo de contenido"
-        title="Eventos pasados"
+        title="Archivo"
         sub="Grabaciones y materiales de encuentros ya realizados."
       />
       {loading ? (

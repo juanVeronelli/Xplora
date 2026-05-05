@@ -1,6 +1,6 @@
 /**
  * Admin: listar candidatos para sumarse a Xplora.
- * Usa service role para leer `candidatos` (RLS cerrada) y permisos CRM para autorizar.
+ * Usa service role para leer `candidatos` (RLS cerrada) y permiso `postulaciones_manage` para autorizar.
  */
 import type { RequestHandler } from 'express';
 import type { AppConfig } from '../../config/env.js';

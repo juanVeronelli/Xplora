@@ -44,8 +44,8 @@ const NAV_ITEMS: AdminNavItem[] = [
   { id: 'eventos', title: 'Próximos eventos', desc: 'Lo que ves en la página de eventos' },
   {
     id: 'charlas',
-    title: 'Eventos pasados',
-    desc: 'Archivo en la web, CSV Luma e inscriptos por meet',
+    title: 'Archivo',
+    desc: 'Charlas en la web, CSV Luma e inscriptos por meet',
   },
   { id: 'empleos', title: 'Empleos', desc: 'Bolsa laboral del sitio' },
   {
@@ -366,7 +366,7 @@ function EventosSection() {
             <>
               <div style={{ height: 10 }} />
               <p style={{ ...crm.pageSubtitle, marginBottom: 12, maxWidth: 'none' }}>
-                <strong>Ya pasados / archivados</strong> · {pastRows.length} evento{pastRows.length === 1 ? '' : 's'}
+                <strong>Ya realizados / archivados</strong> · {pastRows.length} evento{pastRows.length === 1 ? '' : 's'}
               </p>
               {pastRows.map(r => (
                 <ListCard
@@ -709,7 +709,7 @@ function CharlasSection() {
 
   const remove = async (id: string) => {
     const ok = await confirm({
-      title: 'Eliminar evento pasado',
+      title: 'Eliminar entrada del Archivo',
       message: '¿Eliminar este registro del archivo? No podés deshacer esta acción.',
       confirmLabel: 'Eliminar',
       cancelLabel: 'Cancelar',
@@ -770,14 +770,14 @@ function CharlasSection() {
       title="Archivo en la web"
       subtitle="Registrá cada meet ya realizado: vinculá un evento de Próximos eventos, subí el CSV de Luma y archivá la fecha en el sitio público."
       onNew={openCreate}
-      newLabel="+ Nuevo evento pasado"
+      newLabel="+ Nueva entrada en Archivo"
     >
       {loading ? (
         <Spinner />
       ) : rows.length === 0 ? (
         <Empty
-          title="No hay eventos pasados cargados"
-          text="Usá «Nuevo evento pasado». Si el meet ya estaba en Eventos, vinculalo: al guardar se marca como realizado y deja de mostrarse en la página de próximos eventos."
+          title="No hay contenido cargado en Archivo"
+          text="Usá «Nueva entrada en Archivo». Si el meet ya estaba en Eventos, vinculalo: al guardar se marca como realizado y deja de mostrarse en la página de próximos eventos."
         />
       ) : (
         <div style={crm.list}>
@@ -801,7 +801,7 @@ function CharlasSection() {
 
       {formOpen && (
         <FormScreen
-          title={editRow ? 'Editar evento pasado' : 'Nuevo evento pasado'}
+          title={editRow ? 'Editar entrada del Archivo' : 'Nueva entrada en Archivo'}
           subtitle="Vinculá el mismo evento que tenés en Luma y en Eventos (si aplica). Al guardar, ese evento deja el listado público de próximos."
           onClose={closeForm}
           onSave={save}
@@ -881,7 +881,7 @@ function CharlasSection() {
             </TwoCol>
             <ThumbnailUpload
               label="Miniatura"
-              hint="Imagen de la tarjeta en Eventos pasados y cabecera del detalle. Si no cargás, se usa el símbolo o un fondo."
+              hint="Imagen de la tarjeta en Archivo y cabecera del detalle. Si no cargás, se usa el símbolo o un fondo."
               value={form.thumbnail_url ?? ''}
               onChange={v => setForm(p => ({ ...p, thumbnail_url: v || null }))}
             />
@@ -971,10 +971,10 @@ function CharlasSection() {
     <>
       <SectionIntro
         kicker="Historial"
-        title="Eventos pasados"
+        title="Archivo"
         subtitle="Dos vistas: el archivo público (charlas en la web) y la lista operativa de inscriptos y asistencia por cada meet."
       />
-      <nav style={subNavPasados} aria-label="Vistas de eventos pasados">
+      <nav style={subNavPasados} aria-label="Vistas del Archivo">
         <div style={crm.segmentRail}>
           <div className="xplora-admin-segment-scroll">
             <div className="xplora-admin-segment-track" style={crm.segmentTrack} role="tablist">

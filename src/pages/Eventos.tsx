@@ -6,6 +6,7 @@ import Footer from '../components/Footer';
 import EmptyState from '../components/EmptyState';
 import { useInView } from '../hooks/useInView';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { marketingHeroWrap } from '../lib/pageBackgrounds';
 
 interface Props {
   openEvento: (e: Evento) => void;
@@ -50,54 +51,72 @@ export default function Eventos({ openEvento, openCharla }: Props) {
   return (
     <>
       <PageHeader
-        label={tab === 'proximos' ? 'Próximas actividades' : 'Archivo de contenido'}
+        label="Agenda del club"
         title="Eventos"
-        sub={
-          tab === 'proximos'
-            ? 'Inscribite y formá parte de la próxima charla, workshop o encuentro.'
-            : 'Charlas, paneles y materiales de eventos ya realizados.'
-        }
+        sub="Charlas, workshops y encuentros para la comunidad UCEMA: anotate a lo que viene y revisá paneles y materiales en el archivo."
       />
       <div
         style={{
           padding: isMobile ? '14px 16px 0' : '16px 80px 0',
           display: 'flex',
-          gap: 8,
-          flexWrap: 'wrap',
-          alignItems: 'center',
+          flexDirection: 'column',
+          gap: 10,
+          alignItems: 'flex-start',
         }}
       >
-        {tabs.map(t => {
-          const active = tab === t.id;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => {
-                setTab(t.id);
-                try {
-                  window.location.hash = t.id === 'archivo' ? 'archivo' : 'proximos';
-                } catch {
-                  /* ignore */
-                }
-              }}
-              style={{
-                padding: '8px 14px',
-                borderRadius: 999,
-                border: `1.5px solid ${active ? 'rgba(96,62,249,.30)' : 'var(--border-warm)'}`,
-                background: active ? 'rgba(96,62,249,.10)' : 'var(--warm)',
-                color: active ? 'var(--purple)' : 'var(--ink-soft)',
-                fontWeight: 800,
-                fontSize: 12,
-                cursor: 'pointer',
-                fontFamily: "'Instrument Sans', sans-serif",
-                transition: 'all .18s',
-              }}
-            >
-              {t.label}
-            </button>
-          );
-        })}
+        <div
+          style={{
+            display: 'flex',
+            gap: 8,
+            flexWrap: 'wrap',
+            alignItems: 'center',
+          }}
+        >
+          {tabs.map(t => {
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => {
+                  setTab(t.id);
+                  try {
+                    window.location.hash = t.id === 'archivo' ? 'archivo' : 'proximos';
+                  } catch {
+                    /* ignore */
+                  }
+                }}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 999,
+                  border: `1.5px solid ${active ? 'rgba(96,62,249,.30)' : 'var(--border-warm)'}`,
+                  background: active ? 'rgba(96,62,249,.10)' : 'var(--warm)',
+                  color: active ? 'var(--purple)' : 'var(--ink-soft)',
+                  fontWeight: 800,
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  fontFamily: "'Instrument Sans', sans-serif",
+                  transition: 'all .18s',
+                }}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+        <p
+          style={{
+            margin: 0,
+            fontSize: 13,
+            color: 'var(--ink-muted)',
+            lineHeight: 1.55,
+            maxWidth: 560,
+          }}
+        >
+          {tab === 'proximos'
+            ? 'Inscribite y formá parte de la próxima charla, workshop o encuentro.'
+            : 'Charlas, paneles y materiales de encuentros ya realizados.'}
+        </p>
       </div>
       {loading ? (
         <PageLoading />
@@ -371,9 +390,8 @@ export function PageHeader({ label, title, sub }: { label: string; title: string
   const isMobile = useIsMobile();
   return (
     <div style={{
-      padding: isMobile ? '32px 24px 24px' : '52px 80px 36px',
-      borderBottom: '1px solid var(--border-warm)',
-      background: 'var(--white)',
+      ...marketingHeroWrap,
+      padding: isMobile ? '42px 24px 30px' : '68px 80px 48px',
     }}>
       <div style={s.hdrLabel}>{label}</div>
       <h1 style={{ ...s.hdrTitle, fontSize: isMobile ? 36 : 48 }}>{title}</h1>

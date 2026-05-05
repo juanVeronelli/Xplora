@@ -17,7 +17,7 @@ export function pathToPage(pathname: string): Page {
   if (p === '/somos-xplora') return 'somos';
   if (p === '/sponsors') return 'sponsors';
   if (p === '/eventos') return 'eventos';
-  // “Eventos pasados” vive dentro de /eventos (Archivo).
+  // El Archivo vive dentro de /eventos (tab «Archivo» / hash #archivo).
   if (p === '/charlas') return 'eventos';
   if (p === '/bolsa') return 'bolsa';
   return 'home';
@@ -34,7 +34,7 @@ export function pageToPath(page: Page): string {
       return '/sponsors';
     case 'eventos':
       return '/eventos';
-    // “Eventos pasados” vive dentro de /eventos (Archivo).
+    // El Archivo vive dentro de /eventos (tab «Archivo» / hash #archivo).
     case 'charlas':
       return '/eventos';
     case 'bolsa':

@@ -103,7 +103,7 @@ export default function Hero({ goTo }: Props) {
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)'; e.currentTarget.style.color = 'white'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
             >
-              Eventos pasados
+              Archivo
             </button>
           </div>
 

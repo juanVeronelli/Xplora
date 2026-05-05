@@ -17,7 +17,7 @@ export default function CharlaDetail({ charla: ch, goBack }: Props) {
 
   return (
     <>
-      <BackBtn onClick={goBack} label="Volver a eventos pasados" />
+      <BackBtn onClick={goBack} label="Volver al Archivo" />
       {ch.thumbnailUrl ? (
         <div style={{ padding: isMobile ? '12px 16px 0' : '12px 80px 0' }}>
           <div style={{ borderRadius: 16, overflow: 'hidden', border: '1.5px solid var(--border-warm)' }}>

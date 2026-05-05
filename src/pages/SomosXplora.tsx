@@ -6,6 +6,8 @@ import { fetchCharlas } from "../lib/db";
 import type { Charla } from "../types";
 import { useSiteMedia } from "../context/SiteMediaContext";
 import Footer from "../components/Footer";
+import { DEFAULT_MEDIA_VIDEO_URLS } from "../lib/defaultsMedia";
+import { marketingHeroWrap } from "../lib/pageBackgrounds";
 
 type TeamId = "makers" | "planners" | "media";
 
@@ -60,10 +62,13 @@ export default function SomosXplora() {
   }, [charlas]);
 
   const mediaVideos = useMemo(() => {
-    // URLs de reels / videos verticales (ideal: mp4 o embed URL). Si faltan, cae al highlight video.
-    const v1 = (import.meta.env.VITE_MEDIA_VIDEO_1 as string | undefined) || "";
-    const v2 = (import.meta.env.VITE_MEDIA_VIDEO_2 as string | undefined) || "";
-    const v3 = (import.meta.env.VITE_MEDIA_VIDEO_3 as string | undefined) || "";
+    // URLs de reels / videos verticales (ideal: mp4). Env opcional; si no hay, defaults en defaultsMedia.
+    const v1 =
+      (import.meta.env.VITE_MEDIA_VIDEO_1 as string | undefined)?.trim() || DEFAULT_MEDIA_VIDEO_URLS[0];
+    const v2 =
+      (import.meta.env.VITE_MEDIA_VIDEO_2 as string | undefined)?.trim() || DEFAULT_MEDIA_VIDEO_URLS[1];
+    const v3 =
+      (import.meta.env.VITE_MEDIA_VIDEO_3 as string | undefined)?.trim() || DEFAULT_MEDIA_VIDEO_URLS[2];
     const fallback = highlightVideoUrl || "";
     const arr = [v1, v2, v3].filter(Boolean);
     if (arr.length >= 3) return arr.slice(0, 3);
@@ -526,9 +531,7 @@ const s: Record<string, React.CSSProperties> = {
   heroWrap: {
     position: "relative",
     overflow: "hidden",
-    background:
-      "radial-gradient(1200px 520px at 15% 10%, rgba(96,62,249,0.26) 0%, rgba(96,62,249,0) 58%), radial-gradient(900px 520px at 82% 0%, rgba(168,255,120,0.16) 0%, rgba(168,255,120,0) 60%), linear-gradient(165deg, #F3EEE6 0%, #FAF8F5 55%, #F7F2EC 100%)",
-    borderBottom: "1px solid rgba(26,16,40,0.10)",
+    ...marketingHeroWrap,
   },
   heroBg: {
     position: "absolute",

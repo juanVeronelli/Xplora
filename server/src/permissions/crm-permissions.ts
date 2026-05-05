@@ -20,7 +20,7 @@ export const CRM_PERMISSION_KEYS = [
   'database_import',
   'database_sql_read',
   'contact_lists_manage',
-  'candidatos_manage',
+  'postulaciones_manage',
   'staff_accounts_manage',
   'members_data_delete',
   'access_total',
@@ -34,15 +34,22 @@ export function isValidPermissionKey(s: string): s is CrmPermissionKey {
   return SET.has(s);
 }
 
+/** Claves antiguas guardadas en `crm_staff.permissions` antes del rename a postulaciones_manage. */
+const LEGACY_PERMISSION_KEYS: Record<string, CrmPermissionKey> = {
+  candidatos_manage: 'postulaciones_manage',
+};
+
 /** Normaliza JSONB: array de strings, solo claves conocidas, sin duplicados. */
 export function normalizePermissionList(raw: unknown): CrmPermissionKey[] {
   if (!Array.isArray(raw)) return [];
   const out: CrmPermissionKey[] = [];
   const seen = new Set<string>();
   for (const x of raw) {
-    if (typeof x !== 'string' || !isValidPermissionKey(x) || seen.has(x)) continue;
-    seen.add(x);
-    out.push(x);
+    if (typeof x !== 'string') continue;
+    const mapped = LEGACY_PERMISSION_KEYS[x] ?? x;
+    if (!isValidPermissionKey(mapped) || seen.has(mapped)) continue;
+    seen.add(mapped);
+    out.push(mapped);
   }
   return out;
 }
