@@ -28,7 +28,7 @@ export const DEFAULT_CAROUSEL: CarouselSlide[] = [
   { id: 'def-8', url: '/images/Captura%20de%20pantalla%202024-12-31%20151753.webp', label: 'Networking' },
 ];
 
-/** Valores iniciales si la BD aún no tiene filas (mismas rutas que public/logos/...) */
+/** Valores iniciales si la BD aún no tiene filas (activos en `src/public/logos/` → `/logos/*` en el sitio) */
 export const DEFAULT_COMPANY_BRANDS: LogoBrand[] = [
   { id: 'co-1', name: 'Banco Galicia', logoUrl: '/logos/partners/galicia.svg' },
   { id: 'co-2', name: 'Mercado Libre', logoUrl: '/logos/partners/mercadolibre.svg' },
