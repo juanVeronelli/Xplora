@@ -57,9 +57,9 @@ export default function Carousel() {
         <div style={s.secLabel}>Comunidad</div>
         <div style={s.secTitle}>Momentos que nos definen</div>
       </div>
-      <Track photos={row1} direction="r" speed={58} />
-      <Track photos={row2} direction="l" speed={68} />
-      <Track photos={row3} direction="r" speed={50} />
+      <Track photos={row1} direction="r" speed={78} />
+      <Track photos={row2} direction="l" speed={92} />
+      <Track photos={row3} direction="r" speed={68} />
     </div>
   );
 }

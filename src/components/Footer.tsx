@@ -5,10 +5,9 @@ import { useIsMobile } from '../hooks/useIsMobile';
 interface Props {
   goTo?: (p: Page) => void;
   minimal?: boolean;
-  onAdminLogin?: () => void;
 }
 
-export default function Footer({ goTo, minimal = false, onAdminLogin }: Props) {
+export default function Footer({ goTo, minimal = false }: Props) {
   const { logoUrl } = useSiteMedia();
   const isMobile = useIsMobile();
 
@@ -60,9 +59,6 @@ export default function Footer({ goTo, minimal = false, onAdminLogin }: Props) {
         <span style={s.copy}>© 2025 Xplora UCEMA. Todos los derechos reservados.</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <Socials />
-          {onAdminLogin && (
-            <button onClick={onAdminLogin} style={s.adminLink}>admin</button>
-          )}
         </div>
       </div>
     </footer>
@@ -184,9 +180,4 @@ const s: Record<string, React.CSSProperties> = {
     borderTop: '1px solid var(--border-warm)', paddingTop: 24,
   },
   copy: { fontSize: 12, color: 'var(--ink-faint)' },
-  adminLink: {
-    fontSize: 11, color: 'var(--ink-faint)', background: 'none',
-    border: 'none', cursor: 'pointer', padding: '2px 4px',
-    opacity: 0.4, fontFamily: "'Instrument Sans', sans-serif",
-  },
 };

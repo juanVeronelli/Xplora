@@ -1,6 +1,7 @@
 /**
  * App shell: enrutado por **estado** (`Page`) + `history.pushState` (sin React Router).
- * Carga perezosa de páginas. El **admin** solo accesible con sesión Supabase; si no hay usuario redirige a home.
+ * Carga perezosa de páginas. El panel CRM: entrar solo por la URL configurada (`VITE_PANEL_PATH`);
+ * sin sesión se muestra login; sin botón público en el sitio.
  */
 import { useState, lazy, Suspense, useEffect, useCallback } from 'react';
 import type { Page } from './types';
@@ -8,7 +9,7 @@ import type { Evento, Charla, Empleo } from './types';
 import { useAuth } from './hooks/useAuth';
 import { StaffPermissionsProvider } from './context/StaffPermissionsContext';
 import { authFetch, readApiError } from './lib/serverApi';
-import { normalizePath, pageToPath, pathToPage, PANEL_PATH } from './lib/routes';
+import { getPanelPath, normalizePath, pageToPath, pathToPage } from './lib/routes';
 import Nav from './components/Nav';
 import LoginModal from './components/LoginModal';
 
@@ -46,8 +47,6 @@ export default function App() {
   const [selectedEvento, setSelectedEvento] = useState<Evento | null>(null);
   const [selectedCharla, setSelectedCharla] = useState<Charla | null>(null);
   const [selectedEmpleo, setSelectedEmpleo] = useState<Empleo | null>(null);
-  const [loginOpen, setLoginOpen] = useState(false);
-
   const goTo = useCallback((p: Page) => {
     setPage(p);
     const nextPath = pageToPath(p);
@@ -58,28 +57,12 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (loading) return;
-    if (page === 'admin' && !user) {
-      setPage('home');
-      if (normalizePath(window.location.pathname) === PANEL_PATH) {
-        window.history.replaceState({}, '', '/');
-      }
-    }
-  }, [page, user, loading]);
-
-  useEffect(() => {
     const onPop = () => {
-      const fromPath = pathToPage(window.location.pathname);
-      if (fromPath === 'admin' && !user) {
-        setPage('home');
-        window.history.replaceState({}, '', '/');
-        return;
-      }
-      setPage(fromPath);
+      setPage(pathToPage(window.location.pathname));
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
-  }, [user]);
+  }, []);
 
   const openEvento = (e: Evento) => {
     setSelectedEvento(e);
@@ -109,10 +92,16 @@ export default function App() {
         } as import('@supabase/supabase-js').AuthError,
       };
     }
-    setLoginOpen(false);
     goTo('admin');
     return { error: null };
   };
+
+  const exitPanelLogin = useCallback(() => {
+    setPage('home');
+    if (normalizePath(window.location.pathname) === getPanelPath()) {
+      window.history.replaceState({}, '', '/');
+    }
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
@@ -122,7 +111,14 @@ export default function App() {
   if (loading) return null;
 
   if (page === 'admin') {
-    if (!user) return null;
+    if (!user) {
+      return (
+        <LoginModal
+          onLogin={handleLogin}
+          onClose={exitPanelLogin}
+        />
+      );
+    }
     return (
       <Suspense fallback={<AdminLoading />}>
         <StaffPermissionsProvider>
@@ -146,16 +142,11 @@ export default function App() {
 
   return (
     <>
-      {loginOpen && <LoginModal onLogin={handleLogin} onClose={() => setLoginOpen(false)} />}
       {showNav && <Nav current={page} goTo={goTo} />}
       <div style={{ paddingTop: showNav ? 64 : 0 }}>
         <Suspense fallback={null}>
           {page === 'home' && (
-            <Home
-              goTo={goTo}
-              openEvento={openEvento}
-              onAdminLogin={() => (user ? goTo('admin') : setLoginOpen(true))}
-            />
+            <Home goTo={goTo} openEvento={openEvento} />
           )}
           {page === 'somos' && <SomosXplora />}
           {page === 'sponsors' && <Sponsors />}

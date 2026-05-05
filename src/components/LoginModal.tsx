@@ -37,7 +37,7 @@ export default function LoginModal({ onLogin, onClose }: Props) {
         <button style={s.close} onClick={onClose}>✕</button>
         <div style={s.logo}>🔐</div>
         <h2 style={s.title}>Acceso administrativo</h2>
-        <p style={s.sub}>Solo personal autorizado</p>
+        <p style={s.sub}>Equipo Xplora · guardá este enlace en favoritos para entrar rápido</p>
 
         <form onSubmit={submit}>
           <div style={s.field}>

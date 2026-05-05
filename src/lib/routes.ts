@@ -1,7 +1,18 @@
 import type { Page } from '../types';
 
-/** Ruta pública del panel (SPA). */
-export const PANEL_PATH = '/panel';
+/**
+ * Ruta del panel CRM (solo SPA). Configurá `VITE_PANEL_PATH` en el build (ej. Netlify)
+ * con un segmento difícil de adivinar; si no está definido, en desarrollo suele ser `/panel`.
+ * La seguridad real sigue siendo Supabase Auth + permisos CRM; esto reduce el descubrimiento casual.
+ */
+export function getPanelPath(): string {
+  const raw = (import.meta.env.VITE_PANEL_PATH as string | undefined)?.trim();
+  if (raw && raw.startsWith('/')) {
+    const n = raw.replace(/\/+$/, '');
+    return n.length ? n : '/panel';
+  }
+  return '/panel';
+}
 
 /** Normaliza pathname para comparar rutas (sin slash final salvo `/`). */
 export function normalizePath(pathname: string): string {
@@ -12,7 +23,7 @@ export function normalizePath(pathname: string): string {
 /** Devuelve la página según la URL actual. */
 export function pathToPage(pathname: string): Page {
   const p = normalizePath(pathname);
-  if (p === PANEL_PATH) return 'admin';
+  if (p === getPanelPath()) return 'admin';
   if (p === '/') return 'home';
   if (p === '/somos-xplora') return 'somos';
   if (p === '/sponsors') return 'sponsors';
@@ -40,7 +51,7 @@ export function pageToPath(page: Page): string {
     case 'bolsa':
       return '/bolsa';
     case 'admin':
-      return PANEL_PATH;
+      return getPanelPath();
     case 'evento-detail':
       return '/eventos';
     case 'charla-detail':

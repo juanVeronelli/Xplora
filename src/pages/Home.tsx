@@ -17,10 +17,9 @@ import { pickEarliestUpcoming } from '../lib/eventDate';
 interface Props {
   goTo: (p: Page) => void;
   openEvento: (e: Evento) => void;
-  onAdminLogin: () => void;
 }
 
-export default function Home({ goTo, openEvento, onAdminLogin }: Props) {
+export default function Home({ goTo, openEvento }: Props) {
   const isMobile = useIsMobile();
   const [proximo, setProximo] = useState<Evento | null>(null);
 
@@ -60,7 +59,7 @@ export default function Home({ goTo, openEvento, onAdminLogin }: Props) {
       <SponsorsOfficial />
 
       <Newsletter />
-      <Footer goTo={goTo} onAdminLogin={onAdminLogin} />
+      <Footer goTo={goTo} />
     </>
   );
 }

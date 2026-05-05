@@ -12,7 +12,7 @@
   status = 200
   force = true
 
-# SPA: /panel, /eventos, etc.
+# SPA: rutas del sitio + la URL secreta del panel (VITE_PANEL_PATH en build).
 [[redirects]]
   from = "/*"
   to = "/index.html"

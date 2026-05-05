@@ -75,7 +75,13 @@ export function splitCarouselIntoTracks(slides: CarouselSlide[]): CarouselPhoto[
   const photos = uniqueBySrc(slidesToPhotos(slides));
   if (photos.length === 0) return [[], [], []];
 
-  const minPerRow = Math.max(6, Math.ceil(photos.length / 3));
+  /**
+   * Largo mínimo de cada carril antes de duplicar ([...row, row] para el scroll infinito).
+   * Antes usábamos max(6, ceil(n/3)): con muchas fotos en el CMS cada fila solo «barajaba»
+   * las primeras ~6–8 imágenes y el resto casi no aparecía. Tiene que haber al menos una pasada
+   * completa por todas las fotos; el mínimo 6 evita un carril ridículamente corto si hay 1–5 slides.
+   */
+  const minPerRow = Math.max(photos.length, 6);
   return [
     buildSpacedTrack(photos, minPerRow, 0),
     buildSpacedTrack(photos, minPerRow, 1),

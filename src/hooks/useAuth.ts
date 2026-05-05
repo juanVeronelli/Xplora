@@ -1,6 +1,6 @@
 /**
  * Estado de sesión Supabase + login contra **`POST /api/auth/login`** (el server valida y devuelve tokens).
- * El panel admin usa `user`; si es `null`, no se muestra `/panel`.
+ * El panel CRM usa `user`; si es `null`, en la ruta del panel solo se muestra el login.
  */
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
