@@ -1,0 +1,630 @@
+:root {
+  --ink: #1A1028;
+  --ink-soft: #3D3060;
+  --ink-muted: #7A6E92;
+  --ink-faint: #B8B0CC;
+  --purple: #603EF9;
+  --purple-soft: rgba(96, 62, 249, 0.1);
+  --purple-mid: rgba(96, 62, 249, 0.2);
+  --cream: #FAF8F5;
+  --cream-dark: #F2EEE8;
+  --warm: #EDE8E0;
+  --white: #FFFFFF;
+  --border: rgba(96, 62, 249, 0.14);
+  --border-warm: rgba(26, 16, 40, 0.1);
+  --green: #2D6A4F;
+  --green-bg: #EBF5EF;
+  --orange: #C4622D;
+  --orange-bg: #FDF0E8;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Instrument Sans', sans-serif;
+  background: var(--cream);
+  color: var(--ink);
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4 { font-family: 'Fraunces', serif; }
+em { font-style: italic; }
+
+/* Animations */
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes floatStat1 { 0%, 100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-6px) translateX(3px); } }
+@keyframes floatStat2 { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(6px); } }
+@keyframes glowPulse { 0%, 100% { opacity: 0.5; transform: scale(1); } 50% { opacity: 0.85; transform: scale(1.1); } }
+@keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
+@keyframes scrollR { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+@keyframes xplora-toast-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes scrollL { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeRight { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Reveal classes (JS-driven via IntersectionObserver) */
+/* ── Global mobile fixes ── */
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body { -webkit-font-smoothing: antialiased; }
+img { max-width: 100%; }
+button { -webkit-tap-highlight-color: transparent; }
+
+/* Prevent carousel overflow from causing horizontal scroll */
+.carousel-outer { overflow: hidden; }
+
+/* Admin CRM layout helpers */
+.crm-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 18px;
+  align-items: start;
+}
+.crm-two-col > * { min-width: 0; }
+.crm-three-col {
+  display: grid;
+  grid-template-columns: 1.2fr 0.7fr 0.7fr;
+  gap: 16px 18px;
+  align-items: start;
+}
+.crm-three-col > * { min-width: 0; }
+@media (max-width: 720px) {
+  .crm-three-col { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .crm-two-col { grid-template-columns: 1fr; gap: 14px; }
+}
+
+/* Evita “doble margen” entre sección y primera fila */
+.crm-form-section .crm-two-col:first-child,
+.crm-form-section .crm-three-col:first-child {
+  margin-top: 0;
+}
+
+/* Vista previa HTML del mail (admin): scroll suave sin parpadeos del iframe */
+.email-live-preview-sandbox {
+  -webkit-overflow-scrolling: touch;
+}
+.email-live-preview-sandbox img {
+  max-width: 100%;
+  height: auto;
+  vertical-align: top;
+}
+.crm-input:focus {
+  outline: none;
+  border-color: rgba(96, 62, 249, 0.45);
+  box-shadow: 0 0 0 3px var(--purple-soft);
+}
+
+/* Xplora admin v2 — top bar grid + list hovers */
+.xplora-admin-top-inner {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 12px 16px;
+}
+.xplora-admin-brand-wrap {
+  grid-column: 1;
+  grid-row: 1;
+}
+.xplora-admin-user-wrap {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+}
+.xplora-admin-segment-wrap {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+@media (min-width: 900px) {
+  .xplora-admin-top-inner {
+    grid-template-columns: minmax(100px, auto) minmax(0, 1fr) minmax(180px, auto);
+    grid-template-rows: auto;
+  }
+  .xplora-admin-brand-wrap {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .xplora-admin-segment-wrap {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .xplora-admin-user-wrap {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}
+
+.xplora-admin-seg:not(.is-active):hover {
+  background: rgba(255, 255, 255, 0.4) !important;
+  color: var(--ink-soft) !important;
+}
+
+.xplora-admin-primary {
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.xplora-admin-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(26, 16, 40, 0.2) !important;
+}
+
+.xplora-admin-row {
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+.xplora-admin-row:hover {
+  background: #fff !important;
+  border-color: rgba(26, 16, 40, 0.12) !important;
+  transform: translateY(-1px);
+}
+
+.xplora-admin-form-shell .crm-input:focus {
+  border-color: rgba(96, 62, 249, 0.4);
+  box-shadow: 0 0 0 3px rgba(96, 62, 249, 0.12);
+}
+
+/* ── Xplora admin: móvil, touch y alturas de viewport ────────────────────
+   Pestañas: una sola fila, reparto de ancho + ellipsis (sin scroll ni segunda fila).
+   Safe areas para notch/home en media queries inferiores. */
+
+.xplora-admin-root {
+  min-height: 100dvh;
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.xplora-admin-header {
+  flex-shrink: 0;
+}
+
+.xplora-admin-main-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.xplora-admin-content-card {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* Pestañas: una fila, sin overflow-x scroll */
+.xplora-admin-segment-scroll {
+  width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+.xplora-admin-segment-track {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  justify-content: flex-start !important;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.xplora-admin-seg {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  min-height: 44px;
+  box-sizing: border-box;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.xplora-admin-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+@media (max-width: 640px) {
+  .xplora-admin-top-inner {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    row-gap: 10px !important;
+  }
+
+  .xplora-admin-user-wrap {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    row-gap: 6px;
+    max-width: 100%;
+  }
+
+  .xplora-admin-user-pill {
+    max-width: min(160px, 46vw) !important;
+    font-size: 10px !important;
+    padding: 6px 8px !important;
+  }
+
+  .xplora-admin-top-btn-site,
+  .xplora-admin-top-btn-out {
+    min-height: 44px;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .xplora-admin-main-stage {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    padding-top: 12px !important;
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .xplora-admin-content-card {
+    padding: 14px 12px 22px !important;
+    min-height: 0 !important;
+    border-radius: 12px !important;
+  }
+
+  .xplora-admin-seg {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* Modal de formulario fullscreen en móvil: respeta barra de direcciones / notch */
+.xplora-admin-form-backdrop {
+  padding-top: env(safe-area-inset-top, 0);
+  padding-right: env(safe-area-inset-right, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-left: env(safe-area-inset-left, 0);
+  box-sizing: border-box;
+}
+
+.xplora-admin-form-shell.is-mobile-fullbleed {
+  max-height: 100dvh !important;
+  max-height: 100svh !important;
+  min-height: 0 !important;
+  border-radius: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.xplora-admin-form-shell.is-desktop {
+  max-height: min(calc(100dvh - 48px), calc(100svh - 48px)) !important;
+}
+
+/* Campañas email: preview acotada en móvil (evita columna gigante + doble scroll) */
+@media (max-width: 959px) {
+  .email-campaign-preview-col {
+    max-height: min(52dvh, 380px) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    position: relative !important;
+    top: auto !important;
+    touch-action: pan-y;
+  }
+
+  .email-campaign-layout {
+    gap: 16px !important;
+  }
+
+  .email-live-preview-sandbox {
+    min-height: 200px !important;
+    max-height: min(48dvh, 360px) !important;
+  }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal.from-right {
+  transform: translateX(40px);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── Equipo CRM (panel admin) ───────────────────────────────────────── */
+.xplora-equipo-profile {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 18px 22px;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 22px 24px;
+  border-radius: 16px;
+  background: linear-gradient(165deg, #ffffff 0%, #faf8fc 52%, #f4f1fa 100%);
+  border: 1px solid rgba(96, 62, 249, 0.14);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.92) inset,
+    0 12px 42px rgba(96, 62, 249, 0.07),
+    0 4px 14px rgba(26, 16, 40, 0.05);
+}
+
+@media (max-width: 560px) {
+  .xplora-equipo-profile {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .xplora-equipo-profile-meta {
+    justify-content: center;
+  }
+
+  .xplora-equipo-profile-cta {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.xplora-equipo-profile-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(145deg, #603ef9 0%, #4a2fc4 100%);
+  box-shadow: 0 4px 16px rgba(96, 62, 249, 0.35);
+  flex-shrink: 0;
+}
+
+.xplora-equipo-profile-body {
+  min-width: 0;
+  text-align: left;
+}
+
+.xplora-equipo-profile-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--purple);
+  margin-bottom: 6px;
+}
+
+.xplora-equipo-profile-name {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin-bottom: 10px;
+}
+
+.xplora-equipo-profile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 22px;
+  align-items: flex-start;
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+
+.xplora-equipo-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.xplora-equipo-meta-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.xplora-equipo-profile-email {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.xplora-equipo-profile-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: var(--ink);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(26, 16, 40, 0.2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.xplora-equipo-profile-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 18px rgba(26, 16, 40, 0.22);
+}
+
+.xplora-equipo-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin: 0 0 12px 3px;
+}
+
+.xplora-equipo-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(26, 16, 40, 0.07);
+  background: #fff;
+  box-shadow: 0 10px 36px rgba(26, 16, 40, 0.07);
+}
+
+.xplora-equipo-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 14px;
+}
+
+.xplora-equipo-table thead th {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  padding: 14px 14px;
+  text-align: left;
+  vertical-align: bottom;
+  border-bottom: 1px solid rgba(26, 16, 40, 0.09);
+  background: linear-gradient(180deg, rgba(26, 16, 40, 0.025) 0%, rgba(26, 16, 40, 0.045) 100%);
+}
+
+.xplora-equipo-table thead th:last-child {
+  text-align: right;
+}
+
+.xplora-equipo-table tbody td {
+  padding: 13px 14px;
+  border-bottom: 1px solid rgba(26, 16, 40, 0.06);
+  color: var(--ink-soft);
+  vertical-align: middle;
+}
+
+.xplora-equipo-table tbody tr {
+  transition: background 0.14s ease;
+}
+
+.xplora-equipo-table tbody tr:nth-child(even) {
+  background: rgba(250, 249, 247, 0.88);
+}
+
+.xplora-equipo-table tbody tr:hover {
+  background: rgba(96, 62, 249, 0.055);
+}
+
+.xplora-equipo-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.xplora-equipo-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.xplora-equipo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 13px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s,
+    transform 0.12s;
+}
+
+.xplora-equipo-btn:hover {
+  transform: translateY(-1px);
+}
+
+.xplora-equipo-btn--primary {
+  background: #fff;
+  color: var(--purple);
+  border-color: rgba(96, 62, 249, 0.38);
+  box-shadow: 0 1px 3px rgba(26, 16, 40, 0.06);
+}
+
+.xplora-equipo-btn--primary:hover {
+  background: rgba(96, 62, 249, 0.09);
+}
+
+.xplora-equipo-btn--muted {
+  background: transparent;
+  color: var(--ink-muted);
+  border-color: rgba(26, 16, 40, 0.11);
+}
+
+.xplora-equipo-btn--muted:hover {
+  background: rgba(26, 16, 40, 0.04);
+  color: var(--ink-soft);
+}
+
+.xplora-equipo-btn--danger {
+  background: rgba(192, 57, 43, 0.06);
+  color: #9b2c20;
+  border-color: rgba(192, 57, 43, 0.22);
+}
+
+.xplora-equipo-btn--danger:hover {
+  background: rgba(192, 57, 43, 0.11);
+}
+
+.xplora-equipo-solo-hint {
+  margin: 0 0 20px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 14px;
+  color: var(--ink-muted);
+  background: rgba(26, 16, 40, 0.035);
+  border: 1px dashed rgba(26, 16, 40, 0.14);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.xplora-equipo-cell-clip {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Newsletter «Suscribite»: lista del <select> con texto oscuro (no heredar blanco del campo). */
+.newsletter-field-select option {
+  background-color: var(--white);
+  color: var(--ink);
+  -webkit-text-fill-color: var(--ink);
+}
+
+.newsletter-field-select option:disabled {
+  color: var(--ink-muted);
+  -webkit-text-fill-color: var(--ink-muted);
+}

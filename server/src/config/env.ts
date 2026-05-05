@@ -1,0 +1,102 @@
+import { config as loadDotenv } from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+/** Sube directorios hasta encontrar el package.json del front (raíz del repo). */
+function findProjectRoot(startDir: string): string {
+  let dir = path.resolve(startDir);
+  for (let i = 0; i < 16; i++) {
+    const pkgPath = path.join(dir, 'package.json');
+    if (fs.existsSync(pkgPath)) {
+      try {
+        const raw = fs.readFileSync(pkgPath, 'utf8');
+        const pkg = JSON.parse(raw) as { name?: string };
+        if (pkg.name === 'xplora-landing') return dir;
+      } catch {
+        /* ignorar JSON inválido */
+      }
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return process.cwd();
+}
+
+/** Carga .env desde la raíz (válido con tsx server/src/… y con node dist-server/…). */
+export function loadEnvFromProjectRoot(): void {
+  const root = findProjectRoot(__dirname);
+  const envPath = path.join(root, '.env');
+  if (fs.existsSync(envPath)) {
+    loadDotenv({ path: envPath });
+  } else {
+    loadDotenv();
+  }
+}
+
+function firstNonEmpty(...keys: string[]): string {
+  for (const k of keys) {
+    const v = process.env[k];
+    if (v != null && String(v).trim() !== '') return v.trim();
+  }
+  return '';
+}
+
+export interface AppConfig {
+  readonly nodeEnv: 'development' | 'production' | 'test';
+  readonly port: number;
+  readonly supabaseUrl: string;
+  readonly supabaseAnonKey: string;
+  /** Opcional: escrituras admin sin depender de RLS (recomendado en producción). */
+  readonly supabaseServiceRoleKey: string | null;
+  readonly cloudinary: {
+    cloudName: string;
+    apiKey: string;
+    apiSecret: string;
+  } | null;
+  readonly paths: {
+    /** Carpeta `dist` del front (Vite) */
+    webDist: string;
+  };
+}
+
+function resolveWebDist(): string {
+  const fromCwd = path.join(process.cwd(), 'dist');
+  if (fs.existsSync(fromCwd)) return fromCwd;
+  return path.join(findProjectRoot(__dirname), 'dist');
+}
+
+/**
+ * Única lectura de process.env (inyectable en tests con env mock).
+ * Open/closed: nuevas keys → ampliar AppConfig, no tocar servicios a boleo.
+ */
+export function getAppConfig(): AppConfig {
+  const nodeEnv = (process.env.NODE_ENV as AppConfig['nodeEnv']) || 'development';
+  const port = Number(process.env.PORT || process.env.API_PORT || 8787);
+
+  const supabaseUrl = firstNonEmpty('SUPABASE_URL', 'VITE_SUPABASE_URL');
+  const supabaseAnonKey = firstNonEmpty('SUPABASE_ANON_KEY', 'VITE_SUPABASE_KEY');
+  const supabaseServiceRoleKey = firstNonEmpty('SUPABASE_SERVICE_ROLE_KEY') || null;
+
+  const cName = firstNonEmpty('CLOUDINARY_CLOUD_NAME');
+  const cKey = firstNonEmpty('CLOUDINARY_API_KEY');
+  const cSecret = firstNonEmpty('CLOUDINARY_API_SECRET', 'CLOUDINARY_CLIENT_SECRET');
+
+  const cloudinary =
+    cName && cKey && cSecret
+      ? { cloudName: cName, apiKey: cKey, apiSecret: cSecret }
+      : null;
+
+  return {
+    nodeEnv: nodeEnv === 'production' || nodeEnv === 'test' ? nodeEnv : 'development',
+    port: Number.isFinite(port) && port > 0 ? port : 8787,
+    supabaseUrl,
+    supabaseAnonKey,
+    supabaseServiceRoleKey,
+    cloudinary,
+    paths: { webDist: resolveWebDist() },
+  };
+}

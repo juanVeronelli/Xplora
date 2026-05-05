@@ -1,0 +1,19 @@
+# Netlify: front estático; el API corre en Railway. El orden importa: /api antes que el fallback SPA.
+
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+# Misma URL que Railway → public networking (sin / final). Así /api/* en xploraucema.com llega al Node
+# aunque el bundle no tenga VITE_API_ORIGIN (el .env local no viaja con git).
+[[redirects]]
+  from = "/api/*"
+  to = "https://xplora-production.up.railway.app/api/:splat"
+  status = 200
+  force = true
+
+# SPA: /panel, /eventos, etc.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
