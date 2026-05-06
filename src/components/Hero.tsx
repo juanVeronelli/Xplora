@@ -1,9 +1,7 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef } from 'react';
 import type { Page } from '../types';
 import { useSiteMedia } from '../context/SiteMediaContext';
-import { useInView } from '../hooks/useInView';
 import { useIsMobile } from '../hooks/useIsMobile';
-import Counter from './Counter';
 
 interface Props { goTo: (p: Page) => void; }
 
@@ -11,7 +9,6 @@ export default function Hero({ goTo }: Props) {
   const { heroUrl } = useSiteMedia();
   const isMobile = useIsMobile();
   const colRef = useRef<HTMLDivElement>(null);
-  const { ref: statsRef, inView: statsInView } = useInView(0.1);
 
   useEffect(() => {
     const col = colRef.current;
@@ -51,6 +48,7 @@ export default function Hero({ goTo }: Props) {
       }}>
         <div style={s.grain} />
         <div style={s.glow} />
+        <div style={s.glowTop} />
 
         <div ref={colRef} style={{ ...s.col, padding: isMobile ? 0 : undefined }}>
           <div style={s.kickerWrap}>
@@ -58,19 +56,30 @@ export default function Hero({ goTo }: Props) {
             <span style={s.kickerLine} aria-hidden />
           </div>
 
-          <h1
-            style={{
-              ...s.h1,
-              fontSize: isMobile ? 'clamp(36px, 9vw, 48px)' : 'clamp(42px, 3.8vw, 56px)',
-              letterSpacing: isMobile ? '-1.2px' : '-2px',
-            }}
-          >
-            Donde las ideas
-            <br />
-            se vuelven <em style={s.em}>reales.</em>
+          <h1 style={s.h1}>
+            <span
+              style={{
+                ...s.h1Line1,
+                fontSize: isMobile ? 'clamp(34px, 8.5vw, 46px)' : 'clamp(44px, 4.2vw, 62px)',
+                letterSpacing: isMobile ? '-1.4px' : '-2.4px',
+              }}
+            >
+              Armando el ecosistema emprendedor
+            </span>
+            <span
+              style={{
+                ...s.h1Line2,
+                fontSize: isMobile ? 'clamp(30px, 7.5vw, 42px)' : 'clamp(38px, 3.5vw, 52px)',
+                letterSpacing: isMobile ? '-1px' : '-1.8px',
+              }}
+            >
+              que UCEMA necesitaba.
+            </span>
           </h1>
 
-          <p style={{ ...s.body, fontSize: isMobile ? 14 : 16 }}>
+          <div style={s.bodyRule} aria-hidden />
+
+          <p style={{ ...s.body, fontSize: isMobile ? 15 : 17 }}>
             Somos el club de emprendimiento de UCEMA: un espacio hecho por y para
             estudiantes que quieren pasar de la idea al plan — con encuentros,
             charlas y contactos que sí se usan después.
@@ -81,8 +90,14 @@ export default function Hero({ goTo }: Props) {
               type="button"
               style={{ ...s.btnPrimary, width: isMobile ? '100%' : 'auto' }}
               onClick={() => goTo('eventos')}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--purple)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'white'; }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'var(--purple)';
+                e.currentTarget.style.boxShadow = '0 8px 32px rgba(96,62,249,0.55)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'white';
+                e.currentTarget.style.boxShadow = s.btnPrimary.boxShadow as string;
+              }}
             >
               Ver eventos →
             </button>
@@ -100,51 +115,19 @@ export default function Hero({ goTo }: Props) {
                   }
                 }, 50);
               }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)'; e.currentTarget.style.color = 'white'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = 'rgba(160,139,255,0.65)';
+                e.currentTarget.style.color = 'white';
+                e.currentTarget.style.background = 'rgba(96,62,249,0.12)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.22)';
+                e.currentTarget.style.color = 'rgba(255,255,255,0.78)';
+                e.currentTarget.style.background = 'transparent';
+              }}
             >
               Archivo
             </button>
-          </div>
-
-          <div ref={statsRef as React.Ref<HTMLDivElement>} style={s.statsRail}>
-            <p style={s.statsLabel}>La comunidad en números</p>
-            <div style={s.statsCard}>
-              <HeroStat
-                figure={
-                  <>
-                    +<Counter target={2200} triggered={statsInView} />
-                  </>
-                }
-                caption="personas en la comunidad"
-              />
-              <span style={s.statDot} aria-hidden>
-                ·
-              </span>
-              <HeroStat
-                figure={
-                  <>
-                    +<Counter target={40} triggered={statsInView} />
-                  </>
-                }
-                caption="encuentros y charlas"
-              />
-              <span style={s.statDot} aria-hidden>
-                ·
-              </span>
-              <HeroStat figure="2022" caption="primer año del club" />
-              <span style={s.statDot} aria-hidden>
-                ·
-              </span>
-              <HeroStat
-                figure={
-                  <>
-                    +<Counter target={120} triggered={statsInView} />
-                  </>
-                }
-                caption="asistentes por evento"
-              />
-            </div>
           </div>
         </div>
       </div>
@@ -152,19 +135,11 @@ export default function Hero({ goTo }: Props) {
   );
 }
 
-function HeroStat({ figure, caption }: { figure: ReactNode; caption: string }) {
-  return (
-    <div style={s.statBlock}>
-      <div style={s.statFigure}>{figure}</div>
-      <div style={s.statCaption}>{caption}</div>
-    </div>
-  );
-}
-
 const s: Record<string, React.CSSProperties> = {
   hero: { display: 'flex', overflow: 'hidden' },
   left: {
-    background: 'var(--ink)',
+    background:
+      'linear-gradient(168deg, #2a2242 0%, #1e1530 28%, var(--ink) 58%, #120a1c 100%)',
     position: 'relative',
     display: 'flex',
     flexDirection: 'column',
@@ -172,15 +147,22 @@ const s: Record<string, React.CSSProperties> = {
     overflow: 'hidden',
   },
   grain: {
-    position: 'absolute', inset: 0, zIndex: 0, opacity: 0.035,
+    position: 'absolute', inset: 0, zIndex: 0, opacity: 0.048,
     backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
     backgroundRepeat: 'repeat', backgroundSize: '180px',
   },
   glow: {
-    position: 'absolute', bottom: -120, right: -80,
-    width: 400, height: 400, borderRadius: '50%',
-    background: 'radial-gradient(circle, rgba(96,62,249,0.22) 0%, transparent 68%)',
+    position: 'absolute', bottom: -140, right: '-12%',
+    width: 480, height: 480, borderRadius: '50%',
+    background: 'radial-gradient(circle, rgba(96,62,249,0.32) 0%, rgba(96,62,249,0.06) 45%, transparent 70%)',
     zIndex: 0,
+  },
+  glowTop: {
+    position: 'absolute', top: '-25%', left: '-15%',
+    width: 380, height: 380, borderRadius: '50%',
+    background: 'radial-gradient(circle, rgba(160,139,255,0.14) 0%, transparent 65%)',
+    zIndex: 0,
+    pointerEvents: 'none',
   },
   col: {
     position: 'relative',
@@ -196,110 +178,88 @@ const s: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     gap: 14,
-    marginBottom: 22,
+    marginBottom: 26,
   },
   kicker: {
     margin: 0,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: 700,
-    letterSpacing: '0.2em',
+    letterSpacing: '0.22em',
     textTransform: 'uppercase',
-    color: 'rgba(160, 139, 255, 0.92)',
+    color: 'rgba(220, 210, 255, 0.95)',
+    padding: '8px 16px',
+    borderRadius: 100,
+    border: '1px solid rgba(160, 139, 255, 0.38)',
+    background: 'linear-gradient(135deg, rgba(96,62,249,0.2) 0%, rgba(96,62,249,0.06) 100%)',
+    boxShadow: '0 0 0 1px rgba(0,0,0,0.12) inset, 0 12px 40px rgba(96,62,249,0.12)',
   },
   kickerLine: {
     flex: 1,
-    height: 1,
-    maxWidth: 120,
-    background: 'linear-gradient(90deg, rgba(160,139,255,0.45), transparent)',
-    borderRadius: 1,
+    height: 2,
+    maxWidth: 100,
+    borderRadius: 2,
+    background: 'linear-gradient(90deg, rgba(160,139,255,0.55) 0%, rgba(160,139,255,0.08) 100%)',
   },
   h1: {
-    fontFamily: "'Fraunces', serif",
-    fontWeight: 700,
-    lineHeight: 1.14,
-    color: 'white',
-    marginBottom: 24,
+    margin: 0,
+    marginBottom: 22,
     maxWidth: '100%',
   },
-  em: { fontStyle: 'italic', color: '#A08BFF' },
-  body: {
-    color: 'rgba(255,255,255,0.58)',
-    lineHeight: 1.82,
-    maxWidth: '52ch',
-    marginBottom: 28,
-    fontWeight: 400,
+  h1Line1: {
+    display: 'block',
+    fontFamily: "'Fraunces', serif",
+    fontWeight: 700,
+    lineHeight: 1.05,
+    color: '#FFFFFF',
+    textShadow:
+      '0 1px 0 rgba(255,255,255,0.06), 0 20px 48px rgba(0,0,0,0.45), 0 0 60px rgba(96,62,249,0.12)',
   },
-  btns: { display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 28, width: '100%' },
+  h1Line2: {
+    display: 'block',
+    marginTop: 12,
+    fontFamily: "'Fraunces', serif",
+    fontWeight: 700,
+    fontStyle: 'italic',
+    lineHeight: 1.12,
+    color: 'transparent',
+    backgroundImage: 'linear-gradient(105deg, #FFFFFF 0%, #D4C8FF 38%, #A08BFF 72%, #8870F0 100%)',
+    WebkitBackgroundClip: 'text',
+    backgroundClip: 'text',
+    textShadow: 'none',
+    filter: 'drop-shadow(0 14px 28px rgba(0,0,0,0.35))',
+  },
+  bodyRule: {
+    width: 56,
+    height: 4,
+    borderRadius: 4,
+    marginBottom: 22,
+    background: 'linear-gradient(90deg, var(--purple) 0%, rgba(160,139,255,0.35) 100%)',
+    boxShadow: '0 0 24px rgba(96,62,249,0.35)',
+  },
+  body: {
+    color: 'rgba(255,255,255,0.74)',
+    lineHeight: 1.78,
+    maxWidth: '48ch',
+    marginBottom: 30,
+    fontWeight: 400,
+    textShadow: '0 1px 18px rgba(0,0,0,0.25)',
+  },
+  btns: { display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 0, width: '100%' },
   btnPrimary: {
-    padding: '13px 26px', borderRadius: 100, fontSize: 14, fontWeight: 700,
+    padding: '14px 28px', borderRadius: 100, fontSize: 14, fontWeight: 700,
     fontFamily: "'Instrument Sans', sans-serif", cursor: 'pointer',
     background: 'white', color: 'var(--ink)', border: 'none', transition: 'all .25s',
     textAlign: 'center',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.12) inset, 0 12px 36px rgba(96,62,249,0.22)',
   },
   btnGhost: {
-    padding: '12px 22px', borderRadius: 100, fontSize: 14, fontWeight: 600,
+    padding: '13px 24px', borderRadius: 100, fontSize: 14, fontWeight: 600,
     fontFamily: "'Instrument Sans', sans-serif", cursor: 'pointer',
-    background: 'transparent', color: 'rgba(255,255,255,0.7)',
-    border: '1.5px solid rgba(255,255,255,0.18)', transition: 'all .22s',
+    background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.78)',
+    border: '1.5px solid rgba(255,255,255,0.22)', transition: 'all .22s',
     textAlign: 'center',
-  },
-  statsRail: {
-    width: '100%',
-    marginTop: 8,
-    paddingTop: 28,
-    borderTop: '1px solid rgba(255,255,255,0.12)',
-  },
-  statsLabel: {
-    margin: '0 0 14px',
-    fontSize: 11,
-    fontWeight: 600,
-    letterSpacing: '0.14em',
-    textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.38)',
-  },
-  statsCard: {
-    display: 'flex',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: '12px 10px',
-    rowGap: 16,
-    padding: '18px 22px',
-    borderRadius: 16,
-    border: '1px solid rgba(255,255,255,0.1)',
-    background: 'rgba(255,255,255,0.05)',
-    boxShadow: '0 12px 40px rgba(0,0,0,0.18)',
-    width: '100%',
-    boxSizing: 'border-box',
-  },
-  statBlock: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 6,
-    minWidth: 0,
-  },
-  statFigure: {
-    fontFamily: "'Fraunces', serif",
-    fontSize: 'clamp(24px, 2.8vw, 30px)',
-    fontWeight: 700,
-    color: 'white',
-    letterSpacing: '-0.6px',
-    lineHeight: 1.05,
-    fontVariantNumeric: 'tabular-nums',
-  },
-  statCaption: {
-    fontSize: 12,
-    lineHeight: 1.4,
-    color: 'rgba(255,255,255,0.52)',
-    fontWeight: 500,
-    letterSpacing: '0.02em',
-    maxWidth: 168,
-  },
-  statDot: {
-    color: 'rgba(255,255,255,0.28)',
-    fontSize: 22,
-    lineHeight: 1,
-    paddingBottom: 4,
-    userSelect: 'none',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
   },
   right: { position: 'relative', overflow: 'hidden' },
   photo: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },

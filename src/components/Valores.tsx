@@ -1,5 +1,27 @@
+import type { CSSProperties, Ref } from 'react';
 import { useInView } from '../hooks/useInView';
 import { useIsMobile } from '../hooks/useIsMobile';
+
+const PILLARS = [
+  {
+    n: '01',
+    title: 'Qué somos',
+    text:
+      'El club de emprendimiento de la Universidad del CEMA: un espacio estudiantil para conectar con speakers, pares y herramientas que en la carrera no siempre caben en un cronograma.',
+  },
+  {
+    n: '02',
+    title: 'Cómo trabajamos',
+    text:
+      'Charlas, talleres y eventos con fundadores, inversores y equipos del ecosistema. El foco es que te lleves contactos y criterio para avanzar con tu idea o proyecto, no solo asistir y listo.',
+  },
+  {
+    n: '03',
+    title: 'Comunidad',
+    text:
+      'Miles de personas en la red Xplora; cada año sumamos encuentros e inscripciones medibles. No es un slogan: es el campus y el club empujando en la misma dirección.',
+  },
+] as const;
 
 export default function Valores() {
   const { ref, inView } = useInView();
@@ -7,61 +29,46 @@ export default function Valores() {
 
   return (
     <section
-      ref={ref as React.Ref<HTMLElement>}
+      ref={ref as Ref<HTMLElement>}
       style={{
         ...s.section,
-        padding: isMobile ? '56px 24px' : '88px 80px',
+        padding: isMobile ? '56px 24px 64px' : '88px 80px 96px',
         opacity: inView ? 1 : 0,
         transform: inView ? 'none' : 'translateY(28px)',
         transition: 'opacity 0.8s ease, transform 0.8s ease',
       }}
     >
-      <div style={s.label}>Quiénes somos</div>
-      <div style={s.title}>Lo que nos mueve</div>
+      <div style={{ maxWidth: 1080, margin: '0 auto' }}>
+        <p style={s.kicker}>Sobre el club</p>
+        <h2 style={s.heading}>Lo que nos mueve en Xplora</h2>
+        <p style={s.lead}>
+          Desde 2022 organizamos el puente entre la facu y el mundo de equipos que construyen: acá no hace falta justificar
+          que querés emprender; el resto del club ya está en la misma página.
+        </p>
 
-      <div style={{ ...s.layout, gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }}>
-        {/* Intro */}
         <div
           style={{
-            ...s.intro,
-            paddingRight: isMobile ? 0 : 64,
-            paddingBottom: isMobile ? 32 : 0,
-            borderRight: isMobile ? 'none' : '1px solid var(--border-warm)',
-            borderBottom: isMobile ? '1px solid var(--border-warm)' : 'none',
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+            gap: isMobile ? 20 : 24,
+            marginTop: isMobile ? 40 : 48,
           }}
         >
-          <p style={s.introP}>
-            En UCEMA armamos el lugar donde no tenés que explicar por qué querés
-            armar algo propio: acá los demás ya lo entienden. Sumamos personas,
-            mentorías informales y acceso a un ecosistema que en la teoría no entra
-            en el aula.
-          </p>
-          <p style={{ ...s.introP, marginTop: 20 }}>
-            Desde 2022 venimos metiendo charlas, talleres y eventos abiertos: lo
-            importante no es el slogan, sino que cada año más gente del campus pase
-            del “me gustaría” al “lo estoy probando”.
-          </p>
-          <span style={s.highlight}>+2.200 miembros</span>
-        </div>
-
-        {/* Values */}
-        <div style={{ ...s.items, paddingLeft: isMobile ? 0 : 64, paddingTop: isMobile ? 32 : 0 }}>
-          {VALORES.map((v, i) => (
-            <div
-              key={v.title}
+          {PILLARS.map((item, i) => (
+            <article
+              key={item.n}
               style={{
-                ...s.item,
+                ...s.card,
+                padding: isMobile ? '22px 20px' : '26px 24px',
                 opacity: inView ? 1 : 0,
-                transform: inView ? 'none' : 'translateY(20px)',
-                transition: `opacity 0.6s ease ${i * 100 + 200}ms, transform 0.6s ease ${i * 100 + 200}ms`,
+                transform: inView ? 'none' : 'translateY(16px)',
+                transition: `opacity 0.55s ease ${120 + i * 80}ms, transform 0.55s ease ${120 + i * 80}ms`,
               }}
             >
-              <div style={{ ...s.ico, background: v.bg }}>{v.emoji}</div>
-              <div>
-                <h3 style={s.valTitle}>{v.title}</h3>
-                <p style={s.valP}>{v.desc}</p>
-              </div>
-            </div>
+              <span style={s.num}>{item.n}</span>
+              <h3 style={s.cardTitle}>{item.title}</h3>
+              <p style={s.cardText}>{item.text}</p>
+            </article>
           ))}
         </div>
       </div>
@@ -69,33 +76,11 @@ export default function Valores() {
   );
 }
 
-const VALORES = [
-  {
-    emoji: '🌟',
-    title: 'Misión',
-    desc: 'Acercar la comunidad UCEMA al mundo founder-first: que conocer fundadores, armar equipos y validar ideas sea parte normal de la carrera, no una excepción.',
-    bg: 'var(--purple-soft)',
-  },
-  {
-    emoji: '🤝',
-    title: 'Valores',
-    desc: 'Ejecución honesta, ayuda mutua y criterio. Preferimos introducir de verdad antes que posturear; acá el que prueba algo cuenta más que el que solo lo nombra.',
-    bg: 'var(--green-bg)',
-  },
-  {
-    emoji: '📈',
-    title: 'Impacto',
-    desc: 'Hoy más de 2.200 personas integran la comunidad Xplora; entre charlas, talleres y encuentros presenciales venimos moviendo miles de inscripciones y check-ins que sí podemos medir.',
-    bg: 'var(--orange-bg)',
-  },
-];
-
-const s: Record<string, React.CSSProperties> = {
+const s: Record<string, CSSProperties> = {
   section: {
     background: 'var(--white)',
-    padding: '88px 80px',
   },
-  label: {
+  kicker: {
     fontSize: 11,
     fontWeight: 700,
     letterSpacing: '2.5px',
@@ -103,51 +88,50 @@ const s: Record<string, React.CSSProperties> = {
     color: 'var(--purple)',
     marginBottom: 12,
   },
-  title: {
+  heading: {
     fontFamily: "'Fraunces', serif",
-    fontSize: 'clamp(28px, 3.5vw, 46px)',
+    fontSize: 'clamp(26px, 3.5vw, 42px)',
     fontWeight: 700,
-    letterSpacing: '-1.5px',
-    lineHeight: 1.1,
+    letterSpacing: '-1.2px',
+    lineHeight: 1.12,
     color: 'var(--ink)',
+    marginBottom: 20,
+    maxWidth: 720,
+  },
+  lead: {
+    fontSize: 16,
+    color: 'var(--ink-muted)',
+    lineHeight: 1.75,
+    maxWidth: 640,
+    margin: 0,
+  },
+  card: {
+    borderRadius: 16,
+    border: '1px solid var(--border-warm)',
+    background: 'linear-gradient(180deg, var(--cream) 0%, var(--white) 100%)',
+    boxSizing: 'border-box',
+  },
+  num: {
+    display: 'block',
+    fontFamily: "'Instrument Sans', sans-serif",
+    fontSize: 11,
+    fontWeight: 800,
+    letterSpacing: '0.2em',
+    color: 'var(--purple)',
     marginBottom: 12,
   },
-  layout: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: 0,
-    marginTop: 56,
-  },
-  intro: {},
-  introP: { fontSize: 15, color: 'var(--ink-muted)', lineHeight: 1.85 },
-  highlight: {
+  cardTitle: {
     fontFamily: "'Fraunces', serif",
-    fontSize: 'clamp(32px, 5vw, 40px)',
+    fontSize: 18,
     fontWeight: 700,
-    color: 'var(--purple)',
-    letterSpacing: '-2px',
-    marginTop: 8,
-    display: 'block',
-  },
-  items: { display: 'flex', flexDirection: 'column', gap: 32 },
-  item: { display: 'flex', gap: 20, alignItems: 'flex-start' },
-  ico: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    fontSize: 22,
-  },
-  valTitle: {
-    fontFamily: "'Fraunces', serif",
-    fontSize: 17,
-    fontWeight: 700,
-    marginBottom: 4,
     color: 'var(--ink)',
+    marginBottom: 10,
     letterSpacing: '-0.3px',
   },
-  valP: { fontSize: 14, color: 'var(--ink-muted)', lineHeight: 1.7 },
+  cardText: {
+    fontSize: 14,
+    color: 'var(--ink-soft)',
+    lineHeight: 1.7,
+    margin: 0,
+  },
 };
