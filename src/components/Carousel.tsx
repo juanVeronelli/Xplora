@@ -24,7 +24,7 @@ function Track({
   /** Debemos repetir el bloque exactamente 2 veces: scrollL/scrollR en index.css mueven -50% del ancho total. */
   const items = [...photos, ...photos];
   return (
-    <div style={{ overflow: 'hidden', marginBottom: 12 }}>
+    <div style={s.trackOuter}>
       <div
         style={{
           display: 'flex',
@@ -57,9 +57,11 @@ export default function Carousel() {
         <div style={s.secLabel}>Comunidad</div>
         <div style={s.secTitle}>Momentos que nos definen</div>
       </div>
-      <Track photos={row1} direction="r" speed={78} />
-      <Track photos={row2} direction="l" speed={92} />
-      <Track photos={row3} direction="r" speed={68} />
+      <div style={s.tracks}>
+        <Track photos={row1} direction="r" speed={78} />
+        <Track photos={row2} direction="l" speed={92} />
+        <Track photos={row3} direction="r" speed={68} />
+      </div>
     </div>
   );
 }
@@ -68,11 +70,21 @@ const s: Record<string, CSSProperties> = {
   section: {
     padding: '88px 0 80px',
     background: 'var(--ink)',
-    overflow: 'hidden',
+    overflowX: 'hidden',
+    overflowY: 'visible',
   },
   header: {
     padding: '0 80px',
     marginBottom: 48,
+  },
+  tracks: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 12,
+  },
+  trackOuter: {
+    overflowX: 'hidden',
+    overflowY: 'visible',
   },
   secLabel: {
     fontSize: 11,
