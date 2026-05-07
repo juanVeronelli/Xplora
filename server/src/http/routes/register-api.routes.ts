@@ -47,6 +47,7 @@ import { createAdminLumaCsvImportHandler } from '../controllers/admin-luma-csv.c
 import { createAdminEventosListHandler } from '../controllers/admin-eventos-list.controller.js';
 import { createAdminEventoInscripcionesHandler } from '../controllers/admin-evento-inscripciones.controller.js';
 import { createAdminAnalyticsHandler } from '../controllers/admin-analytics.controller.js';
+import { createAdminInstagramReelsHandler } from '../controllers/admin-instagram.controller.js';
 import { createAdminCandidatosDeleteHandler, createAdminCandidatosListHandler } from '../controllers/admin-candidatos.controller.js';
 import { createAdminSponsorsLeadListHandler } from '../controllers/admin-sponsors.controller.js';
 import {
@@ -202,6 +203,7 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
   app.put('/api/admin/site-media', requireAuth, loadStaff, siteEdit, createSiteMediaUpsertHandler(deps.config));
 
   app.get('/api/admin/analytics', requireAuth, loadStaff, analyticsPerm, createAdminAnalyticsHandler(deps.config));
+  app.get('/api/admin/instagram/reels', requireAuth, loadStaff, analyticsPerm, createAdminInstagramReelsHandler(deps.config));
 
   app.get('/api/admin/members', requireAuth, loadStaff, dbMembersList, createAdminMembersListHandler(deps.config));
   app.delete('/api/admin/members/:id', requireAuth, loadStaff, memberDelete, createAdminMemberDeleteHandler(deps.config));

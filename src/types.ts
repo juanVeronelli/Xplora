@@ -377,3 +377,20 @@ export interface AdminAnalyticsResponse {
     csv_vs_app: AdminAnalyticsCsvGapRow[];
   };
 }
+
+export interface AdminInstagramReelRow {
+  id: string;
+  timestamp: string;
+  caption: string | null;
+  permalink: string | null;
+  thumbnail_url: string | null;
+  like_count: number | null;
+  comments_count: number | null;
+  play_count?: number | null;
+}
+
+export interface AdminInstagramReelsResponse {
+  generated_at: string;
+  year: number;
+  reels: AdminInstagramReelRow[];
+}

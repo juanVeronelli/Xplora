@@ -2,7 +2,7 @@
  * Pestaña **Analytics**: KPIs y tablas derivadas de usuarios, eventos e inscripciones (actualización al cargar / refrescar).
  */
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import type { AdminAnalyticsResponse } from '../../types';
+import type { AdminAnalyticsResponse, AdminInstagramReelsResponse } from '../../types';
 import { authFetch, readApiError } from '../../lib/serverApi';
 import { CrmSection, Spinner } from './crm/CrmUi';
 import { crm } from './crm/crmTheme';
@@ -83,6 +83,11 @@ export default function AnalyticsPanel() {
   const [data, setData] = useState<AdminAnalyticsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [view, setView] = useState<'xplora' | 'instagram'>('xplora');
+
+  const [ig, setIg] = useState<AdminInstagramReelsResponse | null>(null);
+  const [igLoading, setIgLoading] = useState(false);
+  const [igError, setIgError] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -98,6 +103,24 @@ export default function AnalyticsPanel() {
     setData((await res.json()) as AdminAnalyticsResponse);
     setLoading(false);
   }, [toast]);
+
+  const loadIg = useCallback(
+    async (year: number) => {
+      setIgLoading(true);
+      setIgError('');
+      const res = await authFetch(`/api/admin/instagram/reels?year=${encodeURIComponent(String(year))}`);
+      if (!res.ok) {
+        const msg = await readApiError(res);
+        setIgError(msg);
+        toast.error(msg);
+        setIgLoading(false);
+        return;
+      }
+      setIg((await res.json()) as AdminInstagramReelsResponse);
+      setIgLoading(false);
+    },
+    [toast],
+  );
 
   useEffect(() => {
     void load();
@@ -122,12 +145,116 @@ export default function AnalyticsPanel() {
         <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-muted)' }}>
           {updated ? <>Última lectura: {updated}</> : null}
         </p>
-        <button type="button" style={crm.chipBtn} onClick={() => void load()} disabled={loading}>
-          {loading ? 'Actualizando…' : 'Actualizar datos'}
-        </button>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <button
+            type="button"
+            style={{
+              ...crm.chipBtn,
+              background: view === 'xplora' ? 'var(--purple-soft)' : 'var(--white)',
+              borderColor: view === 'xplora' ? 'rgba(96,62,249,.22)' : 'var(--border-warm)',
+              color: view === 'xplora' ? 'var(--purple)' : 'var(--ink-muted)',
+            }}
+            onClick={() => setView('xplora')}
+          >
+            Xplora
+          </button>
+          <button
+            type="button"
+            style={{
+              ...crm.chipBtn,
+              background: view === 'instagram' ? 'var(--purple-soft)' : 'var(--white)',
+              borderColor: view === 'instagram' ? 'rgba(96,62,249,.22)' : 'var(--border-warm)',
+              color: view === 'instagram' ? 'var(--purple)' : 'var(--ink-muted)',
+            }}
+            onClick={() => {
+              setView('instagram');
+              if (!ig && !igLoading) void loadIg(new Date().getFullYear());
+            }}
+          >
+            Instagram
+          </button>
+          <button
+            type="button"
+            style={crm.chipBtn}
+            onClick={() => (view === 'instagram' ? void loadIg(ig?.year ?? new Date().getFullYear()) : void load())}
+            disabled={view === 'instagram' ? igLoading : loading}
+          >
+            {view === 'instagram'
+              ? igLoading
+                ? 'Actualizando…'
+                : 'Actualizar IG'
+              : loading
+                ? 'Actualizando…'
+                : 'Actualizar datos'}
+          </button>
+        </div>
       </div>
 
-      {loading && !data ? (
+      {view === 'instagram' ? (
+        igLoading && !ig ? (
+          <Spinner />
+        ) : igError && !ig ? (
+          <p style={{ color: '#9b2c20', fontSize: 14 }}>{igError}</p>
+        ) : ig ? (
+          <>
+            <div style={{ ...crm.listCard, marginBottom: 20, flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
+              <strong style={{ fontSize: 13, color: 'var(--ink)' }}>Reels del {ig.year}</strong>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-muted)', lineHeight: 1.55 }}>
+                Listado desde Meta Graph API. Algunos campos pueden venir vacíos según permisos/token.
+              </p>
+            </div>
+
+            <DataTable title={`Reels (${ig.reels.length})`}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th style={th}>Fecha</th>
+                    <th style={th}>Caption</th>
+                    <th style={th}>Likes</th>
+                    <th style={th}>Comentarios</th>
+                    <th style={th}>Plays</th>
+                    <th style={th}>Link</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ig.reels.length === 0 ? (
+                    <tr>
+                      <td style={td} colSpan={6}>
+                        Sin reels detectados para ese año (o falta de permisos).
+                      </td>
+                    </tr>
+                  ) : (
+                    ig.reels.map(r => (
+                      <tr key={r.id}>
+                        <td style={td}>
+                          {r.timestamp ? new Date(r.timestamp).toLocaleDateString('es-AR', { dateStyle: 'medium' }) : '—'}
+                        </td>
+                        <td style={{ ...td, maxWidth: 520 }}>
+                          <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {r.caption ?? '—'}
+                          </span>
+                        </td>
+                        <td style={td}>{r.like_count ?? '—'}</td>
+                        <td style={td}>{r.comments_count ?? '—'}</td>
+                        <td style={td}>{r.play_count ?? '—'}</td>
+                        <td style={td}>
+                          {r.permalink ? (
+                            <a href={r.permalink} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--purple)', textDecoration: 'none' }}>
+                              Abrir →
+                            </a>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </DataTable>
+          </>
+        ) : null
+      ) : loading && !data ? (
         <Spinner />
       ) : error && !data ? (
         <p style={{ color: '#9b2c20', fontSize: 14 }}>{error}</p>

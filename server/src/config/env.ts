@@ -57,6 +57,21 @@ export interface AppConfig {
     apiKey: string;
     apiSecret: string;
   } | null;
+  /**
+   * Integración Meta Graph API (Instagram).
+   * Se usa solo en server; no exponer en el front.
+   */
+  readonly meta: {
+    /** Ej: 'v20.0'. */
+    graphApiVersion: string;
+    /** IG User ID (cuenta profesional conectada). */
+    instagramUserId: string;
+    /**
+     * Access token (ideal: long-lived). Debe incluir permisos para leer media/insights.
+     * Guardar en `.env` como secreto.
+     */
+    accessToken: string;
+  } | null;
   readonly paths: {
     /** Carpeta `dist` del front (Vite) */
     webDist: string;
@@ -90,6 +105,11 @@ export function getAppConfig(): AppConfig {
       ? { cloudName: cName, apiKey: cKey, apiSecret: cSecret }
       : null;
 
+  const igUserId = firstNonEmpty('META_IG_USER_ID', 'IG_USER_ID');
+  const metaAccessToken = firstNonEmpty('META_ACCESS_TOKEN', 'IG_ACCESS_TOKEN');
+  const metaVersion = firstNonEmpty('META_GRAPH_VERSION') || 'v20.0';
+  const meta = igUserId && metaAccessToken ? { instagramUserId: igUserId, accessToken: metaAccessToken, graphApiVersion: metaVersion } : null;
+
   return {
     nodeEnv: nodeEnv === 'production' || nodeEnv === 'test' ? nodeEnv : 'development',
     port: Number.isFinite(port) && port > 0 ? port : 8787,
@@ -97,6 +117,7 @@ export function getAppConfig(): AppConfig {
     supabaseAnonKey,
     supabaseServiceRoleKey,
     cloudinary,
+    meta,
     paths: { webDist: resolveWebDist() },
   };
 }
