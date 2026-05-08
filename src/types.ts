@@ -19,6 +19,8 @@ export type Page =
   | 'charla-detail'
   | 'bolsa'
   | 'empleo-detail'
+  | 'partner'
+  | 'talento'
   | 'somos'
   | 'sponsors'
   | 'admin';
@@ -378,6 +380,17 @@ export interface AdminAnalyticsResponse {
   };
 }
 
+export interface AdminTalentAnalyticsResponse {
+  totals: {
+    talent_total: number;
+    applicants_total: number;
+    applications_total: number;
+  };
+  top_areas: Array<{ area: string; applications: number }>;
+  by_career: Array<{ career: string; applicants: number; applications: number }>;
+  generated_at: string;
+}
+
 export interface AdminInstagramReelRow {
   id: string;
   timestamp: string;
@@ -389,8 +402,40 @@ export interface AdminInstagramReelRow {
   play_count?: number | null;
 }
 
+export interface AdminInstagramReelInsights {
+  reach: number | null;
+  views: number | null;
+  likes: number | null;
+  comments: number | null;
+  shares: number | null;
+  saved: number | null;
+  reposts: number | null;
+  total_interactions: number | null;
+  ig_reels_avg_watch_time: number | null;
+  ig_reels_video_view_total_time: number | null;
+  reels_skip_rate: number | null;
+  facebook_views: number | null;
+  crossposted_views: number | null;
+}
+
+export interface AdminInstagramReelAnalyticsRow extends AdminInstagramReelRow {
+  insights: AdminInstagramReelInsights;
+}
+
 export interface AdminInstagramReelsResponse {
   generated_at: string;
   year: number;
   reels: AdminInstagramReelRow[];
+}
+
+export interface AdminInstagramReelsAnalyticsResponse {
+  generated_at: string;
+  year: number;
+  reels: AdminInstagramReelAnalyticsRow[];
+  totals: AdminInstagramReelInsights & {
+    reels_count: number;
+    avg_reach: number | null;
+    avg_views: number | null;
+    avg_watch_time_s: number | null;
+  };
 }

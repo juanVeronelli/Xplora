@@ -7,21 +7,48 @@ import Footer from '../components/Footer';
 import EmptyState from '../components/EmptyState';
 import { useInView } from '../hooks/useInView';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { supabase } from '../lib/supabase';
 
 type Filter = 'Todos' | 'Full-time' | 'Part-time' | 'Pasantía' | 'Remoto' | 'Finanzas' | 'Tech' | 'Consultoría';
 
 const FILTERS: Filter[] = ['Todos', 'Full-time', 'Part-time', 'Pasantía', 'Remoto', 'Finanzas', 'Tech', 'Consultoría'];
 
-interface Props { openEmpleo: (e: Empleo) => void; }
+interface Props {
+  openEmpleo: (e: Empleo, opts?: { autoApply?: boolean }) => void;
+  goToTalento: () => void;
+}
 
-export default function Bolsa({ openEmpleo }: Props) {
+export default function Bolsa({ openEmpleo, goToTalento }: Props) {
   const [active, setActive] = useState<Filter>('Todos');
   const isMobile = useIsMobile();
   const [empleos, setEmpleos] = useState<Empleo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [talentEmail, setTalentEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchEmpleos().then(data => { setEmpleos(data); setLoading(false); });
+    supabase.auth.getSession().then(({ data }) => setTalentEmail(data.session?.user?.email ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_evt, s) => setTalentEmail(s?.user?.email ?? null));
+    fetchEmpleos().then(data => {
+      setEmpleos(data);
+      setLoading(false);
+      // Si volvimos desde magic link, podemos reabrir el empleo y el modal.
+      const hash = String(window.location.hash || '');
+      const m = hash.match(/^#apply=([a-f0-9-]+)$/i);
+      const jobId = m?.[1];
+      if (jobId) {
+        const job = data.find(e => e.id === jobId);
+        if (job) {
+          (openEmpleo as unknown as (e: Empleo, opts?: { autoApply?: boolean }) => void)(job, { autoApply: true });
+          // Limpieza para no re-disparar.
+          try {
+            window.location.hash = '';
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+    });
+    return () => sub.subscription.unsubscribe();
   }, []);
 
   const filtered = empleos.filter(e =>
@@ -37,6 +64,32 @@ export default function Bolsa({ openEmpleo }: Props) {
         title="Bolsa de Empleo"
         sub="Empresas del ecosistema buscan talento UCEMA."
       />
+      <div
+        style={{
+          padding: isMobile ? '0 16px' : '0 80px',
+          marginTop: -18,
+          display: 'flex',
+          justifyContent: 'flex-end',
+        }}
+      >
+        <button
+          type="button"
+          style={{
+            padding: '8px 14px',
+            borderRadius: 999,
+            border: '1.5px solid var(--border-warm)',
+            background: '#fff',
+            cursor: 'pointer',
+            fontWeight: 700,
+            fontSize: 13,
+            color: 'var(--ink-soft)',
+          }}
+          onClick={goToTalento}
+          title={talentEmail ? 'Ver/editar mi perfil' : 'Ingresar para completar mi perfil'}
+        >
+          Mi perfil →
+        </button>
+      </div>
       <div style={{
         display: 'flex', gap: 8,
         padding: isMobile ? '16px 16px 0' : '24px 80px 0',

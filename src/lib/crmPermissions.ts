@@ -9,8 +9,6 @@ export const CRM_PERMISSION_KEYS = [
   'past_events_create',
   'events_edit_delete',
   'past_events_edit_delete',
-  'empleos_access',
-  'empleos_edit_delete',
   'email_campaigns',
   'email_campaign_sends',
   'analytics',
@@ -24,6 +22,7 @@ export const CRM_PERMISSION_KEYS = [
   'contact_lists_manage',
   'postulaciones_manage',
   'staff_accounts_manage',
+  'partner_accounts_manage',
   'members_data_delete',
   'access_total',
 ] as const;
@@ -36,8 +35,6 @@ export const CRM_PERMISSION_LABELS: Record<CrmPermissionKey, string> = {
   past_events_create: 'Crear contenido del Archivo (charlas)',
   events_edit_delete: 'Editar / eliminar eventos próximos',
   past_events_edit_delete: 'Editar / eliminar contenido del Archivo',
-  empleos_access: 'Ver y gestionar bolsa de empleo (listado)',
-  empleos_edit_delete: 'Crear / editar / eliminar ofertas de empleo',
   email_campaigns: 'Email: redactar campañas (y ver envíos si aplica el rol)',
   email_campaign_sends: 'Email: registrar envíos y elegir audiencia (listas / todos)',
   analytics: 'Analytics Xplora',
@@ -52,6 +49,7 @@ export const CRM_PERMISSION_LABELS: Record<CrmPermissionKey, string> = {
   postulaciones_manage:
     'Postulaciones: ver leads de sponsors/empresas y solicitudes para sumarse a Xplora (incluye borrar registros)',
   staff_accounts_manage: 'Equipo — crear cuentas del panel y asignar permisos (excepto acceso total)',
+  partner_accounts_manage: 'Partners — alta de empresas y cuentas (portal de bolsa)',
   members_data_delete: 'Eliminar miembros del club (desde listados y audiencias)',
   access_total: 'Acceso total + otorgar acceso total a otros',
 };
@@ -80,8 +78,6 @@ export function canSeeAdminSection(section: AdminSectionId, perms: readonly CrmP
         'database_full',
         'database_event_audience_only',
       ]);
-    case 'empleos':
-      return hasAnyPermission(perms, ['empleos_access', 'empleos_edit_delete']);
     case 'campanas_email':
       return hasAnyPermission(perms, [
         'email_campaigns',
@@ -103,7 +99,7 @@ export function canSeeAdminSection(section: AdminSectionId, perms: readonly CrmP
         'contact_lists_manage',
       ]);
     case 'equipo':
-      return true;
+      return hasAnyPermission(perms, ['staff_accounts_manage']);
     case 'candidatos':
       return hasPermission(perms, 'postulaciones_manage');
     default:

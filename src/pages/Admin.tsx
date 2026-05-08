@@ -8,9 +8,9 @@
 import { useState, useEffect, useRef, useMemo, type CSSProperties } from 'react';
 import { useStaffPermissions } from '../context/StaffPermissionsContext';
 import { canSeeAdminSection, hasAnyPermission } from '../lib/crmPermissions';
-import { fetchAdminEventos, fetchRawCharlas, fetchRawEmpleos } from '../lib/db';
+import { fetchAdminEventos, fetchRawCharlas } from '../lib/db';
 import { authFetch, readApiError } from '../lib/serverApi';
-import type { DbEvento, DbCharla, DbEmpleo, Speaker } from '../types';
+import type { DbEvento, DbCharla, Speaker } from '../types';
 import SiteImagesPanel from '../components/admin/SiteImagesPanel';
 import ThumbnailUpload from '../components/admin/ThumbnailUpload';
 import EmailCampaignsHub from '../components/admin/EmailCampaignsHub';
@@ -18,6 +18,7 @@ import DatabasePanel, { EventAudiencePanel } from '../components/admin/DatabaseP
 import AnalyticsPanel from '../components/admin/AnalyticsPanel';
 import StaffAccountsPanel from '../components/admin/StaffAccountsPanel';
 import CandidatesPanel from '../components/admin/CandidatesPanel';
+import AdminPartnersPanel from '../components/admin/AdminPartnersPanel';
 import AdminShell, { type AdminSectionId, type AdminNavItem } from '../components/admin/crm/AdminShell';
 import {
   CrmSection,
@@ -40,31 +41,11 @@ import { useToast, useConfirm } from '../context/FeedbackContext';
 const SPEAKER_EMPTY: Speaker = { name: '', role: '', initials: '', bio: '' };
 
 const NAV_ITEMS: AdminNavItem[] = [
-  { id: 'sitio', title: 'Sitio', desc: 'Home pública: fotos, logo, marcas' },
-  { id: 'eventos', title: 'Próximos eventos', desc: 'Lo que ves en la página de eventos' },
-  {
-    id: 'charlas',
-    title: 'Archivo',
-    desc: 'Charlas en la web, CSV Luma e inscriptos por meet',
-  },
-  { id: 'empleos', title: 'Empleos', desc: 'Bolsa laboral del sitio' },
-  {
-    id: 'campanas_email',
-    title: 'Email',
-    desc: 'Redactar campañas y ver quién recibió cada envío',
-  },
-  {
-    id: 'candidatos',
-    title: 'Postulaciones',
-    desc: 'Sponsors y solicitudes para sumarse a Xplora',
-  },
-  { id: 'analytics', title: 'Analytics', desc: 'Métricas del club' },
-  { id: 'database', title: 'Miembros', desc: 'Listado de miembros y listas guardadas' },
-  {
-    id: 'equipo',
-    title: 'Equipo',
-    desc: 'Cuentas del panel y permisos',
-  },
+  { id: 'sitio', title: 'Site', desc: 'Home pública: fotos, logo, marcas' },
+  { id: 'eventos', title: 'Eventos', desc: 'Próximos eventos del sitio' },
+  { id: 'charlas', title: 'Archivo', desc: 'Charlas + CSV Luma + audiencias por evento' },
+  { id: 'campanas_email', title: 'Email', desc: 'Campañas, envíos y audiencias' },
+  { id: 'database', title: 'Database', desc: 'Todo lo de base de datos (miembros, analytics, etc.)' },
 ];
 
 interface Props {
@@ -78,10 +59,7 @@ export default function Admin({ signOut, goToSite }: Props) {
     const n = [nombre?.trim(), apellido?.trim()].filter(Boolean).join(' ');
     return n || (email?.trim() ?? '');
   }, [nombre, apellido, email]);
-  const visibleNav = useMemo(
-    () => NAV_ITEMS.filter((i) => canSeeAdminSection(i.id, permissions)),
-    [permissions],
-  );
+  const visibleNav = useMemo(() => NAV_ITEMS.filter(i => canSeeAdminSection(i.id, permissions)), [permissions]);
   const [section, setSection] = useState<AdminSectionId>('sitio');
 
   useEffect(() => {
@@ -156,13 +134,63 @@ export default function Admin({ signOut, goToSite }: Props) {
       )}
       {section === 'eventos' && <EventosSection />}
       {section === 'charlas' && <CharlasSection />}
-      {section === 'empleos' && <EmpleosSection />}
       {section === 'campanas_email' && <EmailCampaignsHub />}
-      {section === 'candidatos' && <CandidatesPanel />}
-      {section === 'analytics' && <AnalyticsPanel />}
-      {section === 'database' && <DatabasePanel />}
-      {section === 'equipo' && <StaffAccountsPanel />}
+      {section === 'database' && <DatabaseHub />}
     </AdminShell>
+    </>
+  );
+}
+
+function DatabaseHub() {
+  const { permissions } = useStaffPermissions();
+  const tabs = useMemo(() => {
+    const items: Array<{ id: 'miembros' | 'analytics' | 'postulaciones' | 'partners' | 'equipo'; label: string; show: boolean }> = [
+      { id: 'miembros', label: 'Miembros', show: canSeeAdminSection('database', permissions) },
+      { id: 'analytics', label: 'Analytics', show: canSeeAdminSection('analytics', permissions) },
+      { id: 'postulaciones', label: 'Postulaciones', show: canSeeAdminSection('candidatos', permissions) },
+      { id: 'partners', label: 'Partners', show: hasAnyPermission(permissions as any, ['partner_accounts_manage' as any]) },
+      { id: 'equipo', label: 'Equipo', show: canSeeAdminSection('equipo', permissions) },
+    ];
+    return items.filter(t => t.show);
+  }, [permissions]);
+
+  const [tab, setTab] = useState<(typeof tabs)[number]['id']>(() => tabs[0]?.id ?? 'miembros');
+
+  useEffect(() => {
+    if (tabs.length === 0) return;
+    if (!tabs.some(t => t.id === tab)) setTab(tabs[0]!.id);
+  }, [tab, tabs]);
+
+  if (tabs.length === 0) {
+    return (
+      <div style={crm.listCard}>
+        Tu cuenta no tiene permisos para ver secciones de Database.
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div style={{ ...crm.listCard, marginBottom: 16, padding: 14 }}>
+        <div style={{ ...crm.segmentRail, marginBottom: 0 }}>
+          <div style={crm.segmentTrack}>
+            {tabs.map(t => {
+              const active = t.id === tab;
+              return (
+                <button key={t.id} type="button" style={crm.segmentBtn(active)} onClick={() => setTab(t.id)} title={t.label}>
+                  <span style={crm.segmentLabel}>{t.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {tab === 'miembros' ? <DatabasePanel /> : null}
+      {tab === 'analytics' ? <AnalyticsPanel /> : null}
+      {tab === 'postulaciones' ? <CandidatesPanel /> : null}
+      {tab === 'partners' ? <AdminPartnersPanel /> : null}
+      {tab === 'equipo' ? <StaffAccountsPanel /> : null}
     </>
   );
 }
@@ -1010,238 +1038,4 @@ function CharlasSection() {
 }
 
 // ── EMPLEOS ────────────────────────────────────────────────────────────
-
-const EMPLEO_EMPTY: Omit<DbEmpleo, 'id' | 'created_at'> = {
-  title: '',
-  company: '',
-  location: '',
-  emoji: '',
-  type: 'Full-time',
-  type_tag: 'g',
-  area: 'Tech',
-  description: '',
-  requirements: '',
-  benefits: '',
-  application_link: '',
-  thumbnail_url: null,
-};
-
-function EmpleosSection() {
-  const toast = useToast();
-  const confirm = useConfirm();
-  const [rows, setRows] = useState<DbEmpleo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editRow, setEditRow] = useState<DbEmpleo | null>(null);
-  const [form, setForm] = useState(EMPLEO_EMPTY);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-
-  const load = async () => {
-    setLoading(true);
-    setRows(await fetchRawEmpleos());
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  const openCreate = () => {
-    setForm(EMPLEO_EMPTY);
-    setEditRow(null);
-    setFormOpen(true);
-    setError('');
-  };
-  const openEdit = (r: DbEmpleo) => {
-    setForm({ ...r });
-    setEditRow(r);
-    setFormOpen(true);
-    setError('');
-  };
-  const closeForm = () => {
-    setFormOpen(false);
-    setEditRow(null);
-  };
-
-  const save = async () => {
-    if (!form.title.trim()) {
-      setError('El título es obligatorio');
-      return;
-    }
-    setSaving(true);
-    setError('');
-    const res = editRow
-      ? await authFetch(`/api/admin/empleos/${editRow.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(form),
-        })
-      : await authFetch('/api/admin/empleos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(form),
-        });
-    if (!res.ok) {
-      setError(await readApiError(res));
-      setSaving(false);
-      return;
-    }
-    setSaving(false);
-    closeForm();
-    load();
-  };
-
-  const remove = async (id: string) => {
-    const ok = await confirm({
-      title: 'Eliminar oferta',
-      message: '¿Eliminar esta oferta de la bolsa? No podés deshacer esta acción.',
-      confirmLabel: 'Eliminar',
-      cancelLabel: 'Cancelar',
-      danger: true,
-    });
-    if (!ok) return;
-    const res = await authFetch(`/api/admin/empleos/${id}`, { method: 'DELETE' });
-    if (!res.ok) {
-      toast.error(await readApiError(res));
-      return;
-    }
-    toast.success('Oferta eliminada.');
-    load();
-  };
-
-  const f = (k: keyof typeof form, v: string) => setForm(p => ({ ...p, [k]: v }));
-
-  return (
-    <CrmSection
-      kicker="Bolsa laboral"
-      title="Ofertas de empleo"
-      subtitle="Cada oferta es una tarjeta en la bolsa pública. El botón de aplicar lleva al formulario que elijas (Google Forms, etc.)."
-      onNew={openCreate}
-      newLabel="+ Nueva oferta"
-    >
-      {loading ? (
-        <Spinner />
-      ) : rows.length === 0 ? (
-        <Empty
-          title="Todavía no hay ofertas"
-          text="Publicá la primera vacante con empresa, tipo de contrato y un link claro para aplicar."
-        />
-      ) : (
-        <div style={crm.list}>
-          {rows.map(r => (
-            <ListCard
-              key={r.id}
-              title={r.title}
-              meta={`${r.company} · ${r.type} · ${r.area}`}
-              actions={
-                <>
-                  <ActionBtn onClick={() => openEdit(r)}>Editar</ActionBtn>
-                  <ActionBtn danger onClick={() => remove(r.id)}>
-                    Eliminar
-                  </ActionBtn>
-                </>
-              }
-            />
-          ))}
-        </div>
-      )}
-
-      {formOpen && (
-        <FormScreen
-          title={editRow ? 'Editar oferta' : 'Nueva oferta'}
-          subtitle="Convencé en pocas líneas; el detalle largo va en descripción y requisitos."
-          onClose={closeForm}
-          onSave={save}
-          saving={saving}
-          error={error}
-        >
-          <FormSection title="Tarjeta y empresa">
-            <TwoCol>
-              <Field
-                label="Símbolo en la tarjeta (opcional)"
-                value={form.emoji}
-                onChange={v => f('emoji', v)}
-              />
-              <Field
-                label="Área"
-                hint="Ej: Tech, Finanzas, Operaciones"
-                value={form.area}
-                onChange={v => f('area', v)}
-                placeholder="Tech"
-              />
-            </TwoCol>
-            <ThumbnailUpload
-              label="Miniatura"
-              hint="Logo de la empresa o imagen del puesto; se muestra en la bolsa y en el detalle. Opcional."
-              value={form.thumbnail_url ?? ''}
-              onChange={v => setForm(p => ({ ...p, thumbnail_url: v || null }))}
-            />
-          </FormSection>
-
-          <FormSection title="Resumen del puesto">
-            <Field
-              label="Título del puesto *"
-              hint="El nombre del rol tal como lo busca la gente."
-              value={form.title}
-              onChange={v => f('title', v)}
-              placeholder="Analista de datos Jr."
-            />
-            <TwoCol>
-              <Field label="Empresa" value={form.company} onChange={v => f('company', v)} />
-              <Field label="Ubicación / modalidad" value={form.location} onChange={v => f('location', v)} placeholder="CABA · Híbrido" />
-            </TwoCol>
-            <TwoCol>
-              <Sel
-                label="Tipo de puesto"
-                value={form.type}
-                onChange={v => f('type', v)}
-                options={[
-                  { value: 'Full-time', label: 'Full-time' },
-                  { value: 'Part-time', label: 'Part-time' },
-                  { value: 'Pasantía', label: 'Pasantía' },
-                  { value: 'Remoto', label: 'Remoto' },
-                ]}
-              />
-              <Sel
-                label="Color de la etiqueta"
-                hint="Debe coincidir con el tipo de contrato para que los colores tengan sentido en el sitio."
-                value={form.type_tag}
-                onChange={v => f('type_tag', v)}
-                options={[
-                  { value: 'g', label: 'Verde (Full-time)' },
-                  { value: 'o', label: 'Naranja (Part-time)' },
-                  { value: 'p', label: 'Morado (Pasantía)' },
-                  { value: 'n', label: 'Gris (Remoto)' },
-                ]}
-              />
-            </TwoCol>
-          </FormSection>
-
-          <FormSection title="Descripción y requisitos">
-            <TA label="Descripción del puesto" value={form.description} onChange={v => f('description', v)} rows={4} />
-            <TA
-              label="Requisitos"
-              hint="Un requisito por línea se lee muy bien en la web."
-              value={form.requirements}
-              onChange={v => f('requirements', v)}
-              rows={4}
-              placeholder={'— Estudiante de últimos años\n— Experiencia con Python'}
-            />
-            <TA label="Beneficios y qué ofrecemos" value={form.benefits} onChange={v => f('benefits', v)} rows={3} />
-          </FormSection>
-
-          <FormSection title="Postulación">
-            <Field
-              label="Link para aplicar"
-              hint="Pegá el enlace al Google Form o página de postulación."
-              value={form.application_link}
-              onChange={v => f('application_link', v)}
-              placeholder="https://forms.gle/..."
-            />
-          </FormSection>
-        </FormScreen>
-      )}
-    </CrmSection>
-  );
-}
+// La gestión de empleos se hace desde el Partner Portal (no desde el CRM).

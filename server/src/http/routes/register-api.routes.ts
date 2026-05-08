@@ -42,12 +42,14 @@ import {
 } from '../controllers/admin-email-campaigns.controller.js';
 import { createSiteMediaUpsertHandler } from '../controllers/site-media-admin.controller.js';
 import { createRequireAuthMiddleware } from '../middleware/require-auth.middleware.js';
+import { createRequireSessionMiddleware } from '../middleware/require-session.middleware.js';
 import { uploadSingleImage, uploadSingleCsv, uploadSingleSpreadsheet } from '../middleware/upload.middleware.js';
 import { createAdminLumaCsvImportHandler } from '../controllers/admin-luma-csv.controller.js';
 import { createAdminEventosListHandler } from '../controllers/admin-eventos-list.controller.js';
 import { createAdminEventoInscripcionesHandler } from '../controllers/admin-evento-inscripciones.controller.js';
 import { createAdminAnalyticsHandler } from '../controllers/admin-analytics.controller.js';
-import { createAdminInstagramReelsHandler } from '../controllers/admin-instagram.controller.js';
+import { createAdminTalentAnalyticsHandler } from '../controllers/admin-talent-analytics.controller.js';
+import { createAdminInstagramReelsAnalyticsHandler, createAdminInstagramReelsHandler } from '../controllers/admin-instagram.controller.js';
 import { createAdminCandidatosDeleteHandler, createAdminCandidatosListHandler } from '../controllers/admin-candidatos.controller.js';
 import { createAdminSponsorsLeadListHandler } from '../controllers/admin-sponsors.controller.js';
 import {
@@ -70,6 +72,24 @@ import {
 import { createLoadStaffProfileMiddleware } from '../middleware/load-staff.middleware.js';
 import { createRequireAnyCrmPermission } from '../middleware/require-crm-permission.middleware.js';
 import type { CrmPermissionKey } from '../../permissions/crm-permissions.js';
+import {
+  createPartnerEmpleoApplicationsListHandler,
+  createPartnerEmpleoCreateHandler,
+  createPartnerEmpleoDeleteHandler,
+  createPartnerEmpleoPatchHandler,
+  createPartnerEmpleosListHandler,
+} from '../controllers/partner-empleos.controller.js';
+import { createPartnerMeHandler } from '../controllers/partner-me.controller.js';
+import { createTalentProfileGetHandler, createTalentProfileUpsertHandler } from '../controllers/talent-profile.controller.js';
+import { createTalentApplyHandler } from '../controllers/talent-apply.controller.js';
+import { createTalentBootstrapHandler, createTalentOnboardHandler } from '../controllers/talent-bootstrap.controller.js';
+import {
+  createAdminPartnerCompaniesListHandler,
+  createAdminPartnerCompanyCreateHandler,
+  createAdminPartnerUserCreateHandler,
+  createAdminPartnerUserResetPasswordHandler,
+  createAdminPartnerUsersListHandler,
+} from '../controllers/admin-partners.controller.js';
 
 export interface ApiRoutesDeps {
   config: AppConfig;
@@ -80,6 +100,7 @@ export interface ApiRoutesDeps {
 /** Monta todas las rutas `/api/*`. */
 export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
   const requireAuth = createRequireAuthMiddleware(deps.auth);
+  const requireSession = createRequireSessionMiddleware(deps.auth);
   const loadStaff = createLoadStaffProfileMiddleware(deps.config);
   const perm = (keys: readonly CrmPermissionKey[]) => createRequireAnyCrmPermission(keys);
 
@@ -109,6 +130,22 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
   app.get('/api/public/empleos', createPublicListHandler(deps.config, 'empleos'));
   app.get('/api/public/site-media', createPublicSiteMediaHandler(deps.config));
 
+  // ── Talento (magic link) ────────────────────────────────────────────────
+  app.get('/api/talent/bootstrap', requireSession, createTalentBootstrapHandler(deps.config));
+  app.post('/api/talent/onboard', requireSession, createTalentOnboardHandler(deps.config));
+  app.get('/api/talent/profile', requireSession, createTalentProfileGetHandler(deps.config));
+  app.put('/api/talent/profile', requireSession, createTalentProfileUpsertHandler(deps.config));
+  app.post('/api/talent/apply', requireSession, createTalentApplyHandler(deps.config));
+
+  // ── Partner Portal (password) ───────────────────────────────────────────
+  // Nota: la autorización real depende de RLS (company_id). El UI debe crear usuarios partner.
+  app.get('/api/partner/me', requireSession, createPartnerMeHandler(deps.config));
+  app.get('/api/partner/empleos', requireSession, createPartnerEmpleosListHandler(deps.config));
+  app.post('/api/partner/empleos', requireSession, createPartnerEmpleoCreateHandler(deps.config));
+  app.patch('/api/partner/empleos/:id', requireSession, createPartnerEmpleoPatchHandler(deps.config));
+  app.delete('/api/partner/empleos/:id', requireSession, createPartnerEmpleoDeleteHandler(deps.config));
+  app.get('/api/partner/empleos/:id/applications', requireSession, createPartnerEmpleoApplicationsListHandler(deps.config));
+
   // ── Auth (login sin Bearer; logout valida sesión) ───────────────────────
   app.post('/api/auth/login', loginLimiter, createLoginHandler(deps.config));
   app.post('/api/auth/logout', requireAuth, createLogoutHandler());
@@ -132,7 +169,6 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
   const eventsMutate = perm(['events_edit_delete']);
   const pastCreate = perm(['past_events_create']);
   const pastMutate = perm(['past_events_edit_delete']);
-  const empleosMutate = perm(['empleos_edit_delete']);
   const siteEdit = perm(['site_edit']);
   const campaigns = perm(['email_campaigns']);
   /** Listar campañas y registrar envíos: marketing o rol “solo envíos” (nuevo o legacy). */
@@ -162,7 +198,6 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
     'site_edit',
     'events_edit_delete',
     'past_events_edit_delete',
-    'empleos_edit_delete',
   ]);
   const staffManage = perm(['staff_accounts_manage', 'access_total']);
   const postulacionesManage = perm(['postulaciones_manage', 'access_total']);
@@ -196,14 +231,19 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
   app.patch('/api/admin/charlas/:id', requireAuth, loadStaff, pastMutate, createAdminUpdateHandler(deps.config, 'charlas'));
   app.delete('/api/admin/charlas/:id', requireAuth, loadStaff, pastMutate, createAdminDeleteHandler(deps.config, 'charlas'));
 
-  app.post('/api/admin/empleos', requireAuth, loadStaff, empleosMutate, createAdminInsertHandler(deps.config, 'empleos'));
-  app.patch('/api/admin/empleos/:id', requireAuth, loadStaff, empleosMutate, createAdminUpdateHandler(deps.config, 'empleos'));
-  app.delete('/api/admin/empleos/:id', requireAuth, loadStaff, empleosMutate, createAdminDeleteHandler(deps.config, 'empleos'));
-
   app.put('/api/admin/site-media', requireAuth, loadStaff, siteEdit, createSiteMediaUpsertHandler(deps.config));
 
   app.get('/api/admin/analytics', requireAuth, loadStaff, analyticsPerm, createAdminAnalyticsHandler(deps.config));
+  app.get('/api/admin/talent-analytics', requireAuth, loadStaff, analyticsPerm, createAdminTalentAnalyticsHandler(deps.config));
   app.get('/api/admin/instagram/reels', requireAuth, loadStaff, analyticsPerm, createAdminInstagramReelsHandler(deps.config));
+  app.get('/api/admin/instagram/reels/analytics', requireAuth, loadStaff, analyticsPerm, createAdminInstagramReelsAnalyticsHandler(deps.config));
+
+  // Partners (alta de empresas + cuentas)
+  app.get('/api/admin/partners/companies', requireAuth, loadStaff, perm(['partner_accounts_manage']), createAdminPartnerCompaniesListHandler(deps.config));
+  app.post('/api/admin/partners/companies', requireAuth, loadStaff, perm(['partner_accounts_manage']), createAdminPartnerCompanyCreateHandler(deps.config));
+  app.post('/api/admin/partners/users', requireAuth, loadStaff, perm(['partner_accounts_manage']), createAdminPartnerUserCreateHandler(deps.config));
+  app.get('/api/admin/partners/users', requireAuth, loadStaff, perm(['partner_accounts_manage']), createAdminPartnerUsersListHandler(deps.config));
+  app.post('/api/admin/partners/users/:id/reset-password', requireAuth, loadStaff, perm(['partner_accounts_manage']), createAdminPartnerUserResetPasswordHandler(deps.config));
 
   app.get('/api/admin/members', requireAuth, loadStaff, dbMembersList, createAdminMembersListHandler(deps.config));
   app.delete('/api/admin/members/:id', requireAuth, loadStaff, memberDelete, createAdminMemberDeleteHandler(deps.config));

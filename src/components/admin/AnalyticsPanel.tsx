@@ -2,15 +2,49 @@
  * Pestaña **Analytics**: KPIs y tablas derivadas de usuarios, eventos e inscripciones (actualización al cargar / refrescar).
  */
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import type { AdminAnalyticsResponse, AdminInstagramReelsResponse } from '../../types';
+import type { AdminAnalyticsResponse, AdminInstagramReelsAnalyticsResponse, AdminTalentAnalyticsResponse } from '../../types';
 import { authFetch, readApiError } from '../../lib/serverApi';
 import { CrmSection, Spinner } from './crm/CrmUi';
 import { crm } from './crm/crmTheme';
 import { useToast } from '../../context/FeedbackContext';
 
+type SortDir = 'asc' | 'desc';
+type IgSortKey =
+  | 'timestamp'
+  | 'reach'
+  | 'views'
+  | 'likes'
+  | 'comments'
+  | 'shares'
+  | 'saved'
+  | 'total_interactions'
+  | 'watch_time'
+  | 'avg_watch'
+  | 'skip_rate';
+
 function pctLabel(v: number | null): string {
   if (v == null) return '—';
   return `${v}%`;
+}
+
+function fmtNum(v: number | null): string {
+  if (v == null || !Number.isFinite(v)) return '—';
+  return new Intl.NumberFormat('es-AR').format(v);
+}
+
+function fmtPct01(v: number | null): string {
+  if (v == null || !Number.isFinite(v)) return '—';
+  return `${Math.round(v * 1000) / 10}%`;
+}
+
+function fmtTimeSeconds(v: number | null): string {
+  if (v == null || !Number.isFinite(v)) return '—';
+  const s = Math.max(0, Math.round(v));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  if (h > 0) return `${h}h ${String(m).padStart(2, '0')}m`;
+  return `${m}m ${String(ss).padStart(2, '0')}s`;
 }
 
 function StatCard({
@@ -83,11 +117,17 @@ export default function AnalyticsPanel() {
   const [data, setData] = useState<AdminAnalyticsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [view, setView] = useState<'xplora' | 'instagram'>('xplora');
+  const [view, setView] = useState<'xplora' | 'instagram' | 'talento'>('xplora');
 
-  const [ig, setIg] = useState<AdminInstagramReelsResponse | null>(null);
+  const [talent, setTalent] = useState<AdminTalentAnalyticsResponse | null>(null);
+  const [talentLoading, setTalentLoading] = useState(false);
+  const [talentError, setTalentError] = useState('');
+
+  const [ig, setIg] = useState<AdminInstagramReelsAnalyticsResponse | null>(null);
   const [igLoading, setIgLoading] = useState(false);
   const [igError, setIgError] = useState('');
+  const [igSortKey, setIgSortKey] = useState<IgSortKey>('timestamp');
+  const [igSortDir, setIgSortDir] = useState<SortDir>('desc');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -104,11 +144,26 @@ export default function AnalyticsPanel() {
     setLoading(false);
   }, [toast]);
 
+  const loadTalent = useCallback(async () => {
+    setTalentLoading(true);
+    setTalentError('');
+    const res = await authFetch('/api/admin/talent-analytics');
+    if (!res.ok) {
+      const msg = await readApiError(res);
+      setTalentError(msg);
+      toast.error(msg);
+      setTalentLoading(false);
+      return;
+    }
+    setTalent((await res.json()) as AdminTalentAnalyticsResponse);
+    setTalentLoading(false);
+  }, [toast]);
+
   const loadIg = useCallback(
     async (year: number) => {
       setIgLoading(true);
       setIgError('');
-      const res = await authFetch(`/api/admin/instagram/reels?year=${encodeURIComponent(String(year))}`);
+      const res = await authFetch(`/api/admin/instagram/reels/analytics?year=${encodeURIComponent(String(year))}`);
       if (!res.ok) {
         const msg = await readApiError(res);
         setIgError(msg);
@@ -116,7 +171,7 @@ export default function AnalyticsPanel() {
         setIgLoading(false);
         return;
       }
-      setIg((await res.json()) as AdminInstagramReelsResponse);
+      setIg((await res.json()) as AdminInstagramReelsAnalyticsResponse);
       setIgLoading(false);
     },
     [toast],
@@ -124,7 +179,8 @@ export default function AnalyticsPanel() {
 
   useEffect(() => {
     void load();
-  }, [load]);
+    void loadTalent();
+  }, [load, loadTalent]);
 
   const updated =
     data?.generated_at &&
@@ -132,6 +188,82 @@ export default function AnalyticsPanel() {
       dateStyle: 'medium',
       timeStyle: 'short',
     });
+
+  const igSorted = (() => {
+    if (!ig) return null;
+    const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+    const get = (r: AdminInstagramReelsAnalyticsResponse['reels'][number]): number | string | null => {
+      switch (igSortKey) {
+        case 'timestamp':
+          return r.timestamp || '';
+        case 'reach':
+          return num(r.insights.reach);
+        case 'views':
+          return num(r.insights.views);
+        case 'likes':
+          return num(r.insights.likes ?? r.like_count);
+        case 'comments':
+          return num(r.insights.comments ?? r.comments_count);
+        case 'shares':
+          return num(r.insights.shares);
+        case 'saved':
+          return num(r.insights.saved);
+        case 'total_interactions':
+          return num(r.insights.total_interactions);
+        case 'watch_time':
+          return num(r.insights.ig_reels_video_view_total_time);
+        case 'avg_watch':
+          return num(r.insights.ig_reels_avg_watch_time);
+        case 'skip_rate':
+          return num(r.insights.reels_skip_rate);
+      }
+    };
+    const dir = igSortDir === 'asc' ? 1 : -1;
+    const reels = [...ig.reels];
+    reels.sort((a, b) => {
+      const av = get(a);
+      const bv = get(b);
+      if (typeof av === 'string' || typeof bv === 'string') {
+        const as = String(av ?? '');
+        const bs = String(bv ?? '');
+        return dir * bs.localeCompare(as); // timestamp default desc if dir is desc
+      }
+      const an = av ?? -Infinity;
+      const bn = bv ?? -Infinity;
+      if (an === bn) return 0;
+      return dir * (an > bn ? 1 : -1);
+    });
+    return { ...ig, reels };
+  })();
+
+  const igSortTh = (label: string, key: IgSortKey): ReactNode => {
+    const active = igSortKey === key;
+    const arrow = active ? (igSortDir === 'asc' ? '↑' : '↓') : '';
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          if (igSortKey === key) setIgSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+          else {
+            setIgSortKey(key);
+            setIgSortDir(key === 'timestamp' ? 'desc' : 'desc');
+          }
+        }}
+        style={{
+          all: 'unset',
+          cursor: 'pointer',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          color: active ? 'var(--purple)' : 'inherit',
+        }}
+        title="Ordenar"
+      >
+        <span>{label}</span>
+        <span style={{ fontSize: 12, opacity: active ? 1 : 0.5 }}>{arrow || '↕'}</span>
+      </button>
+    );
+  };
 
   return (
     <CrmSection
@@ -175,17 +307,42 @@ export default function AnalyticsPanel() {
           </button>
           <button
             type="button"
+            style={{
+              ...crm.chipBtn,
+              background: view === 'talento' ? 'var(--purple-soft)' : 'var(--white)',
+              borderColor: view === 'talento' ? 'rgba(96,62,249,.22)' : 'var(--border-warm)',
+              color: view === 'talento' ? 'var(--purple)' : 'var(--ink-muted)',
+            }}
+            onClick={() => {
+              setView('talento');
+              if (!talent && !talentLoading) void loadTalent();
+            }}
+          >
+            Talento
+          </button>
+          <button
+            type="button"
             style={crm.chipBtn}
-            onClick={() => (view === 'instagram' ? void loadIg(ig?.year ?? new Date().getFullYear()) : void load())}
-            disabled={view === 'instagram' ? igLoading : loading}
+            onClick={() =>
+              view === 'instagram'
+                ? void loadIg(ig?.year ?? new Date().getFullYear())
+                : view === 'talento'
+                  ? void loadTalent()
+                  : void load()
+            }
+            disabled={view === 'instagram' ? igLoading : view === 'talento' ? talentLoading : loading}
           >
             {view === 'instagram'
               ? igLoading
                 ? 'Actualizando…'
                 : 'Actualizar IG'
-              : loading
-                ? 'Actualizando…'
-                : 'Actualizar datos'}
+              : view === 'talento'
+                ? talentLoading
+                  ? 'Actualizando…'
+                  : 'Actualizar talento'
+                : loading
+                  ? 'Actualizando…'
+                  : 'Actualizar datos'}
           </button>
         </div>
       </div>
@@ -195,36 +352,54 @@ export default function AnalyticsPanel() {
           <Spinner />
         ) : igError && !ig ? (
           <p style={{ color: '#9b2c20', fontSize: 14 }}>{igError}</p>
-        ) : ig ? (
+        ) : igSorted ? (
           <>
             <div style={{ ...crm.listCard, marginBottom: 20, flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
-              <strong style={{ fontSize: 13, color: 'var(--ink)' }}>Reels del {ig.year}</strong>
+              <strong style={{ fontSize: 13, color: 'var(--ink)' }}>Reels del {igSorted.year}</strong>
               <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-muted)', lineHeight: 1.55 }}>
-                Listado desde Meta Graph API. Algunos campos pueden venir vacíos según permisos/token.
+                Datos desde Meta Graph API (media + insights). Algunos campos pueden venir vacíos según permisos/token o disponibilidad (hasta 48h de delay).
               </p>
             </div>
 
-            <DataTable title={`Reels (${ig.reels.length})`}>
+            <DataTable title={`Reels (${igSorted.reels.length})`}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
-                    <th style={th}>Fecha</th>
+                    <th style={th}>{igSortTh('Fecha', 'timestamp')}</th>
                     <th style={th}>Caption</th>
-                    <th style={th}>Likes</th>
-                    <th style={th}>Comentarios</th>
-                    <th style={th}>Plays</th>
-                    <th style={th}>Link</th>
+                    <th style={th}>{igSortTh('Reach', 'reach')}</th>
+                    <th style={th}>{igSortTh('Views', 'views')}</th>
+                    <th style={th}>{igSortTh('Likes', 'likes')}</th>
+                    <th style={th}>{igSortTh('Comentarios', 'comments')}</th>
+                    <th style={th}>{igSortTh('Compartidos', 'shares')}</th>
+                    <th style={th}>{igSortTh('Guardados', 'saved')}</th>
+                    <th style={th}>{igSortTh('Interacciones', 'total_interactions')}</th>
+                    <th style={th}>{igSortTh('Watch time', 'watch_time')}</th>
+                    <th style={th}>{igSortTh('Avg watch', 'avg_watch')}</th>
+                    <th style={th}>{igSortTh('Skip rate', 'skip_rate')}</th>
+                    <th
+                      style={{
+                        ...th,
+                        position: 'sticky',
+                        right: 0,
+                        background: '#fff',
+                        boxShadow: '-8px 0 16px rgba(26,16,40,0.06)',
+                        zIndex: 2,
+                      }}
+                    >
+                      Link
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {ig.reels.length === 0 ? (
+                  {igSorted.reels.length === 0 ? (
                     <tr>
-                      <td style={td} colSpan={6}>
+                      <td style={td} colSpan={13}>
                         Sin reels detectados para ese año (o falta de permisos).
                       </td>
                     </tr>
                   ) : (
-                    ig.reels.map(r => (
+                    igSorted.reels.map(r => (
                       <tr key={r.id}>
                         <td style={td}>
                           {r.timestamp ? new Date(r.timestamp).toLocaleDateString('es-AR', { dateStyle: 'medium' }) : '—'}
@@ -234,10 +409,25 @@ export default function AnalyticsPanel() {
                             {r.caption ?? '—'}
                           </span>
                         </td>
-                        <td style={td}>{r.like_count ?? '—'}</td>
-                        <td style={td}>{r.comments_count ?? '—'}</td>
-                        <td style={td}>{r.play_count ?? '—'}</td>
-                        <td style={td}>
+                        <td style={td}>{fmtNum(r.insights.reach)}</td>
+                        <td style={td}>{fmtNum(r.insights.views)}</td>
+                        <td style={td}>{fmtNum(r.insights.likes ?? r.like_count)}</td>
+                        <td style={td}>{fmtNum(r.insights.comments ?? r.comments_count)}</td>
+                        <td style={td}>{fmtNum(r.insights.shares)}</td>
+                        <td style={td}>{fmtNum(r.insights.saved)}</td>
+                        <td style={td}>{fmtNum(r.insights.total_interactions)}</td>
+                        <td style={td}>{fmtTimeSeconds(r.insights.ig_reels_video_view_total_time)}</td>
+                        <td style={td}>{fmtTimeSeconds(r.insights.ig_reels_avg_watch_time)}</td>
+                        <td style={td}>{fmtPct01(r.insights.reels_skip_rate)}</td>
+                        <td
+                          style={{
+                            ...td,
+                            position: 'sticky',
+                            right: 0,
+                            background: '#fff',
+                            boxShadow: '-8px 0 16px rgba(26,16,40,0.06)',
+                          }}
+                        >
                           {r.permalink ? (
                             <a href={r.permalink} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--purple)', textDecoration: 'none' }}>
                               Abrir →
@@ -252,6 +442,61 @@ export default function AnalyticsPanel() {
                 </tbody>
               </table>
             </DataTable>
+          </>
+        ) : null
+      ) : view === 'talento' ? (
+        talentLoading && !talent ? (
+          <Spinner />
+        ) : talentError && !talent ? (
+          <p style={{ color: '#9b2c20', fontSize: 14 }}>{talentError}</p>
+        ) : talent ? (
+          <>
+            <div style={{ ...crm.listCard, marginBottom: 20, flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
+              <strong style={{ fontSize: 13, color: 'var(--ink)' }}>Talento y bolsa (interno)</strong>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-muted)', lineHeight: 1.55 }}>
+                Totales y tendencias basadas en <code style={{ fontSize: 12 }}>talent_profiles</code>,{' '}
+                <code style={{ fontSize: 12 }}>job_applications</code> y <code style={{ fontSize: 12 }}>empleos</code>.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
+              <StatCard label="Talento en DB" value={fmtNum(talent.totals.talent_total)} />
+              <StatCard
+                label="Aplicaron (personas)"
+                value={fmtNum(talent.totals.applicants_total)}
+                hint="Usuarios únicos con al menos 1 postulación."
+              />
+              <StatCard label="Postulaciones" value={fmtNum(talent.totals.applications_total)} />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
+              <div style={{ ...crm.listCard, flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
+                <strong style={{ fontSize: 13, color: 'var(--ink)' }}>Top categorías (área del empleo)</strong>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {(talent.top_areas ?? []).slice(0, 15).map(r => (
+                    <div key={r.area} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
+                      <span style={{ color: 'var(--ink-soft)' }}>{r.area}</span>
+                      <span style={{ color: 'var(--ink-muted)' }}>{fmtNum(r.applications)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ ...crm.listCard, flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
+                <strong style={{ fontSize: 13, color: 'var(--ink)' }}>Postulaciones por carrera</strong>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {(talent.by_career ?? []).slice(0, 15).map(r => (
+                    <div key={r.career} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
+                      <span style={{ color: 'var(--ink-soft)' }}>{r.career}</span>
+                      <span style={{ color: 'var(--ink-muted)' }}>
+                        {fmtNum(r.applicants)} / {fmtNum(r.applications)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--ink-muted)' }}>Formato: applicants / applications</div>
+              </div>
+            </div>
           </>
         ) : null
       ) : loading && !data ? (

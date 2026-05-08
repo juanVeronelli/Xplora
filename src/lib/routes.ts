@@ -14,6 +14,19 @@ export function getPanelPath(): string {
   return '/panel';
 }
 
+/**
+ * Ruta privada del portal de partners (similar a panel admin).
+ * Configurá `VITE_PARTNER_PATH` en el build; si falta, default `/partner`.
+ */
+export function getPartnerPath(): string {
+  const raw = (import.meta.env.VITE_PARTNER_PATH as string | undefined)?.trim();
+  if (raw && raw.startsWith('/')) {
+    const n = raw.replace(/\/+$/, '');
+    return n.length ? n : '/partner';
+  }
+  return '/partner';
+}
+
 /** Normaliza pathname para comparar rutas (sin slash final salvo `/`). */
 export function normalizePath(pathname: string): string {
   const p = pathname.replace(/\/+$/, '');
@@ -31,6 +44,8 @@ export function pathToPage(pathname: string): Page {
   // El Archivo vive dentro de /eventos (tab «Archivo» / hash #archivo).
   if (p === '/charlas') return 'eventos';
   if (p === '/bolsa') return 'bolsa';
+  if (p === getPartnerPath()) return 'partner';
+  if (p === '/talento') return 'talento';
   return 'home';
 }
 
@@ -50,6 +65,10 @@ export function pageToPath(page: Page): string {
       return '/eventos';
     case 'bolsa':
       return '/bolsa';
+    case 'partner':
+      return getPartnerPath();
+    case 'talento':
+      return '/talento';
     case 'admin':
       return getPanelPath();
     case 'evento-detail':

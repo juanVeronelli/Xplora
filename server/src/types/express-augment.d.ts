@@ -8,6 +8,8 @@ declare global {
       authUser?: AuthUser;
       /** Seteado por `createLoadStaffProfileMiddleware` */
       staffProfile?: StaffProfile;
+      /** Partner portal: company_id del usuario (si aplica). */
+      partnerCompanyId?: string;
     }
   }
 }

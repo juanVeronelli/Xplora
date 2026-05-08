@@ -1,5 +1,5 @@
 /**
- * Shell del panel admin: barra superior con marca, **segment control** de secciones
+ * Shell del panel admin: barra superior con marca, navegación simple de secciones
  * y acciones Ver sitio / Salir. El contenido de cada pestaña lo pinta `pages/Admin.tsx`.
  */
 import type { ReactNode } from 'react';

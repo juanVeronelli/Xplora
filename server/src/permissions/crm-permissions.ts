@@ -7,8 +7,6 @@ export const CRM_PERMISSION_KEYS = [
   'past_events_create',
   'events_edit_delete',
   'past_events_edit_delete',
-  'empleos_access',
-  'empleos_edit_delete',
   'email_campaigns',
   'email_campaign_sends',
   'analytics',
@@ -22,6 +20,7 @@ export const CRM_PERMISSION_KEYS = [
   'contact_lists_manage',
   'postulaciones_manage',
   'staff_accounts_manage',
+  'partner_accounts_manage',
   'members_data_delete',
   'access_total',
 ] as const;

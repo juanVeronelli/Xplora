@@ -19,6 +19,8 @@ const EventoDetail = lazy(() => import('./pages/EventoDetail'));
 const CharlaDetail = lazy(() => import('./pages/CharlaDetail'));
 const Bolsa = lazy(() => import('./pages/Bolsa'));
 const EmpleoDetail = lazy(() => import('./pages/EmpleoDetail'));
+const PartnerPortal = lazy(() => import('./pages/PartnerPortal'));
+const Talento = lazy(() => import('./pages/Talento'));
 const SomosXplora = lazy(() => import('./pages/SomosXplora'));
 const Sponsors = lazy(() => import('./pages/Sponsors'));
 const Admin = lazy(() => import('./pages/Admin'));
@@ -47,6 +49,7 @@ export default function App() {
   const [selectedEvento, setSelectedEvento] = useState<Evento | null>(null);
   const [selectedCharla, setSelectedCharla] = useState<Charla | null>(null);
   const [selectedEmpleo, setSelectedEmpleo] = useState<Empleo | null>(null);
+  const [autoApplyJobId, setAutoApplyJobId] = useState<string | null>(null);
   const goTo = useCallback((p: Page) => {
     setPage(p);
     const nextPath = pageToPath(p);
@@ -72,8 +75,9 @@ export default function App() {
     setSelectedCharla(c);
     goTo('charla-detail');
   };
-  const openEmpleo = (e: Empleo) => {
+  const openEmpleo = (e: Empleo, opts?: { autoApply?: boolean }) => {
     setSelectedEmpleo(e);
+    setAutoApplyJobId(opts?.autoApply ? e.id : null);
     goTo('empleo-detail');
   };
 
@@ -137,6 +141,7 @@ export default function App() {
     'evento-detail',
     'charla-detail',
     'empleo-detail',
+    'talento',
   ];
   const showNav = publicPages.includes(page);
 
@@ -157,10 +162,17 @@ export default function App() {
           {page === 'charla-detail' && selectedCharla && (
             <CharlaDetail charla={selectedCharla} goBack={() => goTo('eventos')} />
           )}
-          {page === 'bolsa' && <Bolsa openEmpleo={openEmpleo} />}
+          {page === 'bolsa' && <Bolsa openEmpleo={openEmpleo} goToTalento={() => goTo('talento')} />}
           {page === 'empleo-detail' && selectedEmpleo && (
-            <EmpleoDetail empleo={selectedEmpleo} goBack={() => goTo('bolsa')} />
+            <EmpleoDetail
+              empleo={selectedEmpleo}
+              goBack={() => goTo('bolsa')}
+              autoOpenApply={autoApplyJobId === selectedEmpleo.id}
+              onAutoOpenApplyConsumed={() => setAutoApplyJobId(null)}
+            />
           )}
+          {page === 'partner' && <PartnerPortal />}
+          {page === 'talento' && <Talento />}
         </Suspense>
       </div>
     </>

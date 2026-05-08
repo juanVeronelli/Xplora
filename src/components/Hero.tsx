@@ -64,7 +64,7 @@ export default function Hero({ goTo }: Props) {
                 letterSpacing: isMobile ? '-1.4px' : '-2.4px',
               }}
             >
-              Armando el ecosistema emprendedor
+              Workshops y charlas top
             </span>
             <span
               style={{
@@ -73,16 +73,15 @@ export default function Hero({ goTo }: Props) {
                 letterSpacing: isMobile ? '-1px' : '-1.8px',
               }}
             >
-              que UCEMA necesitaba.
+              con oportunidades reales.
             </span>
           </h1>
 
           <div style={s.bodyRule} aria-hidden />
 
           <p style={{ ...s.body, fontSize: isMobile ? 15 : 17 }}>
-            Somos el club de emprendimiento de UCEMA: un espacio hecho por y para
-            estudiantes que quieren pasar de la idea al plan — con encuentros,
-            charlas y contactos que sí se usan después.
+            Somos el club de emprendedores de UCEMA: comunidad, herramientas y contactos
+            para pasar de la idea al plan y hacerlo con gente que empuja en serio.
           </p>
 
           <div style={{ ...s.btns, flexDirection: isMobile ? 'column' : 'row' }}>
