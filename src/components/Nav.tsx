@@ -2,16 +2,19 @@ import { useState } from 'react';
 import type { Page } from '../types';
 import { useSiteMedia } from '../context/SiteMediaContext';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { PUBLIC_BOLSA_ENABLED } from '../config/publicFeatures';
 
 interface Props { current: Page; goTo: (p: Page) => void; }
 
-const links: { id: Page; label: string }[] = [
+const allLinks: { id: Page; label: string }[] = [
   { id: 'home', label: 'Inicio' },
   { id: 'somos', label: 'Somos Xplora' },
   { id: 'eventos', label: 'Eventos' },
   { id: 'bolsa', label: 'Bolsa de empleo' },
   { id: 'sponsors', label: 'Sponsors' },
 ];
+
+const links = allLinks.filter(l => PUBLIC_BOLSA_ENABLED || l.id !== 'bolsa');
 
 export default function Nav({ current, goTo }: Props) {
   const { logoUrl } = useSiteMedia();

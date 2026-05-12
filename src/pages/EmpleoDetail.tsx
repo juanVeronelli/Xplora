@@ -6,6 +6,7 @@ import Tag from '../components/Tag';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { supabase } from '../lib/supabase';
 import { apiUrl } from '../lib/apiBase';
+import { publicApplyReturnBasePath } from '../config/publicFeatures';
 
 interface Props {
   empleo: Empleo;
@@ -108,7 +109,7 @@ function ApplyModal({
     setErr('');
     setMsg('');
     setSending(true);
-    const redirectTo = `${window.location.origin}/bolsa#apply=${encodeURIComponent(empleoId)}`;
+    const redirectTo = `${window.location.origin}${publicApplyReturnBasePath()}#apply=${encodeURIComponent(empleoId)}`;
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: { emailRedirectTo: redirectTo },

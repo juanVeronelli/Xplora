@@ -31,9 +31,9 @@ export function loadEnvFromProjectRoot(): void {
   const root = findProjectRoot(__dirname);
   const envPath = path.join(root, '.env');
   if (fs.existsSync(envPath)) {
-    loadDotenv({ path: envPath });
+    loadDotenv({ path: envPath, override: true });
   } else {
-    loadDotenv();
+    loadDotenv({ override: true });
   }
 }
 
@@ -58,8 +58,16 @@ export interface AppConfig {
     apiSecret: string;
   } | null;
   /**
-   * Integración Meta Graph API (Instagram).
-   * Se usa solo en server; no exponer en el front.
+   * Resend: único canal de envío de campañas (`dispatch`). Requiere `RESEND_API_KEY` (o `RESEND_KEY`) en `.env` en la raíz del repo.
+   * Remitente: `RESEND_FROM` o `MAIL_FROM` (default `onboarding@resend.dev` para pruebas).
+   */
+  readonly resend: {
+    apiKey: string;
+    from: string;
+    fromName: string | null;
+  } | null;
+  /**
+   * Integración Meta Graph API (Instagram). Solo en server; no exponer en el front.
    */
   readonly meta: {
     /** Ej: 'v20.0'. */
@@ -105,6 +113,20 @@ export function getAppConfig(): AppConfig {
       ? { cloudName: cName, apiKey: cKey, apiSecret: cSecret }
       : null;
 
+  const resendKey = firstNonEmpty('RESEND_API_KEY', 'RESEND_KEY');
+  /** Default de Resend para pruebas sin dominio propio. */
+  const defaultResendFrom = 'onboarding@resend.dev';
+  const resendFrom = firstNonEmpty('RESEND_FROM', 'MAIL_FROM') || defaultResendFrom;
+  const resendFromName = firstNonEmpty('RESEND_FROM_NAME', 'MAIL_FROM_NAME') || null;
+  const resend =
+    resendKey
+      ? {
+          apiKey: resendKey,
+          from: resendFrom,
+          fromName: resendFromName,
+        }
+      : null;
+
   const igUserId = firstNonEmpty('META_IG_USER_ID', 'IG_USER_ID');
   const metaAccessToken = firstNonEmpty('META_ACCESS_TOKEN', 'IG_ACCESS_TOKEN');
   const metaVersion = firstNonEmpty('META_GRAPH_VERSION') || 'v20.0';
@@ -117,6 +139,7 @@ export function getAppConfig(): AppConfig {
     supabaseAnonKey,
     supabaseServiceRoleKey,
     cloudinary,
+    resend,
     meta,
     paths: { webDist: resolveWebDist() },
   };

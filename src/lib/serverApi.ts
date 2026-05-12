@@ -6,7 +6,7 @@
  * - **`publicFetch`**: sin token; para `/api/public/*`.
  * - **`readApiError`**: parsea el JSON de error `{ error: string }` que devuelve el server.
  */
-import { supabase } from './supabase';
+import { supabaseStaff as supabase } from './supabase';
 import { apiUrl } from './apiBase';
 
 /** POST/PATCH/DELETE u otros al API con JWT de la sesión actual (panel admin). */

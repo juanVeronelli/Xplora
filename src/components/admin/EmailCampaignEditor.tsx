@@ -1,8 +1,8 @@
 /**
  * Editor de **campañas de email** (pestaña Campañas): formulario + vista previa HTML en vivo.
- * Las plantillas viven en `emailTemplates/registry.ts` y `emailTemplate*Html.ts`. Envío real (n8n/Resend) pendiente.
+ * Las plantillas viven en `emailTemplates/registry.ts`. El envío es por Resend en segundo plano (`POST .../dispatch/start` + polling).
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { authFetch, readApiError } from '../../lib/serverApi';
 import ThumbnailUpload from './ThumbnailUpload';
 import EmailHtmlLivePreview from './EmailHtmlLivePreview';
@@ -23,11 +23,34 @@ import type { EmailCampaignEstadoId } from './emailCampaignTypes';
 import { EMAIL_CAMPAIGN_ESTADO_OPTIONS } from './emailCampaignTypes';
 import type { EmailTemplateBuildInput } from './emailTemplateInput';
 import {
+  buildEmailHtmlForTemplate,
   DEFAULT_EMAIL_TEMPLATE_ID,
   EMAIL_TEMPLATE_OPTIONS,
   type EmailTemplateId,
 } from './emailTemplates/registry';
 import { showCampaignField, templateFormConfig } from './emailTemplates/formFields';
+
+const DISPATCH_LS_KEY = 'xplora_email_dispatch_job_v1';
+
+export type DispatchJobState = {
+  jobId: string | null;
+  status: 'queued' | 'running' | 'completed' | 'failed';
+  campaignId: string;
+  total: number;
+  skipped_already_sent: number;
+  attempted: number;
+  sent: number;
+  failed: { email: string; error: string; usuario_id: string }[];
+  current_email: string | null;
+  from: string;
+  message?: string;
+};
+
+async function fetchDispatchJobStatus(jobId: string): Promise<DispatchJobState | null> {
+  const res = await authFetch(`/api/admin/email-campaign-dispatch/jobs/${jobId}`);
+  if (!res.ok) return null;
+  return (await res.json()) as DispatchJobState;
+}
 
 export type EmailCampaignEditorProps = {
   /** Sin tarjeta `CrmSection` (cuando el hub Email ya muestra intro / pestañas). */
@@ -55,6 +78,93 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
   const [lugar, setLugar] = useState('');
   const [orador, setOrador] = useState('');
   const [ctaUrl, setCtaUrl] = useState('');
+
+  const [dispatchJob, setDispatchJob] = useState<DispatchJobState | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prevStatusRef = useRef<string | null>(null);
+
+  const clearPoll = () => {
+    if (pollRef.current !== null) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  };
+
+  const startPolling = (jobId: string) => {
+    clearPoll();
+    const tick = async () => {
+      const data = await fetchDispatchJobStatus(jobId);
+      if (!data) {
+        clearPoll();
+        window.localStorage.removeItem(DISPATCH_LS_KEY);
+        setDispatchJob(null);
+        toast.error('No se pudo consultar el estado del envío.');
+        return;
+      }
+      setDispatchJob(data);
+      const prev = prevStatusRef.current;
+      if (data.status === 'completed' && prev !== 'completed') {
+        const failed = data.failed?.length ?? 0;
+        const skipped = data.skipped_already_sent ?? 0;
+        const from = data.from ? ` · desde ${data.from}` : '';
+        if (failed > 0) {
+          const reasons = data.failed
+            .slice(0, 3)
+            .map((f) => (f.error ? `${f.email}: ${f.error}` : f.email))
+            .join(' · ');
+          toast.error(`Envío terminado${from}. Enviados: ${data.sent}. Fallaron ${failed}: ${reasons}`);
+        } else {
+          toast.success(
+            `Listo: ${data.sent} correos${from}.${skipped ? ` ${skipped} ya figuraban como enviados.` : ''}`.trim(),
+          );
+        }
+        window.localStorage.removeItem(DISPATCH_LS_KEY);
+        clearPoll();
+      }
+      if (data.status === 'failed' && prev !== 'failed') {
+        toast.error(data.message ?? 'El envío falló en el servidor.');
+        window.localStorage.removeItem(DISPATCH_LS_KEY);
+        clearPoll();
+      }
+      prevStatusRef.current = data.status;
+    };
+    void tick();
+    pollRef.current = setInterval(() => void tick(), 2000);
+  };
+
+  useEffect(() => {
+    const raw = window.localStorage.getItem(DISPATCH_LS_KEY);
+    if (!raw) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { jobId } = JSON.parse(raw) as { jobId?: string };
+        if (!jobId) {
+          window.localStorage.removeItem(DISPATCH_LS_KEY);
+          return;
+        }
+        const st = await fetchDispatchJobStatus(jobId);
+        if (cancelled || !st) {
+          if (!st) window.localStorage.removeItem(DISPATCH_LS_KEY);
+          return;
+        }
+        setDispatchJob(st);
+        if (st.jobId && (st.status === 'queued' || st.status === 'running')) {
+          prevStatusRef.current = st.status;
+          startPolling(jobId);
+        } else {
+          window.localStorage.removeItem(DISPATCH_LS_KEY);
+        }
+      } catch {
+        window.localStorage.removeItem(DISPATCH_LS_KEY);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      clearPoll();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reanudar solo al montar; toast estable en la práctica
+  }, []);
 
   const formConf = templateFormConfig(templateId);
 
@@ -134,33 +244,41 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
     return id;
   };
 
-  const registerSendToList = async () => {
+  const dispatchBusy =
+    dispatchJob !== null &&
+    (dispatchJob.status === 'queued' || dispatchJob.status === 'running');
+
+  const dispatchCampaignEmails = async () => {
+    if (dispatchBusy) return;
     const campaignId = lastCampaignId ?? (await saveCampaign());
     if (!campaignId) return;
+    const html = buildEmailHtmlForTemplate(templateId, buildInput);
     setSaving(true);
-    const res = await authFetch(`/api/admin/email-campaigns/${campaignId}/envios`, {
+    prevStatusRef.current = null;
+    const res = await authFetch(`/api/admin/email-campaigns/${campaignId}/dispatch/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(
-        contactListId === '__ALL__'
+      body: JSON.stringify({
+        html,
+        asunto: asunto.trim(),
+        ...(contactListId === '__ALL__'
           ? { audience: 'all' }
-          : { contact_list_id: contactListId },
-      ),
+          : { contact_list_id: contactListId }),
+      }),
     });
     setSaving(false);
     if (!res.ok) {
       toast.error(await readApiError(res));
       return;
     }
-    const data = (await res.json()) as {
-      inserted?: number;
-      skipped_already_sent?: number;
-      total_recipients?: number;
-    };
-    const inserted = data.inserted ?? 0;
-    const skipped = data.skipped_already_sent ?? 0;
-    const total = data.total_recipients ?? inserted + skipped;
-    toast.success(`Envío registrado: ${inserted} nuevos · ${skipped} ya tenían envío (${total} total en lista).`);
+    const data = (await res.json()) as DispatchJobState;
+    setDispatchJob(data);
+    if (data.jobId && (data.status === 'queued' || data.status === 'running')) {
+      window.localStorage.setItem(DISPATCH_LS_KEY, JSON.stringify({ jobId: data.jobId, campaignId }));
+      startPolling(data.jobId);
+    } else {
+      toast.success(data.message ?? 'No hay envíos nuevos.');
+    }
   };
 
   const listOptions = useMemo(
@@ -337,26 +455,50 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
             <button
               type="button"
               className="xplora-admin-primary"
-              style={{ ...crm.primaryBtn, opacity: saving ? 0.75 : 1 }}
-              disabled={saving}
-              onClick={() => void registerSendToList()}
+              style={{ ...crm.primaryBtn, opacity: saving || dispatchBusy ? 0.75 : 1 }}
+              disabled={saving || dispatchBusy}
+              onClick={() => void dispatchCampaignEmails()}
             >
-              {saving ? 'Procesando…' : 'Enviar campaña a la lista'}
+              {dispatchBusy ? 'Enviando en segundo plano…' : saving ? 'Guardando…' : 'Enviar correos (Resend)'}
             </button>
-            <div style={{ fontSize: 13, color: 'var(--ink-muted)', margin: 0, maxWidth: 480, lineHeight: 1.45 }}>
+            {dispatchBusy && dispatchJob ? (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  minWidth: 0,
+                  flex: '1 1 220px',
+                }}
+              >
+                <span className="xplora-dispatch-spinner" aria-hidden />
+                <div style={{ fontSize: 13, color: 'var(--ink-muted)', lineHeight: 1.45, minWidth: 0 }}>
+                  <strong style={{ color: 'var(--ink-soft)' }}>
+                    {dispatchJob.sent + dispatchJob.failed.length} de {dispatchJob.attempted}
+                  </strong>
+                  {dispatchJob.current_email ? (
+                    <span>
+                      {' '}
+                      · último: <span style={{ wordBreak: 'break-all' }}>{dispatchJob.current_email}</span>
+                    </span>
+                  ) : null}
+                  <div style={{ fontSize: 12, marginTop: 4 }}>
+                    Podés cambiar de pestaña o cerrar esta ventana: el servidor sigue enviando. Al volver, el
+                    progreso se reanuda solo.
+                  </div>
+                </div>
+              </div>
+            ) : null}
+            <div style={{ fontSize: 13, color: 'var(--ink-muted)', margin: 0, maxWidth: 520, lineHeight: 1.45 }}>
               <p style={{ margin: 0 }}>
-                En Supabase se guardan <strong>nombre</strong>, <strong>asunto</strong> y{' '}
-                <strong>template_id</strong> (qué plantilla HTML usar al enviar).{' '}
-                <code style={{ fontSize: 12 }}>created_at</code> / <code style={{ fontSize: 12 }}>updated_at</code> los
-                define la base. Estado, flyer y cuerpo del formulario son para armar la vista previa (y el futuro envío).
+                El servidor toma los destinatarios de la <strong>lista elegida</strong> (o todos los usuarios), usa el{' '}
+                <strong>HTML de la plantilla</strong> que ves en la vista previa y envía <strong>uno por uno</strong> vía{' '}
+                <strong>Resend</strong>. Tras <strong>cada</strong> envío exitoso se guarda en{' '}
+                <code style={{ fontSize: 11 }}>campanias_envios</code>.
               </p>
               <p style={{ margin: '12px 0 0' }}>
-                <strong>Seguimiento de envíos:</strong> cuando mandes los mails (ej. con Resend), registrá qué usuarios
-                recibieron esta campaña con{' '}
-                <code style={{ fontSize: 11 }}>POST /api/admin/email-campaigns/&lt;id&gt;/envios</code> y cuerpo{' '}
-                <code style={{ fontSize: 11 }}>{`{ "usuario_ids": ["uuid", ...] }`}</code>
-                (mismo JWT del panel). Eso llena <code style={{ fontSize: 12 }}>campanias_envios</code> y en{' '}
-                <strong>Email → Quién recibió el mail</strong> ves la audiencia comparada con cada envío.
+                En <strong>Email → Quién recibió el mail</strong> comparás audiencia vs envíos. Para marcar envíos sin
+                mandar desde acá, seguí usando <code style={{ fontSize: 11 }}>POST …/envios</code>.
               </p>
               {lastCampaignId ? (
                 <p style={{ margin: '10px 0 0', fontSize: 12, fontFamily: 'ui-monospace, monospace' }}>

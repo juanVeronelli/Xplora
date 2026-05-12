@@ -2,6 +2,7 @@ import type { MouseEvent } from 'react';
 import type { Page } from '../types';
 import { useSiteMedia } from '../context/SiteMediaContext';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { PUBLIC_BOLSA_ENABLED } from '../config/publicFeatures';
 
 interface Props {
   goTo?: (p: Page) => void;
@@ -87,13 +88,16 @@ export default function Footer({ goTo, minimal = false }: Props) {
           </p>
         </div>
 
-        <FooterCol title="Club" links={[
-          { label: 'Inicio', onClick: () => goTo?.('home') },
-          { label: 'Somos Xplora', onClick: () => goTo?.('somos') },
-          { label: 'Eventos', onClick: () => goTo?.('eventos') },
-          { label: 'Bolsa de empleo', onClick: () => goTo?.('bolsa') },
-          { label: 'Sponsors', onClick: () => goTo?.('sponsors') },
-        ]} />
+        <FooterCol
+          title="Club"
+          links={[
+            { label: 'Inicio', onClick: () => goTo?.('home') },
+            { label: 'Somos Xplora', onClick: () => goTo?.('somos') },
+            { label: 'Eventos', onClick: () => goTo?.('eventos') },
+            ...(PUBLIC_BOLSA_ENABLED ? [{ label: 'Bolsa de empleo', onClick: () => goTo?.('bolsa') }] : []),
+            { label: 'Sponsors', onClick: () => goTo?.('sponsors') },
+          ]}
+        />
         <FooterCol title="Contacto" links={[
           { label: 'hola@xploraucema.com' },
           { label: 'Instagram' },

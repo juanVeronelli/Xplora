@@ -24,7 +24,7 @@ import {
 } from './crm/CrmUi';
 import { crm } from './crm/crmTheme';
 import { useToast, useConfirm } from '../../context/FeedbackContext';
-import { supabase } from '../../lib/supabase';
+import { supabaseStaff as supabase } from '../../lib/supabase';
 
 interface StaffRow {
   auth_user_id: string;

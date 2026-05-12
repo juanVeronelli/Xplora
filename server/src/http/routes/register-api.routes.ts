@@ -39,10 +39,13 @@ import {
   createEmailCampaignsListHandler,
   createEmailCampaignLogEnviosHandler,
   createEmailCampaignAudienceHandler,
+  createEmailCampaignDispatchStartHandler,
+  createEmailCampaignDispatchJobStatusHandler,
 } from '../controllers/admin-email-campaigns.controller.js';
 import { createSiteMediaUpsertHandler } from '../controllers/site-media-admin.controller.js';
 import { createRequireAuthMiddleware } from '../middleware/require-auth.middleware.js';
 import { createRequireSessionMiddleware } from '../middleware/require-session.middleware.js';
+import { createRequirePartnerLinkedMiddleware } from '../middleware/require-partner-linked.middleware.js';
 import { uploadSingleImage, uploadSingleCsv, uploadSingleSpreadsheet } from '../middleware/upload.middleware.js';
 import { createAdminLumaCsvImportHandler } from '../controllers/admin-luma-csv.controller.js';
 import { createAdminEventosListHandler } from '../controllers/admin-eventos-list.controller.js';
@@ -80,15 +83,22 @@ import {
   createPartnerEmpleosListHandler,
 } from '../controllers/partner-empleos.controller.js';
 import { createPartnerMeHandler } from '../controllers/partner-me.controller.js';
+import { createPartnerApplicationPatchHandler } from '../controllers/partner-applications.controller.js';
 import { createTalentProfileGetHandler, createTalentProfileUpsertHandler } from '../controllers/talent-profile.controller.js';
 import { createTalentApplyHandler } from '../controllers/talent-apply.controller.js';
 import { createTalentBootstrapHandler, createTalentOnboardHandler } from '../controllers/talent-bootstrap.controller.js';
 import {
+  createTalentApplicationsListHandler,
+  createTalentProfileCvUploadHandler,
+  createTalentProfilePhotoUploadHandler,
+} from '../controllers/talent-assets.controller.js';
+import {
   createAdminPartnerCompaniesListHandler,
+  createAdminPartnerCreateHandler,
   createAdminPartnerCompanyCreateHandler,
-  createAdminPartnerUserCreateHandler,
-  createAdminPartnerUserResetPasswordHandler,
-  createAdminPartnerUsersListHandler,
+  createAdminPartnerCompanyDeleteHandler,
+  createAdminPartnerCompanyUpdateHandler,
+  createAdminPartnerAccountUpdateHandler,
 } from '../controllers/admin-partners.controller.js';
 
 export interface ApiRoutesDeps {
@@ -101,12 +111,20 @@ export interface ApiRoutesDeps {
 export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
   const requireAuth = createRequireAuthMiddleware(deps.auth);
   const requireSession = createRequireSessionMiddleware(deps.auth);
+  const requirePartnerLinked = createRequirePartnerLinkedMiddleware(deps.config);
   const loadStaff = createLoadStaffProfileMiddleware(deps.config);
   const perm = (keys: readonly CrmPermissionKey[]) => createRequireAnyCrmPermission(keys);
 
   const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  const emailDispatchLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 24,
     standardHeaders: true,
     legacyHeaders: false,
   });
@@ -135,16 +153,34 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
   app.post('/api/talent/onboard', requireSession, createTalentOnboardHandler(deps.config));
   app.get('/api/talent/profile', requireSession, createTalentProfileGetHandler(deps.config));
   app.put('/api/talent/profile', requireSession, createTalentProfileUpsertHandler(deps.config));
+  app.post(
+    '/api/talent/profile/photo',
+    requireSession,
+    uploadSingleImage,
+    createTalentProfilePhotoUploadHandler({ config: deps.config, imageStorage: deps.imageStorage }),
+  );
+  app.post('/api/talent/profile/cv', requireSession, uploadSingleCv, createTalentProfileCvUploadHandler(deps.config));
+  app.get('/api/talent/applications', requireSession, createTalentApplicationsListHandler(deps.config));
   app.post('/api/talent/apply', requireSession, createTalentApplyHandler(deps.config));
 
-  // ── Partner Portal (password) ───────────────────────────────────────────
-  // Nota: la autorización real depende de RLS (company_id). El UI debe crear usuarios partner.
-  app.get('/api/partner/me', requireSession, createPartnerMeHandler(deps.config));
-  app.get('/api/partner/empleos', requireSession, createPartnerEmpleosListHandler(deps.config));
-  app.post('/api/partner/empleos', requireSession, createPartnerEmpleoCreateHandler(deps.config));
-  app.patch('/api/partner/empleos/:id', requireSession, createPartnerEmpleoPatchHandler(deps.config));
-  app.delete('/api/partner/empleos/:id', requireSession, createPartnerEmpleoDeleteHandler(deps.config));
-  app.get('/api/partner/empleos/:id/applications', requireSession, createPartnerEmpleoApplicationsListHandler(deps.config));
+  // ── Partner Portal (Supabase Auth + partner_users) ──────────────────────
+  app.get('/api/partner/me', requireSession, requirePartnerLinked, createPartnerMeHandler(deps.config));
+  app.get('/api/partner/empleos', requireSession, requirePartnerLinked, createPartnerEmpleosListHandler(deps.config));
+  app.post('/api/partner/empleos', requireSession, requirePartnerLinked, createPartnerEmpleoCreateHandler(deps.config));
+  app.patch('/api/partner/empleos/:id', requireSession, requirePartnerLinked, createPartnerEmpleoPatchHandler(deps.config));
+  app.delete('/api/partner/empleos/:id', requireSession, requirePartnerLinked, createPartnerEmpleoDeleteHandler(deps.config));
+  app.get(
+    '/api/partner/empleos/:id/applications',
+    requireSession,
+    requirePartnerLinked,
+    createPartnerEmpleoApplicationsListHandler(deps.config),
+  );
+  app.patch(
+    '/api/partner/applications/:id',
+    requireSession,
+    requirePartnerLinked,
+    createPartnerApplicationPatchHandler(deps.config),
+  );
 
   // ── Auth (login sin Bearer; logout valida sesión) ───────────────────────
   app.post('/api/auth/login', loginLimiter, createLoginHandler(deps.config));
@@ -240,10 +276,11 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
 
   // Partners (alta de empresas + cuentas)
   app.get('/api/admin/partners/companies', requireAuth, loadStaff, perm(['partner_accounts_manage']), createAdminPartnerCompaniesListHandler(deps.config));
+  app.post('/api/admin/partners', requireAuth, loadStaff, perm(['partner_accounts_manage']), createAdminPartnerCreateHandler(deps.config));
   app.post('/api/admin/partners/companies', requireAuth, loadStaff, perm(['partner_accounts_manage']), createAdminPartnerCompanyCreateHandler(deps.config));
-  app.post('/api/admin/partners/users', requireAuth, loadStaff, perm(['partner_accounts_manage']), createAdminPartnerUserCreateHandler(deps.config));
-  app.get('/api/admin/partners/users', requireAuth, loadStaff, perm(['partner_accounts_manage']), createAdminPartnerUsersListHandler(deps.config));
-  app.post('/api/admin/partners/users/:id/reset-password', requireAuth, loadStaff, perm(['partner_accounts_manage']), createAdminPartnerUserResetPasswordHandler(deps.config));
+  app.patch('/api/admin/partners/companies/:id', requireAuth, loadStaff, perm(['partner_accounts_manage']), createAdminPartnerCompanyUpdateHandler(deps.config));
+  app.delete('/api/admin/partners/companies/:id', requireAuth, loadStaff, perm(['partner_accounts_manage']), createAdminPartnerCompanyDeleteHandler(deps.config));
+  app.patch('/api/admin/partners/companies/:id/account', requireAuth, loadStaff, perm(['partner_accounts_manage']), createAdminPartnerAccountUpdateHandler(deps.config));
 
   app.get('/api/admin/members', requireAuth, loadStaff, dbMembersList, createAdminMembersListHandler(deps.config));
   app.delete('/api/admin/members/:id', requireAuth, loadStaff, memberDelete, createAdminMemberDeleteHandler(deps.config));
@@ -294,6 +331,21 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
     loadStaff,
     campaignListOrLog,
     createEmailCampaignLogEnviosHandler(deps.config),
+  );
+  app.post(
+    '/api/admin/email-campaigns/:id/dispatch/start',
+    emailDispatchLimiter,
+    requireAuth,
+    loadStaff,
+    campaignListOrLog,
+    createEmailCampaignDispatchStartHandler(deps.config),
+  );
+  app.get(
+    '/api/admin/email-campaign-dispatch/jobs/:jobId',
+    requireAuth,
+    loadStaff,
+    campaignListOrLog,
+    createEmailCampaignDispatchJobStatusHandler(deps.config),
   );
   app.get(
     '/api/admin/email-campaigns/:id/audience',
