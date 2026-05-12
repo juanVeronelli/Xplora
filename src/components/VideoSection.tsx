@@ -61,7 +61,7 @@ export default function VideoSection({ goTo }: Props) {
       {!hasVideo ? (
         <div style={s.placeholder}>
           <span style={s.frameLabel}>
-            Próximamente: video de la comunidad. Mientras tanto, entrá al archivo de charlas.
+            Próximamente: video de la comunidad. Mientras tanto, entrá a Pasados (charlas).
           </span>
         </div>
       ) : isDirect ? (
@@ -124,10 +124,10 @@ export default function VideoSection({ goTo }: Props) {
             padding: isMobile ? '0 4px' : '0 8px 0 0',
           }}
         >
-          <div style={{ ...s.chip, marginBottom: 14 }}>Archivo</div>
+          <div style={{ ...s.chip, marginBottom: 14 }}>Pasados</div>
           <h2 style={s.h2}>Charlas y momentos que quedan</h2>
           <p style={{ ...s.p, marginBottom: isMobile ? 20 : 22 }}>
-            En el archivo hay conversaciones con fundadores, inversores y equipos del ecosistema: material
+            En Pasados hay conversaciones con fundadores, inversores y equipos del ecosistema: material
             para preparar una ronda, un pitch o una decisión con más contexto y criterio.
           </p>
           <button
@@ -141,7 +141,7 @@ export default function VideoSection({ goTo }: Props) {
               e.currentTarget.style.background = 'var(--ink)';
             }}
           >
-            Ver archivo →
+            Ver pasados →
           </button>
         </header>
 

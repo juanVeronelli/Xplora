@@ -28,8 +28,10 @@ export type Page =
 export interface Evento {
   id: string;
   emoji: string;
-  /** Miniatura de tarjeta (URL); si falta, se usa el símbolo o un degradado. */
+  /** Banner horizontal: lista de Eventos + cabecera del detalle. */
   thumbnailUrl?: string;
+  /** Flyer / póster para el bloque «Próximo evento» en Home (4:3). Si falta, se usa `thumbnailUrl`. */
+  homePosterUrl?: string;
   day: string;
   month: string;
   tagLabel: string;
@@ -108,8 +110,10 @@ export interface DbEvento {
   speaker_initials: string;
   speaker_bio: string;
   speakers: Speaker[];
-  /** URL de imagen para tarjetas (Cloudinary, etc.) */
+  /** Banner horizontal: tarjetas en /eventos y detalle. */
   thumbnail_url?: string | null;
+  /** Imagen para Home «Próximo evento» (4:3); vacío = usar thumbnail_url. */
+  home_poster_url?: string | null;
   /** Último CSV Luma importado (panel admin). */
   total_inscriptos?: number | null;
   total_asistieron?: number | null;

@@ -36,7 +36,7 @@ const COPY: Record<Variant, { title: string; sub: string }> = {
     sub: 'El equipo de Xplora está preparando el próximo evento. Volvé pronto.',
   },
   charlas: {
-    title: 'Todavía no hay contenido publicado en Archivo',
+    title: 'Todavía no hay contenido publicado en Pasados',
     sub: 'Las grabaciones y materiales van a aparecer acá cuando carguen el equipo.',
   },
   empleos: {

@@ -53,6 +53,7 @@ import { createAdminInstagramReelsAnalyticsHandler, createAdminInstagramReelsHan
 import { createAdminCandidatosDeleteHandler, createAdminCandidatosListHandler } from '../controllers/admin-candidatos.controller.js';
 import { createAdminSponsorsLeadListHandler } from '../controllers/admin-sponsors.controller.js';
 import {
+  createContactListAppendMembersHandler,
   createContactListCreateHandler,
   createContactListDeleteHandler,
   createContactListDetailHandler,
@@ -283,6 +284,13 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
   );
   app.post('/api/admin/contact-lists', requireAuth, loadStaff, contactLists, createContactListCreateHandler(deps.config));
   app.get('/api/admin/contact-lists/:id', requireAuth, loadStaff, contactLists, createContactListDetailHandler(deps.config));
+  app.post(
+    '/api/admin/contact-lists/:id/members',
+    requireAuth,
+    loadStaff,
+    contactLists,
+    createContactListAppendMembersHandler(deps.config),
+  );
   app.patch('/api/admin/contact-lists/:id', requireAuth, loadStaff, contactLists, createContactListPatchHandler(deps.config));
   app.delete('/api/admin/contact-lists/:id', requireAuth, loadStaff, contactLists, createContactListDeleteHandler(deps.config));
 

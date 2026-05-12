@@ -44,7 +44,7 @@ export default function Eventos({ openEvento, openCharla }: Props) {
   const tabs = useMemo(() => {
     return [
       { id: 'proximos' as const, label: 'Próximos' },
-      { id: 'archivo' as const, label: 'Archivo' },
+      { id: 'archivo' as const, label: 'Pasados' },
     ];
   }, []);
 
@@ -53,7 +53,7 @@ export default function Eventos({ openEvento, openCharla }: Props) {
       <PageHeader
         label="Agenda del club"
         title="Eventos"
-        sub="Charlas, workshops y encuentros para la comunidad UCEMA: anotate a lo que viene y revisá paneles y materiales en el archivo."
+        sub="Charlas, workshops y encuentros para la comunidad UCEMA: anotate a lo que viene y revisá paneles y materiales en Pasados."
       />
       <div
         style={{

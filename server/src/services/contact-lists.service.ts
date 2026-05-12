@@ -183,3 +183,67 @@ export async function deleteContactList(sb: SupabaseClient, listId: string): Pro
   if (error) throw new BadRequestError(error.message);
   return true;
 }
+
+/** Inserta miembros nuevos en una lista existente (evita duplicados por `usuario_id` o id en snapshot). */
+export async function appendContactListMembers(
+  sb: SupabaseClient,
+  listId: string,
+  memberIds: string[],
+): Promise<{ added: number; member_count: number }> {
+  const list = await getContactListById(sb, listId);
+  if (!list) throw new BadRequestError('Lista no encontrada.');
+
+  const existing = await listMembersForList(sb, listId);
+  const already = new Set<string>();
+  for (const m of existing) {
+    if (m.usuario_id) already.add(m.usuario_id);
+    const snap = m.snapshot as { row?: { id?: string } } | null;
+    const rid = snap?.row?.id;
+    if (rid) already.add(rid);
+  }
+
+  const allRows = await fetchAllMemberRows(sb);
+  const byId = new Map(allRows.map(r => [r.id, r]));
+
+  const capturedAt = new Date().toISOString();
+  const toAdd: AdminMemberRowDTO[] = [];
+  for (const raw of memberIds) {
+    if (typeof raw !== 'string' || !raw.trim()) continue;
+    const id = raw.trim();
+    if (already.has(id)) continue;
+    const row = byId.get(id);
+    if (!row) continue;
+    already.add(id);
+    toAdd.push(row);
+  }
+
+  if (toAdd.length === 0) {
+    return { added: 0, member_count: list.member_count };
+  }
+
+  const memberPayload = toAdd.map(row => ({
+    list_id: listId,
+    usuario_id: row.id,
+    snapshot: {
+      v: 1 as const,
+      captured_at: capturedAt,
+      row,
+    } satisfies ContactListSnapshotPayload,
+  }));
+
+  const { error: memErr } = await sb.from('contact_list_members').insert(memberPayload);
+  if (memErr) throw new BadRequestError(memErr.message);
+
+  const membersAfter = await listMembersForList(sb, listId);
+  const accurateCount = membersAfter.length;
+  const { error: upErr } = await sb
+    .from('contact_lists')
+    .update({ member_count: accurateCount, updated_at: new Date().toISOString() })
+    .eq('id', listId);
+  if (upErr) throw new BadRequestError(upErr.message);
+
+  return {
+    added: toAdd.length,
+    member_count: accurateCount,
+  };
+}

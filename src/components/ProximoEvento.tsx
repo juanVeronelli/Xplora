@@ -13,7 +13,8 @@ interface Props {
 export default function ProximoEvento({ evento: ev, openEvento, goTo }: Props) {
   const { ref, inView } = useInView(0.15);
   const isMobile = useIsMobile();
-  const hasThumb = Boolean(ev.thumbnailUrl?.trim());
+  const heroImg = (ev.homePosterUrl?.trim() || ev.thumbnailUrl?.trim()) ?? '';
+  const hasThumb = Boolean(heroImg);
 
   return (
     <section
@@ -60,7 +61,7 @@ export default function ProximoEvento({ evento: ev, openEvento, goTo }: Props) {
               }}
             >
               <div style={s.thumbShell}>
-                <img src={ev.thumbnailUrl} alt={ev.title} style={s.thumbImg} />
+                <img src={heroImg} alt={ev.title} style={s.thumbImg} />
                 <div style={s.thumbScrim} aria-hidden />
                 <div style={s.dateFloat}>
                   <span style={s.dateFloatDay}>{ev.day || '—'}</span>

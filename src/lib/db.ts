@@ -13,11 +13,13 @@ import { publicFetch, authFetch } from './serverApi';
 /** Convierte una fila `eventos` de Supabase al tipo que consume la web pública. */
 export function mapEvento(r: DbEvento): Evento {
   const thumb = r.thumbnail_url?.trim();
+  const poster = r.home_poster_url?.trim();
   return {
     id: r.id,
     title: r.title,
     emoji: r.emoji || '',
     thumbnailUrl: thumb || undefined,
+    homePosterUrl: poster || undefined,
     tagType: (r.tag_type as Evento['tagType']) || 'p',
     tagLabel: r.tag_label || '',
     date: r.date_display || '',

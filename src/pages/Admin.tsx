@@ -218,6 +218,7 @@ const EVENTO_EMPTY: Omit<DbEvento, 'id' | 'created_at'> = {
   speaker_bio: '',
   speakers: [],
   thumbnail_url: null,
+  home_poster_url: null,
   total_inscriptos: 0,
   total_asistieron: 0,
   luma_csv_imported_at: null,
@@ -446,10 +447,16 @@ function EventosSection() {
               />
             </TwoCol>
             <ThumbnailUpload
-              label="Miniatura"
-              hint="Imagen para la tarjeta en la página de eventos y en «Próximo evento». Si no cargás, se muestra el símbolo o un fondo por defecto."
+              label="Banner (lista de eventos + detalle)"
+              hint="Horizontal, ej. 2400×720 px. Va en la franja de las tarjetas en /eventos y arriba del detalle del evento."
               value={form.thumbnail_url ?? ''}
               onChange={v => setForm(p => ({ ...p, thumbnail_url: v || null }))}
+            />
+            <ThumbnailUpload
+              label="Flyer para Home (próximo evento)"
+              hint="Recomendado: 1600×1200 px (proporción 4:3, igual que el bloque del Home). Así se ve a pantalla completa sin bandas. Alternativa: 1200×900 px. Si lo dejás vacío, se usa el banner."
+              value={form.home_poster_url ?? ''}
+              onChange={v => setForm(p => ({ ...p, home_poster_url: v || null }))}
             />
           </FormSection>
 

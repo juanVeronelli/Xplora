@@ -21,8 +21,8 @@ export default function Charlas({ openCharla }: Props) {
   return (
     <>
       <PageHeader
-        label="Archivo de contenido"
-        title="Archivo"
+        label="Agenda del club"
+        title="Pasados"
         sub="Grabaciones y materiales de encuentros ya realizados."
       />
       {loading ? (

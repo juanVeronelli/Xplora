@@ -105,7 +105,7 @@ export default function Hero({ goTo }: Props) {
               style={{ ...s.btnGhost, width: isMobile ? '100%' : 'auto' }}
               onClick={() => {
                 goTo('eventos');
-                // Seleccionar tab "Archivo" en la vista unificada.
+                // Tab «Pasados» en /eventos (hash interno sigue siendo #archivo).
                 setTimeout(() => {
                   try {
                     window.location.hash = 'archivo';
@@ -125,7 +125,7 @@ export default function Hero({ goTo }: Props) {
                 e.currentTarget.style.background = 'transparent';
               }}
             >
-              Archivo
+              Pasados
             </button>
           </div>
         </div>

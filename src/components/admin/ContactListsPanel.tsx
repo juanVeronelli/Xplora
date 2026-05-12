@@ -139,6 +139,12 @@ export default function ContactListsPanel() {
   const [esAlumnoCema, setEsAlumnoCema] = useState<"" | "yes" | "no">("");
   const [saving, setSaving] = useState(false);
 
+  /** Agregados uno a uno (además de los que entren por filtros). */
+  const [manualMembers, setManualMembers] = useState<AdminMemberRow[]>([]);
+  const [pickerQuery, setPickerQuery] = useState("");
+  const [managePickerQuery, setManagePickerQuery] = useState("");
+  const [appendBusy, setAppendBusy] = useState(false);
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailMembers, setDetailMembers] = useState<DetailSnapshotRow[]>([]);
@@ -160,6 +166,97 @@ export default function ContactListsPanel() {
     [allMembers, filterSnap],
   );
 
+  const filtersActive =
+    emailQuery.trim().length > 0 ||
+    carreraFilter.length > 0 ||
+    pctMin.trim().length > 0 ||
+    pctMax.trim().length > 0 ||
+    esAlumnoCema !== "";
+
+  const manualIdSet = useMemo(() => new Set(manualMembers.map((m) => m.id)), [manualMembers]);
+
+  /** Sin filtros activos no incluimos «toda la base» por defecto: solo quien sumaste a mano (podés combinar con filtros). */
+  const combinedMemberIds = useMemo(() => {
+    const ids = new Set<string>();
+    const ordered: string[] = [];
+    for (const r of manualMembers) {
+      if (!ids.has(r.id)) {
+        ids.add(r.id);
+        ordered.push(r.id);
+      }
+    }
+    if (filtersActive) {
+      for (const r of filtered) {
+        if (!ids.has(r.id)) {
+          ids.add(r.id);
+          ordered.push(r.id);
+        }
+      }
+    }
+    return ordered;
+  }, [manualMembers, filtered, filtersActive]);
+
+  const combinedMembers = useMemo(
+    () =>
+      combinedMemberIds
+        .map((id) => allMembers.find((m) => m.id === id))
+        .filter((m): m is AdminMemberRow => Boolean(m)),
+    [combinedMemberIds, allMembers],
+  );
+
+  const combinedRows = useMemo(
+    () =>
+      combinedMembers.map((row) => ({
+        row,
+        source: manualIdSet.has(row.id) ? ("Manual" as const) : ("Filtro" as const),
+      })),
+    [combinedMembers, manualIdSet],
+  );
+
+  const pickerHitsCreate = useMemo(() => {
+    const q = pickerQuery.trim().toLowerCase();
+    if (q.length < 2) return [];
+    return allMembers
+      .filter((m) => {
+        const mail = (m.email || "").toLowerCase();
+        const nom = (m.nombre || "").toLowerCase();
+        return mail.includes(q) || nom.includes(q);
+      })
+      .slice(0, 25);
+  }, [pickerQuery, allMembers]);
+
+  const filteredIdSet = useMemo(() => new Set(filtered.map((r) => r.id)), [filtered]);
+
+  /** Ya está en el borrador de esta lista nueva: manual o (si hay filtros) coincide con el filtro. No mira otras listas guardadas. */
+  const createPickerAlreadyInDraft = useMemo(() => {
+    const s = new Set(manualMembers.map((m) => m.id));
+    if (filtersActive) {
+      for (const id of filteredIdSet) s.add(id);
+    }
+    return s;
+  }, [manualMembers, filteredIdSet, filtersActive]);
+
+  const detailMemberUserIds = useMemo(() => {
+    const s = new Set<string>();
+    for (const m of detailMembers) {
+      s.add(m.snapshot.row.id);
+      if (m.usuario_id) s.add(m.usuario_id);
+    }
+    return s;
+  }, [detailMembers]);
+
+  const pickerHitsManage = useMemo(() => {
+    const q = managePickerQuery.trim().toLowerCase();
+    if (q.length < 2) return [];
+    return allMembers
+      .filter((m) => {
+        const mail = (m.email || "").toLowerCase();
+        const nom = (m.nombre || "").toLowerCase();
+        return mail.includes(q) || nom.includes(q);
+      })
+      .slice(0, 25);
+  }, [managePickerQuery, allMembers]);
+
   const carreraOptions = useMemo(() => {
     const set = new Set<string>();
     for (const r of allMembers) {
@@ -173,13 +270,6 @@ export default function ContactListsPanel() {
       ...sorted.map((c) => ({ value: c, label: c })),
     ];
   }, [allMembers]);
-
-  const filtersActive =
-    emailQuery.trim().length > 0 ||
-    carreraFilter.length > 0 ||
-    pctMin.trim().length > 0 ||
-    pctMax.trim().length > 0 ||
-    esAlumnoCema !== "";
 
   const clearFilters = () => {
     setEmailQuery("");
@@ -230,13 +320,9 @@ export default function ContactListsPanel() {
     void loadLists();
   }, [loadMembers, loadLists]);
 
-  const openDetail = async (id: string, title: string) => {
+  const openDetail = async (id: string, titleFallback?: string) => {
     setInnerTab("manage");
     setSelectedId(id);
-    setDetailTitle(title);
-    setEditingName(title);
-    const meta = lists.find((l) => l.id === id);
-    setEditingDesc(meta?.descripcion ?? "");
     setDetailLoading(true);
     setDetailMembers([]);
     const res = await authFetch(`/api/admin/contact-lists/${id}`);
@@ -245,7 +331,15 @@ export default function ContactListsPanel() {
       setDetailLoading(false);
       return;
     }
-    const data = (await res.json()) as { members: { id: string; usuario_id: string | null; snapshot: unknown }[] };
+    const data = (await res.json()) as {
+      list?: { nombre: string; descripcion: string | null };
+      members: { id: string; usuario_id: string | null; snapshot: unknown }[];
+    };
+    const meta = data.list;
+    const title = meta?.nombre ?? titleFallback ?? id;
+    setDetailTitle(title);
+    setEditingName(title);
+    setEditingDesc(meta?.descripcion ?? "");
     setDetailMembers(
       (data.members ?? [])
         .filter((m) => isSnapshotV1(m.snapshot))
@@ -264,8 +358,8 @@ export default function ContactListsPanel() {
       toast.error("Poné un nombre para la lista.");
       return;
     }
-    if (filtered.length === 0) {
-      toast.error("No hay miembros que cumplan los filtros.");
+    if (combinedMembers.length === 0) {
+      toast.error("No hay contactos: usá filtros, la búsqueda para agregar de a uno, o ambos.");
       return;
     }
     setSaving(true);
@@ -275,7 +369,7 @@ export default function ContactListsPanel() {
       body: JSON.stringify({
         nombre: n,
         descripcion: descripcion.trim() || null,
-        member_ids: filtered.map((r) => r.id),
+        member_ids: combinedMembers.map((r) => r.id),
         filter_snapshot: filterSnap,
       }),
     });
@@ -284,9 +378,11 @@ export default function ContactListsPanel() {
       toast.error(await readApiError(res));
       return;
     }
-    toast.success(`Lista guardada (${filtered.length} contactos).`);
+    toast.success(`Lista guardada (${combinedMembers.length} contactos).`);
     setNombre("");
     setDescripcion("");
+    setManualMembers([]);
+    setPickerQuery("");
     await loadLists();
     setInnerTab("manage");
   };
@@ -339,6 +435,31 @@ export default function ContactListsPanel() {
     await loadLists();
   };
 
+  const appendToOpenList = async (memberId: string) => {
+    if (!selectedId) return;
+    if (detailMemberUserIds.has(memberId)) {
+      toast.info("Ese contacto ya está en la lista.");
+      return;
+    }
+    setAppendBusy(true);
+    const res = await authFetch(`/api/admin/contact-lists/${selectedId}/members`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ member_ids: [memberId] }),
+    });
+    setAppendBusy(false);
+    if (!res.ok) {
+      toast.error(await readApiError(res));
+      return;
+    }
+    const data = (await res.json()) as { added: number };
+    if (data.added === 0) toast.info("Ese contacto ya estaba en la lista.");
+    else toast.success("Contacto agregado.");
+    setManagePickerQuery("");
+    await loadLists();
+    await openDetail(selectedId, detailTitle);
+  };
+
   if (membersLoading && allMembers.length === 0) {
     return (
       <div style={{ padding: "32px 0" }}>
@@ -387,8 +508,9 @@ export default function ContactListsPanel() {
       {innerTab === "create" ? (
         <>
           <p style={{ ...crm.hint, marginBottom: 18, maxWidth: "none", fontSize: 13 }}>
-            Mismos filtros que «Ver miembros»: email, carrera, rango de % de asistencia y alumno UCEMA. Después elegí
-            nombre y guardá.
+            Podés armar la lista con <strong>filtros</strong>, con <strong>búsqueda de a uno</strong>, o ambos. Sin filtros,
+            solo se guardan los que agregás manualmente (no se asume «toda la base»). Un mismo usuario puede figurar en
+            varias listas.
           </p>
           <div style={{ ...card, width: "100%", boxSizing: "border-box" }}>
             <h3 style={cardTitle}>Nueva lista</h3>
@@ -466,13 +588,196 @@ export default function ContactListsPanel() {
               ) : null}
             </div>
 
-            <p style={{ ...crm.pageSubtitle, marginTop: 18, marginBottom: 12 }}>
-              <strong>{filtered.length.toLocaleString("es-AR")}</strong> miembros cumplen los filtros
-              {pctBounds.lo != null || pctBounds.hi != null
-                ? ` (rango % ${pctBounds.lo ?? "—"}–${pctBounds.hi ?? "—"})`
+            <div style={{ marginTop: 22, paddingTop: 18, borderTop: "1px solid rgba(26,16,40,0.08)" }}>
+              <h4 style={{ ...cardTitle, fontSize: 14, marginBottom: 10 }}>Agregar personas puntuales</h4>
+              <Field
+                label="Buscar por email o nombre"
+                hint="Mínimo 2 caracteres. Sumá de a uno al borrador de esta lista nueva; no importa si ya está en otra lista guardada. Si tenés filtros activos, quien ya entre por filtro aparece como «Incluido por filtro»."
+                value={pickerQuery}
+                onChange={setPickerQuery}
+                placeholder="ej. maría o @ucema"
+              />
+              {pickerHitsCreate.length > 0 ? (
+                <div
+                  style={{
+                    marginTop: 10,
+                    maxHeight: 240,
+                    overflow: "auto",
+                    border: "1px solid rgba(26,16,40,0.1)",
+                    borderRadius: 12,
+                    background: "rgba(255,255,255,0.5)",
+                  }}
+                >
+                  {pickerHitsCreate.map((m) => {
+                    const inList = createPickerAlreadyInDraft.has(m.id);
+                    return (
+                      <div
+                        key={m.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          padding: "10px 12px",
+                          borderBottom: "1px solid rgba(26,16,40,0.06)",
+                        }}
+                      >
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: "var(--ink)" }}>{m.nombre || "—"}</div>
+                          <div style={{ fontSize: 12, color: "var(--ink-muted)", wordBreak: "break-all" }}>{m.email || "—"}</div>
+                        </div>
+                        <button
+                          type="button"
+                          style={miniBtn}
+                          disabled={inList}
+                          onClick={() => {
+                            if (inList) return;
+                            setManualMembers((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
+                            toast.success("Agregado a la lista previa.");
+                          }}
+                        >
+                          {inList ? (manualIdSet.has(m.id) ? "Ya agregado" : "Incluido por filtro") : "Agregar"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : pickerQuery.trim().length >= 2 ? (
+                <p style={{ ...crm.hint, marginTop: 8, fontSize: 12 }}>Sin coincidencias en la base.</p>
+              ) : null}
+              {manualMembers.length > 0 ? (
+                <div style={{ marginTop: 14 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-muted)", marginBottom: 8 }}>
+                    Agregados manualmente ({manualMembers.length})
+                  </p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {manualMembers.map((m) => (
+                      <span
+                        key={m.id}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "6px 10px",
+                          borderRadius: 999,
+                          border: "1px solid rgba(26,16,40,0.12)",
+                          fontSize: 12,
+                          background: "var(--cream)",
+                        }}
+                      >
+                        <span style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {m.nombre || m.email}
+                        </span>
+                        <button
+                          type="button"
+                          style={{
+                            border: "none",
+                            background: "transparent",
+                            cursor: "pointer",
+                            fontWeight: 800,
+                            color: "#9b2c20",
+                            padding: 0,
+                            lineHeight: 1,
+                          }}
+                          title="Quitar"
+                          onClick={() => setManualMembers((prev) => prev.filter((x) => x.id !== m.id))}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <button type="button" style={{ ...crm.secondaryBtn, marginTop: 10 }} onClick={() => setManualMembers([])}>
+                    Quitar todos los manuales
+                  </button>
+                </div>
+              ) : null}
+            </div>
+
+            <p style={{ ...crm.pageSubtitle, marginTop: 18, marginBottom: 10 }}>
+              <strong>{combinedMembers.length.toLocaleString("es-AR")}</strong> contactos en la lista previa
+              {manualMembers.length > 0 && filtersActive
+                ? ` (${manualMembers.length} manual · ${filtered.length} por filtros; sin duplicar)`
+                : manualMembers.length > 0 && !filtersActive
+                  ? ` (${manualMembers.length} por búsqueda manual; sin filtros no se suma nadie más automático)`
+                  : filtersActive
+                    ? ` (${filtered.length} por filtros)`
+                    : ""}
+              {filtersActive && (pctBounds.lo != null || pctBounds.hi != null)
+                ? ` · % asistencia filtrado: ${pctBounds.lo ?? "—"}–${pctBounds.hi ?? "—"}`
                 : ""}
               .
             </p>
+
+            {combinedMembers.length === 0 ? (
+              <p style={{ ...crm.hint, marginBottom: 16, fontSize: 13 }}>
+                {filtersActive || manualMembers.length > 0
+                  ? "Todavía no hay nadie en la lista previa: ajustá filtros o agregá personas con la búsqueda."
+                  : "Sin filtros, la lista nueva queda vacía hasta que busques y agregues personas (o activés filtros). El mismo contacto puede estar en varias listas distintas."}
+              </p>
+            ) : (
+              <>
+                <p style={{ ...crm.hint, marginBottom: 8, fontSize: 12, color: "var(--ink-muted)" }}>
+                  Vista previa (se guardan con snapshot; columna «Origen» no se persiste).
+                  {combinedRows.length > 500 ? (
+                    <span>
+                      {" "}
+                      Mostrando <strong>500</strong> de {combinedRows.length.toLocaleString("es-AR")}.
+                    </span>
+                  ) : null}
+                </p>
+                <div
+                  className="xplora-admin-table-scroll"
+                  style={{ maxHeight: 420, marginBottom: 18, border: "1px solid rgba(26,16,40,0.1)", borderRadius: 12 }}
+                >
+                  <table style={{ ...table, minWidth: 780, width: "100%" }}>
+                    <thead>
+                      <tr>
+                        <th style={th}>Origen</th>
+                        <th style={th}>Nombre</th>
+                        <th style={th}>Email</th>
+                        <th style={th}>Carrera</th>
+                        <th style={th}>Alumno UCEMA</th>
+                        <th style={{ ...th, textAlign: "right" }}>Insc. / asist.</th>
+                        <th style={{ ...th, textAlign: "right" }}>%</th>
+                        <th style={th}>Inscripciones (eventos)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {combinedRows.slice(0, 500).map(({ row: r, source }) => {
+                        const ins = r.inscripciones ?? [];
+                        return (
+                          <tr key={r.id}>
+                            <td style={{ ...td, fontSize: 12, fontWeight: 700, color: "var(--purple)" }}>{source}</td>
+                            <td style={td}>{r.nombre?.trim() || "—"}</td>
+                            <td style={{ ...td, wordBreak: "break-all" }}>{r.email?.trim() || "—"}</td>
+                            <td style={td}>{r.carrera?.trim() ? r.carrera : "—"}</td>
+                            <td style={td}>{r.es_alumno_cema ? "Sí" : "No"}</td>
+                            <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                              {r.eventos_inscripto === 0
+                                ? "—"
+                                : `${r.eventos_inscripto} / ${r.eventos_asistio}`}
+                            </td>
+                            <td style={{ ...td, textAlign: "right" }}>
+                              {r.pct_asistencia == null ? "—" : `${r.pct_asistencia}%`}
+                            </td>
+                            <td style={{ ...td, fontSize: 12, maxWidth: 280 }}>
+                              {ins.length === 0
+                                ? "—"
+                                : ins
+                                    .slice(0, 4)
+                                    .map((x) => `${x.title}${x.asistio ? " ✓" : ""}`)
+                                    .join(" · ")}
+                              {ins.length > 4 ? ` +${ins.length - 4}` : ""}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
 
             <button
               type="button"
@@ -604,6 +909,7 @@ export default function ContactListsPanel() {
               onClick={() => {
                 setSelectedId(null);
                 setDetailMembers([]);
+                setManagePickerQuery("");
               }}
             >
               Cerrar vista
@@ -614,59 +920,122 @@ export default function ContactListsPanel() {
             <div style={{ padding: 24 }}>
               <Spinner />
             </div>
-          ) : detailMembers.length === 0 ? (
-            <p style={{ ...crm.hint, marginTop: 16 }}>No hay filas en esta lista.</p>
           ) : (
             <>
-              <p style={{ ...crm.pageSubtitle, marginTop: 16, marginBottom: 12 }}>
-                {detailMembers.length.toLocaleString("es-AR")} contactos (datos congelados al guardar).
-              </p>
-              <div className="xplora-admin-table-scroll">
-                <table style={{ ...table, minWidth: 720 }}>
-                  <thead>
-                    <tr>
-                      <th style={th}>Nombre</th>
-                      <th style={th}>Email</th>
-                      <th style={th}>Carrera</th>
-                      <th style={th}>Alumno UCEMA</th>
-                      <th style={{ ...th, textAlign: "right" }}>Insc. / asist.</th>
-                      <th style={{ ...th, textAlign: "right" }}>%</th>
-                      <th style={th}>Inscripciones (eventos)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {detailMembers.map((m) => {
-                      const r = m.snapshot.row;
-                      const ins = r.inscripciones ?? [];
+              <div style={{ marginTop: 18, paddingTop: 18, borderTop: "1px solid rgba(26,16,40,0.08)" }}>
+                <h4 style={{ ...cardTitle, fontSize: 14, marginBottom: 10 }}>Agregar contactos a esta lista</h4>
+                <Field
+                  label="Buscar por email o nombre"
+                  hint="Mínimo 2 caracteres. Cada «Agregar» congela el perfil actual del miembro en la lista."
+                  value={managePickerQuery}
+                  onChange={setManagePickerQuery}
+                  placeholder="ej. juan o @gmail"
+                />
+                {pickerHitsManage.length > 0 ? (
+                  <div
+                    style={{
+                      marginTop: 10,
+                      maxHeight: 240,
+                      overflow: "auto",
+                      border: "1px solid rgba(26,16,40,0.1)",
+                      borderRadius: 12,
+                      background: "rgba(255,255,255,0.5)",
+                    }}
+                  >
+                    {pickerHitsManage.map((m) => {
+                      const inList = detailMemberUserIds.has(m.id);
                       return (
-                        <tr key={m.id}>
-                          <td style={td}>{r.nombre || "—"}</td>
-                          <td style={{ ...td, wordBreak: "break-all" }}>{r.email || "—"}</td>
-                          <td style={td}>{r.carrera?.trim() ? r.carrera : "—"}</td>
-                          <td style={td}>{r.es_alumno_cema ? "Sí" : "No"}</td>
-                          <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                            {r.eventos_inscripto === 0
-                              ? "—"
-                              : `${r.eventos_inscripto} / ${r.eventos_asistio}`}
-                          </td>
-                          <td style={{ ...td, textAlign: "right" }}>
-                            {r.pct_asistencia == null ? "—" : `${r.pct_asistencia}%`}
-                          </td>
-                          <td style={{ ...td, fontSize: 12, maxWidth: 280 }}>
-                            {ins.length === 0
-                              ? "—"
-                              : ins
-                                  .slice(0, 4)
-                                  .map((x) => `${x.title}${x.asistio ? " ✓" : ""}`)
-                                  .join(" · ")}
-                            {ins.length > 4 ? ` +${ins.length - 4}` : ""}
-                          </td>
-                        </tr>
+                        <div
+                          key={m.id}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            padding: "10px 12px",
+                            borderBottom: "1px solid rgba(26,16,40,0.06)",
+                          }}
+                        >
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--ink)" }}>{m.nombre || "—"}</div>
+                            <div style={{ fontSize: 12, color: "var(--ink-muted)", wordBreak: "break-all" }}>
+                              {m.email || "—"}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            style={miniBtn}
+                            disabled={appendBusy || inList}
+                            onClick={() => void appendToOpenList(m.id)}
+                          >
+                            {inList ? "En lista" : appendBusy ? "…" : "Agregar"}
+                          </button>
+                        </div>
                       );
                     })}
-                  </tbody>
-                </table>
+                  </div>
+                ) : managePickerQuery.trim().length >= 2 ? (
+                  <p style={{ ...crm.hint, marginTop: 8, fontSize: 12 }}>Sin coincidencias en la base.</p>
+                ) : null}
               </div>
+
+              {detailMembers.length === 0 ? (
+                <p style={{ ...crm.hint, marginTop: 16 }}>
+                  Esta lista no tiene contactos todavía. Usá la búsqueda de arriba para sumar de a uno.
+                </p>
+              ) : (
+                <>
+                  <p style={{ ...crm.pageSubtitle, marginTop: 16, marginBottom: 12 }}>
+                    {detailMembers.length.toLocaleString("es-AR")} contactos (datos congelados al guardar).
+                  </p>
+                  <div className="xplora-admin-table-scroll">
+                    <table style={{ ...table, minWidth: 720 }}>
+                      <thead>
+                        <tr>
+                          <th style={th}>Nombre</th>
+                          <th style={th}>Email</th>
+                          <th style={th}>Carrera</th>
+                          <th style={th}>Alumno UCEMA</th>
+                          <th style={{ ...th, textAlign: "right" }}>Insc. / asist.</th>
+                          <th style={{ ...th, textAlign: "right" }}>%</th>
+                          <th style={th}>Inscripciones (eventos)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {detailMembers.map((m) => {
+                          const r = m.snapshot.row;
+                          const ins = r.inscripciones ?? [];
+                          return (
+                            <tr key={m.id}>
+                              <td style={td}>{r.nombre || "—"}</td>
+                              <td style={{ ...td, wordBreak: "break-all" }}>{r.email || "—"}</td>
+                              <td style={td}>{r.carrera?.trim() ? r.carrera : "—"}</td>
+                              <td style={td}>{r.es_alumno_cema ? "Sí" : "No"}</td>
+                              <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                                {r.eventos_inscripto === 0
+                                  ? "—"
+                                  : `${r.eventos_inscripto} / ${r.eventos_asistio}`}
+                              </td>
+                              <td style={{ ...td, textAlign: "right" }}>
+                                {r.pct_asistencia == null ? "—" : `${r.pct_asistencia}%`}
+                              </td>
+                              <td style={{ ...td, fontSize: 12, maxWidth: 280 }}>
+                                {ins.length === 0
+                                  ? "—"
+                                  : ins
+                                      .slice(0, 4)
+                                      .map((x) => `${x.title}${x.asistio ? " ✓" : ""}`)
+                                      .join(" · ")}
+                                {ins.length > 4 ? ` +${ins.length - 4}` : ""}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>

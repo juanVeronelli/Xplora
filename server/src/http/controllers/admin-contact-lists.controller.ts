@@ -7,6 +7,7 @@ import { BadRequestError } from '../errors/http-error.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { createUserSupabase } from '../../infra/supabase-clients.js';
 import {
+  appendContactListMembers,
   createContactList,
   deleteContactList,
   getContactListById,
@@ -110,6 +111,24 @@ export function createContactListPatchHandler(config: AppConfig): RequestHandler
       return;
     }
     res.json({ list });
+  });
+}
+
+export function createContactListAppendMembersHandler(config: AppConfig): RequestHandler {
+  return asyncHandler(async (req, res) => {
+    const id = routeParamId(req.params.id);
+    if (!id) throw new BadRequestError('Falta id de lista.');
+    const body = req.body as Record<string, unknown>;
+    const raw = body.member_ids;
+    const member_ids = Array.isArray(raw)
+      ? raw.filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+      : [];
+    if (member_ids.length === 0) {
+      throw new BadRequestError('Enviá member_ids: array de UUIDs de usuarios.');
+    }
+    const sb = createUserSupabase(config, req.headers.authorization);
+    const result = await appendContactListMembers(sb, id, member_ids);
+    res.json(result);
   });
 }
 
