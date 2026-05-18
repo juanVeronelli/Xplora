@@ -17,4 +17,13 @@ app.listen(config.port, () => {
       ? 'API + sitio estático (dist/)'
       : 'solo API (en dev Vite usa otro puerto; /api se proxifica)';
   console.log(`[server] http://localhost:${config.port} — ${mode}`);
+  if (config.resend) {
+    console.log(
+      `[server] Resend: campañas de email habilitadas (from=${config.resend.from}).`,
+    );
+  } else {
+    console.log(
+      '[server] Resend: sin RESEND_API_KEY (ni RESEND_KEY) en .env (raíz del proyecto) — el envío de campañas desde el panel está deshabilitado.',
+    );
+  }
 });

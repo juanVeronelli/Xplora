@@ -3,7 +3,7 @@
  * El panel CRM usa `user`; si es `null`, en la ruta del panel solo se muestra el login.
  */
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabaseStaff } from '../lib/supabase';
 import { apiUrl } from '../lib/apiBase';
 import type { User } from '@supabase/supabase-js';
 
@@ -12,12 +12,12 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    supabaseStaff.auth.getSession().then(({ data }) => {
       setUser(data.session?.user ?? null);
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+    const { data: { subscription } } = supabaseStaff.auth.onAuthStateChange((_, session) => {
       setUser(session?.user ?? null);
     });
 
@@ -43,7 +43,7 @@ export function useAuth() {
       };
     }
 
-    const { error } = await supabase.auth.setSession({
+    const { error } = await supabaseStaff.auth.setSession({
       access_token: json.session.access_token,
       refresh_token: json.session.refresh_token,
     });
@@ -52,14 +52,14 @@ export function useAuth() {
   };
 
   const signOut = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabaseStaff.auth.getSession();
     if (session?.access_token) {
       await fetch(apiUrl('/api/auth/logout'), {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}` },
       }).catch(() => {});
     }
-    await supabase.auth.signOut();
+    await supabaseStaff.auth.signOut();
   };
 
   return { user, loading, signIn, signOut };

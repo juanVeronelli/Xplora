@@ -1,4 +1,5 @@
 import type { Page } from '../types';
+import { PUBLIC_BOLSA_ENABLED } from '../config/publicFeatures';
 
 /**
  * Ruta del panel CRM (solo SPA). Configurá `VITE_PANEL_PATH` en el build (ej. Netlify)
@@ -43,7 +44,7 @@ export function pathToPage(pathname: string): Page {
   if (p === '/eventos') return 'eventos';
   // El Archivo vive dentro de /eventos (tab «Archivo» / hash #archivo).
   if (p === '/charlas') return 'eventos';
-  if (p === '/bolsa') return 'bolsa';
+  if (p === '/bolsa') return PUBLIC_BOLSA_ENABLED ? 'bolsa' : 'home';
   if (p === getPartnerPath()) return 'partner';
   if (p === '/talento') return 'talento';
   return 'home';

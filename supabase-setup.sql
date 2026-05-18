@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS talent_profiles (
   email TEXT DEFAULT '',
   full_name TEXT DEFAULT '',
   phone TEXT DEFAULT '',
+  photo_url TEXT DEFAULT '',
   career TEXT DEFAULT '',
   graduation_year TEXT DEFAULT '',
   linkedin_url TEXT DEFAULT '',
@@ -173,7 +174,18 @@ CREATE POLICY "Partner read applications" ON job_applications
   FOR SELECT TO authenticated
   USING (company_id = partner_company_id());
 
+-- PARTNER: actualizar estado / notas internas de postulaciones de su empresa.
+CREATE POLICY "Partner update applications" ON job_applications
+  FOR UPDATE TO authenticated
+  USING (company_id = partner_company_id())
+  WITH CHECK (company_id = partner_company_id());
+
 -- TALENTO: crear aplicación (company_id debe coincidir con job)
 CREATE POLICY "Talent insert applications" ON job_applications
   FOR INSERT TO authenticated
   WITH CHECK (talent_user_id = auth.uid());
+
+-- TALENTO: ver sus propias postulaciones.
+CREATE POLICY "Talent read own applications" ON job_applications
+  FOR SELECT TO authenticated
+  USING (talent_user_id = auth.uid());

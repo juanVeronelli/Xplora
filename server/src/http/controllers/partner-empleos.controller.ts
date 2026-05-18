@@ -1,13 +1,17 @@
 import type { RequestHandler } from 'express';
 import type { AppConfig } from '../../config/env.js';
-import { createUserSupabase } from '../../infra/supabase-clients.js';
-import { BadRequestError, UnauthorizedError } from '../errors/http-error.js';
+import { createServiceSupabase, createUserSupabase } from '../../infra/supabase-clients.js';
+import { BadRequestError, InternalError, UnauthorizedError } from '../errors/http-error.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 
+function requireServiceSb(config: AppConfig) {
+  const sb = createServiceSupabase(config);
+  if (!sb) throw new InternalError('Falta SUPABASE_SERVICE_ROLE_KEY.');
+  return sb;
+}
+
 /**
- * Partner Portal:
- * - CRUD de `empleos` (solo los de su empresa, filtrados por RLS).
- * - Listado de postulaciones por empleo.
+ * Partner Portal: CRUD de `empleos` y postulaciones con JWT Supabase del partner (RLS).
  */
 
 export function createPartnerEmpleosListHandler(config: AppConfig): RequestHandler {
@@ -21,22 +25,25 @@ export function createPartnerEmpleosListHandler(config: AppConfig): RequestHandl
 
 export function createPartnerEmpleoCreateHandler(config: AppConfig): RequestHandler {
   return asyncHandler(async (req, res) => {
-    const sb = createUserSupabase(config, req.headers.authorization);
+    const companyId = req.partnerCompanyId;
+    if (!companyId) throw new UnauthorizedError('Tu cuenta no está asociada a una empresa.');
+    const sbSvc = requireServiceSb(config);
+    const sbUser = createUserSupabase(config, req.headers.authorization);
     const body = (req.body ?? {}) as Record<string, unknown>;
 
-    // company_id se determina por el usuario partner (función SQL SECURITY DEFINER).
-    const { data: companyId, error: rpcErr } = await sb.rpc('partner_company_id');
-    if (rpcErr || !companyId) {
-      throw new UnauthorizedError('Tu cuenta no está asociada a una empresa.');
-    }
+    const { data: company, error: cErr } = await sbSvc.from('partner_companies').select('name, logo_url').eq('id', companyId).maybeSingle();
+    if (cErr) throw new BadRequestError(cErr.message);
+    const companyName = typeof (company as any)?.name === 'string' ? String((company as any).name) : '';
+    const companyLogo = typeof (company as any)?.logo_url === 'string' ? String((company as any).logo_url) : '';
 
     const payload: Record<string, unknown> = {
       ...body,
       company_id: companyId,
-      // apply interno, no link externo
+      ...(companyName ? { company: companyName } : {}),
+      ...(companyLogo && !('thumbnail_url' in body) ? { thumbnail_url: companyLogo } : {}),
       application_link: '',
     };
-    const { data, error } = await sb.from('empleos').insert(payload).select('*').single();
+    const { data, error } = await sbUser.from('empleos').insert(payload).select('*').single();
     if (error) throw new BadRequestError(error.message);
     res.status(201).json(data);
   });
@@ -48,7 +55,6 @@ export function createPartnerEmpleoPatchHandler(config: AppConfig): RequestHandl
     if (!id) throw new BadRequestError('Falta id.');
     const sb = createUserSupabase(config, req.headers.authorization);
     const body = (req.body ?? {}) as Record<string, unknown>;
-    // company_id no se puede editar desde partner portal.
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete body.company_id;
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
@@ -76,7 +82,6 @@ export function createPartnerEmpleoApplicationsListHandler(config: AppConfig): R
     if (!jobId) throw new BadRequestError('Falta id.');
     const sb = createUserSupabase(config, req.headers.authorization);
 
-    // RLS debe filtrar por company_id. Pero también validamos que el job exista para este usuario.
     const { data: job, error: jobErr } = await sb.from('empleos').select('id, company_id, title').eq('id', jobId).single();
     if (jobErr || !job) throw new UnauthorizedError('No tenés acceso a ese empleo.');
 
@@ -89,4 +94,3 @@ export function createPartnerEmpleoApplicationsListHandler(config: AppConfig): R
     res.json({ job, applications: data ?? [] });
   });
 }
-

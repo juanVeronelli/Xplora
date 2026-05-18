@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { apiUrl } from '../lib/apiBase';
+import { supabasePartner } from '../lib/supabase';
+import { useSiteMedia } from '../context/SiteMediaContext';
+import { PUBLIC_BOLSA_ENABLED } from '../config/publicFeatures';
+import '../styles/partnerPortal.css';
 
 type PartnerEmpleoRow = {
   id: string;
@@ -42,20 +45,88 @@ function fmtDate(ts: string): string {
   }
 }
 
-async function authFetch(path: string, init?: RequestInit) {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  return fetch(apiUrl(path), {
-    ...init,
-    headers: {
-      ...(init?.headers ?? {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      'Content-Type': 'application/json',
-    },
-  });
+async function partnerAuthHeader(): Promise<string | null> {
+  const {
+    data: { session },
+  } = await supabasePartner.auth.getSession();
+  const token = session?.access_token;
+  return token ? `Bearer ${token}` : null;
+}
+
+async function authFetch(path: string, init?: RequestInit): Promise<Response> {
+  const auth = await partnerAuthHeader();
+  const headers = new Headers(init?.headers);
+  if (auth) headers.set('Authorization', auth);
+  if (!headers.has('Content-Type') && init?.body && !(init.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
+  }
+  return fetch(apiUrl(path), { ...init, headers });
+}
+
+function IconHome() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1h-5v-7H9v7H4a1 1 0 01-1-1V9.5z" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconBriefcase() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <rect x="3" y="7" width="18" height="13" rx="2" />
+      <path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2M12 12v3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconCalendar() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M16 3v4M8 3v4M3 11h18" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconUser() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <circle cx="12" cy="9" r="3.5" />
+      <path d="M6 19c0-3 2.5-5 6-5s6 2 6 5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+const QUICK_LINKS: { href: string; label: string; Icon: typeof IconHome }[] = [
+  { href: '/', label: 'Sitio Xplora', Icon: IconHome },
+  ...(PUBLIC_BOLSA_ENABLED ? [{ href: '/bolsa', label: 'Bolsa de empleo', Icon: IconBriefcase }] : []),
+  { href: '/eventos', label: 'Eventos', Icon: IconCalendar },
+  { href: '/talento', label: 'Talento', Icon: IconUser },
+];
+
+/** Pipeline de selección — mismos valores que valida el backend (`partner-applications.controller`). */
+const PIPELINE_STATUSES = [
+  { id: 'new', label: 'Nuevo' },
+  { id: 'contactado', label: 'Contactado' },
+  { id: 'entrevista', label: 'Entrevista' },
+  { id: 'waitlist', label: 'Waitlist' },
+  { id: 'descartado', label: 'Descartado' },
+  { id: 'contratado', label: 'Contratado' },
+] as const;
+
+function normalizeApplicationStatus(s: string | undefined): string {
+  const v = (s || 'new').trim().toLowerCase();
+  return PIPELINE_STATUSES.some(x => x.id === v) ? v : 'new';
+}
+
+function pipelineLabel(id: string): string {
+  const n = normalizeApplicationStatus(id);
+  return PIPELINE_STATUSES.find(x => x.id === n)?.label ?? id;
 }
 
 export default function PartnerPortal() {
+  const { logoUrl } = useSiteMedia();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
@@ -64,15 +135,38 @@ export default function PartnerPortal() {
 
   const [empleos, setEmpleos] = useState<PartnerEmpleoRow[]>([]);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
-  const selectedJob = useMemo(() => empleos.find(e => e.id === selectedJobId) ?? null, [empleos, selectedJobId]);
   const [apps, setApps] = useState<PartnerApplicationRow[]>([]);
   const [appsLoading, setAppsLoading] = useState(false);
   const [appsError, setAppsError] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | string>('all');
+  const [patchingAppId, setPatchingAppId] = useState<string | null>(null);
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [jobsError, setJobsError] = useState('');
   const [company, setCompany] = useState<PartnerCompany | null>(null);
   const [editing, setEditing] = useState<PartnerEmpleoRow | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [savingJob, setSavingJob] = useState(false);
+
+  const selectedJob = useMemo(() => empleos.find(e => e.id === selectedJobId) ?? null, [empleos, selectedJobId]);
+
+  const filteredApps = useMemo(() => {
+    if (statusFilter === 'all') return apps;
+    return apps.filter(a => normalizeApplicationStatus(a.status) === statusFilter);
+  }, [apps, statusFilter]);
+
+  useEffect(() => {
+    setNoteDrafts(prev => {
+      const next = { ...prev };
+      for (const a of apps) {
+        if (next[a.id] === undefined) next[a.id] = a.notes ?? '';
+      }
+      return next;
+    });
+  }, [apps]);
+
+  useEffect(() => {
+    setStatusFilter('all');
+  }, [selectedJobId]);
 
   const loadEmpleos = async () => {
     const res = await authFetch('/api/partner/empleos');
@@ -149,7 +243,7 @@ export default function PartnerPortal() {
   };
 
   const deleteJob = async (job: PartnerEmpleoRow) => {
-    const ok = window.confirm(`Eliminar la oferta “${job.title}”?`);
+    const ok = window.confirm(`¿Eliminar la oferta “${job.title}”? Esta acción no se puede deshacer.`);
     if (!ok) return;
     setJobsError('');
     const res = await authFetch(`/api/partner/empleos/${encodeURIComponent(job.id)}`, { method: 'DELETE' });
@@ -178,15 +272,52 @@ export default function PartnerPortal() {
     setAppsLoading(false);
   };
 
+  const patchApplication = async (applicationId: string, patch: { status?: string; notes?: string }) => {
+    setPatchingAppId(applicationId);
+    setAppsError('');
+    try {
+      const res = await authFetch(`/api/partner/applications/${encodeURIComponent(applicationId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const row = (await res.json()) as PartnerApplicationRow;
+      setApps(prev => prev.map(x => (x.id === applicationId ? { ...x, ...row } : x)));
+    } catch (e) {
+      setAppsError(e instanceof Error ? e.message : 'No se pudo guardar.');
+    } finally {
+      setPatchingAppId(null);
+    }
+  };
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUserEmail(data.session?.user?.email ?? null);
-      setLoading(false);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
-      setUserEmail(session?.user?.email ?? null);
-    });
-    return () => sub.subscription.unsubscribe();
+    void (async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabasePartner.auth.getSession();
+        if (!session?.user) {
+          setUserEmail(null);
+          setLoading(false);
+          return;
+        }
+        const me = await authFetch('/api/partner/me');
+        if (!me.ok) {
+          await supabasePartner.auth.signOut();
+          setUserEmail(null);
+          setLoading(false);
+          return;
+        }
+        const json = (await me.json()) as { company: PartnerCompany };
+        setCompany(json.company);
+        setUserEmail(session.user.email ?? session.user.id);
+        setLoading(false);
+      } catch {
+        setUserEmail(null);
+        setLoading(false);
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -208,189 +339,503 @@ export default function PartnerPortal() {
   const doLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    if (error) setAuthError(error.message);
+    try {
+      const { error } = await supabasePartner.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) throw new Error(error.message);
+      const me = await authFetch('/api/partner/me');
+      if (!me.ok) {
+        await supabasePartner.auth.signOut();
+        throw new Error((await me.text()) || 'Esta cuenta no tiene acceso al portal partner.');
+      }
+      const json = (await me.json()) as { company: PartnerCompany };
+      setCompany(json.company);
+      const {
+        data: { session },
+      } = await supabasePartner.auth.getSession();
+      setUserEmail(session?.user?.email?.trim().toLowerCase() ?? email.trim().toLowerCase());
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'No se pudo iniciar sesión.';
+      setAuthError(msg);
+    }
   };
 
   const doLogout = async () => {
-    await supabase.auth.signOut();
+    await supabasePartner.auth.signOut();
     setSelectedJobId(null);
     setApps([]);
+    setCompany(null);
+    setUserEmail(null);
   };
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className="partner-ph partner-ph-loading">
+        <img src={logoUrl} alt="" className="partner-ph-loading-logo" width={48} height={48} />
+        <div className="partner-ph-loading-bar" role="progressbar" aria-label="Cargando" />
+        <p className="partner-ph-loading-text">Cargando Partner Hub</p>
+      </div>
+    );
+  }
 
   if (!userEmail) {
     return (
-      <div style={s.wrap}>
-        <div style={s.card}>
-          <h1 style={s.h1}>Partner Portal</h1>
-          <p style={s.sub}>Acceso para empresas asociadas. Si no tenés usuario, pedilo al equipo Xplora.</p>
-          <form onSubmit={doLogin}>
-            <label style={s.label}>Email</label>
-            <input value={email} onChange={e => setEmail(e.target.value)} style={s.input} inputMode="email" required />
-            <label style={{ ...s.label, marginTop: 12 }}>Contraseña</label>
-            <input value={password} onChange={e => setPassword(e.target.value)} style={s.input} type="password" required />
-            {authError ? <p style={s.err}>{authError}</p> : null}
-            <button type="submit" style={s.btn}>Ingresar</button>
-          </form>
+      <div className="partner-ph partner-ph-login-root">
+        <div className="partner-ph-login-brand">
+          <div className="partner-ph-login-brand-inner">
+            <div className="partner-ph-login-badge">Espacio empresas</div>
+            <h1 className="partner-ph-login-title">Gestioná tus ofertas con Xplora</h1>
+            <p className="partner-ph-login-lead">
+              {PUBLIC_BOLSA_ENABLED
+                ? 'Publicá en la bolsa oficial, revisá postulantes y mantené tu marca alineada con la comunidad Xplora.'
+                : 'Gestioná ofertas y postulantes; la bolsa pública del sitio está pausada por ahora.'}{' '}
+              Acceso exclusivo para empresas asociadas.
+            </p>
+          </div>
+        </div>
+        <div className="partner-ph-login-panel">
+          <div className="partner-ph-login-card">
+            <div className="partner-ph-login-card-head">
+              <img src={logoUrl} alt="Xplora" className="partner-ph-login-card-logo" width={56} height={56} />
+              <h2 className="partner-ph-login-card-title">Partner Hub</h2>
+              <p className="partner-ph-login-card-sub">Ingresá con el email y contraseña que te asignó el equipo Xplora.</p>
+            </div>
+            <form onSubmit={doLogin}>
+              <div className="partner-ph-field">
+                <label className="partner-ph-label" htmlFor="partner-email">
+                  Email corporativo
+                </label>
+                <input
+                  id="partner-email"
+                  className="partner-ph-input"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  inputMode="email"
+                  autoComplete="username"
+                  required
+                />
+              </div>
+              <div className="partner-ph-field">
+                <label className="partner-ph-label" htmlFor="partner-password">
+                  Contraseña
+                </label>
+                <input
+                  id="partner-password"
+                  className="partner-ph-input"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                />
+              </div>
+              {authError ? <p className="partner-ph-error">{authError}</p> : null}
+              <button type="submit" className="partner-ph-btn-primary">
+                Entrar al panel
+              </button>
+            </form>
+            <div className="partner-ph-login-help">
+              <p>¿Necesitás acceso? Contactá al equipo Xplora.</p>
+              <div className="partner-ph-links-row">
+                {QUICK_LINKS.map(({ href, label, Icon }) => (
+                  <a key={href} href={href} className="partner-ph-link-pill">
+                    <Icon />
+                    {label}
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
+  const companyInitial = (company?.name || 'E').trim().charAt(0).toUpperCase();
+
   return (
-    <div style={s.page}>
-      <header style={s.top}>
-        <div>
-          <div style={s.kicker}>Partner Portal</div>
-          <div style={s.me}>{userEmail}</div>
+    <div className="partner-ph partner-ph-app">
+      <header className="partner-ph-topbar">
+        <div className="partner-ph-brand-row">
+          <img src={logoUrl} alt="Xplora" className="partner-ph-top-logo" width={40} height={40} />
+          <div className="partner-ph-top-titles">
+            <p className="partner-ph-top-kicker">{PUBLIC_BOLSA_ENABLED ? 'Xplora · Bolsa de empleo' : 'Xplora · Partner Hub'}</p>
+            <h1 className="partner-ph-top-title">Partner Hub</h1>
+          </div>
         </div>
-        <button type="button" style={s.out} onClick={() => void doLogout()}>
-          Salir
-        </button>
+        <div className="partner-ph-top-actions">
+          <div className="partner-ph-user-pill" title={userEmail}>
+            <span>{userEmail}</span>
+          </div>
+          <button type="button" className="partner-ph-btn-ghost" onClick={() => void doLogout()}>
+            Cerrar sesión
+          </button>
+        </div>
       </header>
 
-      {company ? (
-        <div style={{ ...s.panel, marginBottom: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
-            <div>
-              <div style={s.kicker}>Mi empresa</div>
-              <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--ink)' }}>{company.name}</div>
-              <div style={{ fontSize: 12, color: 'var(--ink-muted)', marginTop: 4 }}>
-                {company.domain ? <>Dominio: {company.domain}</> : 'Dominio: —'}
-              </div>
-            </div>
-          </div>
+      <nav className="partner-ph-quick" aria-label="Accesos rápidos">
+        <div className="partner-ph-quick-inner">
+          <span className="partner-ph-quick-label">Accesos</span>
+          {QUICK_LINKS.map(({ href, label, Icon }) => (
+            <a key={href} href={href} className="partner-ph-quick-link">
+              <Icon />
+              {label}
+            </a>
+          ))}
         </div>
-      ) : null}
+      </nav>
 
-      <div style={s.grid}>
-        <section style={s.panel}>
-          <div style={s.panelHead}>
-            <h2 style={s.h2}>Mis ofertas</h2>
-            <button type="button" style={s.smallBtn} onClick={openCreate}>
-              + Nueva
-            </button>
-          </div>
-          {jobsError ? <p style={s.err}>{jobsError}</p> : null}
-          <div style={s.list}>
-            {empleos.map(j => (
-              <div key={j.id} style={{ ...s.item, ...(selectedJobId === j.id ? s.itemActive : {}) }}>
-                <button
-                  type="button"
-                  style={s.itemMainBtn}
-                  onClick={() => {
-                    setSelectedJobId(j.id);
-                    void loadApps(j.id);
-                  }}
-                >
-                  <div style={s.itemTitle}>{j.title}</div>
-                  <div style={s.itemMeta}>
-                    {j.company} · {j.location} · {j.type} · {j.area}
-                  </div>
-                </button>
-                <div style={s.itemActions}>
-                  <button type="button" style={s.iconBtn} onClick={() => openEdit(j)} title="Editar">
-                    Editar
-                  </button>
-                  <button type="button" style={{ ...s.iconBtn, color: '#9b2c20' }} onClick={() => void deleteJob(j)} title="Eliminar">
-                    Eliminar
-                  </button>
+      <main className="partner-ph-main">
+        {company ? (
+          <section className="partner-ph-company" aria-labelledby="partner-company-heading">
+            {company.logo_url?.trim() ? (
+              <img className="partner-ph-company-logo" src={company.logo_url} alt="" />
+            ) : (
+              <div className="partner-ph-company-logo ph-placeholder" aria-hidden>
+                {companyInitial}
+              </div>
+            )}
+            <div className="partner-ph-company-body">
+              <h2 id="partner-company-heading" className="partner-ph-company-name">
+                {company.name}
+              </h2>
+              <p className="partner-ph-company-meta">
+                {company.domain?.trim() ? (
+                  <>
+                    Sitio web · {company.domain}
+                    <br />
+                  </>
+                ) : null}
+                Las ofertas que publiqués{' '}
+                {PUBLIC_BOLSA_ENABLED ? (
+                  <>
+                    aparecen en la <a href="/bolsa">Bolsa de empleo</a> del sitio Xplora (comunidad UCEMA). Los candidatos
+                    postulan con su perfil Talento.
+                  </>
+                ) : (
+                  <>quedan guardadas; la bolsa pública del sitio está pausada. Los candidatos podrán postular con Talento cuando se reactive.</>
+                )}
+              </p>
+            </div>
+            <div className="partner-ph-stats">
+              <div className="partner-ph-stat">
+                <div className="partner-ph-stat-val">{empleos.length}</div>
+                <div className="partner-ph-stat-label">Ofertas</div>
+              </div>
+              <div className="partner-ph-stat">
+                <div className="partner-ph-stat-val">
+                  {selectedJob
+                    ? statusFilter === 'all'
+                      ? apps.length
+                      : `${filteredApps.length}/${apps.length}`
+                    : '—'}
+                </div>
+                <div className="partner-ph-stat-label">
+                  {selectedJob ? (statusFilter === 'all' ? 'Postulantes (esta oferta)' : 'Visibles / total') : 'Postulantes'}
                 </div>
               </div>
-            ))}
-          </div>
-        </section>
-
-        <section style={s.panel}>
-          <h2 style={s.h2}>Postulantes</h2>
-          {!selectedJob ? (
-            <p style={s.muted}>Seleccioná una oferta para ver postulantes.</p>
-          ) : appsLoading ? (
-            <p style={s.muted}>Cargando…</p>
-          ) : appsError ? (
-            <p style={s.err}>{appsError}</p>
-          ) : apps.length === 0 ? (
-            <p style={s.muted}>Todavía no hay postulaciones para “{selectedJob.title}”.</p>
-          ) : (
-            <div style={s.apps}>
-              {apps.map(a => {
-                const p = a.snapshot?.profile ?? {};
-                return (
-                  <div key={a.id} style={s.appCard}>
-                    <div style={s.appTop}>
-                      <div style={s.appName}>{p.full_name || p.email || 'Postulante'}</div>
-                      <div style={s.appDate}>{fmtDate(a.created_at)}</div>
-                    </div>
-                    <div style={s.appGrid}>
-                      <div><span style={s.k}>Email</span><div style={s.v}>{p.email || '—'}</div></div>
-                      <div><span style={s.k}>Teléfono</span><div style={s.v}>{p.phone || '—'}</div></div>
-                      <div><span style={s.k}>Carrera</span><div style={s.v}>{p.career || '—'}</div></div>
-                      <div><span style={s.k}>LinkedIn</span><div style={s.v}>{p.linkedin_url || '—'}</div></div>
-                      <div><span style={s.k}>CV</span><div style={s.v}>{p.cv_url || '—'}</div></div>
-                    </div>
-                    {a.snapshot?.cover_letter ? (
-                      <div style={{ marginTop: 12 }}>
-                        <div style={s.k}>Mensaje</div>
-                        <div style={s.v}>{String(a.snapshot.cover_letter)}</div>
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })}
             </div>
-          )}
-        </section>
-      </div>
+          </section>
+        ) : null}
+
+        <div className="partner-ph-grid">
+          <section className="partner-ph-panel" aria-labelledby="jobs-heading">
+            <div className="partner-ph-panel-head">
+              <h2 id="jobs-heading" className="partner-ph-panel-title">
+                Mis ofertas
+              </h2>
+              <button type="button" className="partner-ph-btn-accent" onClick={openCreate}>
+                + Nueva oferta
+              </button>
+            </div>
+            <div className="partner-ph-panel-body">
+              {jobsError ? <p className="partner-ph-error">{jobsError}</p> : null}
+              {empleos.length === 0 && !jobsError ? (
+                <p className="partner-ph-empty">
+                  Todavía no publicaste ofertas. Creá la primera
+                  {PUBLIC_BOLSA_ENABLED ? ' para aparecer en la bolsa Xplora.' : ' para cuando reactivemos la bolsa pública.'}
+                </p>
+              ) : (
+                <div className="partner-ph-job">
+                  {empleos.map(j => (
+                    <article
+                      key={j.id}
+                      className={`partner-ph-job-card${selectedJobId === j.id ? ' ph-selected' : ''}`}
+                    >
+                      <button
+                        type="button"
+                        className="partner-ph-job-main"
+                        onClick={() => {
+                          setSelectedJobId(j.id);
+                          void loadApps(j.id);
+                        }}
+                      >
+                        <div className="partner-ph-job-title">
+                          {j.emoji ? `${j.emoji} ` : ''}
+                          {j.title}
+                        </div>
+                        <div className="partner-ph-job-tags">
+                          {j.area ? <span className="partner-ph-tag ph-accent">{j.area}</span> : null}
+                          {j.location ? <span className="partner-ph-tag">{j.location}</span> : null}
+                          <span className="partner-ph-tag">{j.type}</span>
+                        </div>
+                      </button>
+                      <div className="partner-ph-job-actions">
+                        <button type="button" className="partner-ph-btn-sm" onClick={() => openEdit(j)}>
+                          Editar
+                        </button>
+                        <button type="button" className="partner-ph-btn-sm ph-danger" onClick={() => void deleteJob(j)}>
+                          Eliminar
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="partner-ph-panel" aria-labelledby="apps-heading">
+            <div className="partner-ph-panel-head">
+              <h2 id="apps-heading" className="partner-ph-panel-title">
+                Postulantes
+              </h2>
+            </div>
+            <div className="partner-ph-panel-body partner-ph-apps-shell">
+              {!selectedJob ? (
+                <p className="partner-ph-empty">Seleccioná una oferta a la izquierda para ver candidatos y sus datos.</p>
+              ) : (
+                <>
+                  <div className="partner-ph-apps-head">
+                    <h3 className="partner-ph-apps-head-title">{selectedJob.title}</h3>
+                    <p className="partner-ph-apps-head-meta">
+                      {selectedJob.location} · {selectedJob.type}
+                      {selectedJob.area ? ` · ${selectedJob.area}` : ''}
+                      {apps.length > 0 && statusFilter !== 'all'
+                        ? ` · Filtro: ${pipelineLabel(statusFilter)}`
+                        : ''}
+                    </p>
+                  </div>
+                  {appsLoading ? (
+                    <p className="partner-ph-empty">Cargando postulaciones…</p>
+                  ) : appsError ? (
+                    <p className="partner-ph-error">{appsError}</p>
+                  ) : apps.length === 0 ? (
+                    <p className="partner-ph-empty">
+                      Aún no hay postulaciones para esta oferta.
+                      {PUBLIC_BOLSA_ENABLED ? (
+                        <>
+                          {' '}
+                          Tu oferta ya está en la <a href="/bolsa">Bolsa de empleo</a>: compartí el link para que los
+                          candidatos postulen con Talento.
+                        </>
+                      ) : (
+                        ' La bolsa pública está pausada; cuando vuelva a estar activa podrás compartir el listado con candidatos.'
+                      )}
+                    </p>
+                  ) : (
+                    <>
+                      <div className="partner-ph-pipeline-filters" role="tablist" aria-label="Filtrar por estado">
+                        <button
+                          type="button"
+                          className={`partner-ph-filter-chip${statusFilter === 'all' ? ' ph-active' : ''}`}
+                          onClick={() => setStatusFilter('all')}
+                        >
+                          Todos ({apps.length})
+                        </button>
+                        {PIPELINE_STATUSES.map(st => {
+                          const count = apps.filter(a => normalizeApplicationStatus(a.status) === st.id).length;
+                          return (
+                            <button
+                              key={st.id}
+                              type="button"
+                              className={`partner-ph-filter-chip ph-st-${st.id}${statusFilter === st.id ? ' ph-active' : ''}`}
+                              onClick={() => setStatusFilter(st.id)}
+                            >
+                              {st.label} ({count})
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {filteredApps.length === 0 ? (
+                        <p className="partner-ph-empty">
+                          No hay candidatos con este estado. Elegí otro filtro o cambiá el pipeline de algún postulante.
+                        </p>
+                      ) : (
+                        <div className="partner-ph-apps-list">
+                          {filteredApps.map(a => {
+                            const p = a.snapshot?.profile ?? {};
+                            const st = normalizeApplicationStatus(a.status);
+                            return (
+                              <article key={a.id} className={`partner-ph-app-card ph-st-card-${st}`}>
+                                <div className="partner-ph-app-top">
+                                  <div className="partner-ph-app-name-row">
+                                    <span className="partner-ph-app-name">{p.full_name || p.email || 'Postulante'}</span>
+                                    <span className={`partner-ph-status-pill ph-st-${st}`}>{pipelineLabel(a.status)}</span>
+                                  </div>
+                                  <time className="partner-ph-app-date" dateTime={a.created_at}>
+                                    {fmtDate(a.created_at)}
+                                  </time>
+                                </div>
+                                <div className="partner-ph-app-controls">
+                                  <label className="partner-ph-pipeline-label" htmlFor={`st-${a.id}`}>
+                                    Pipeline
+                                  </label>
+                                  <select
+                                    id={`st-${a.id}`}
+                                    className="partner-ph-status-select"
+                                    value={st}
+                                    disabled={patchingAppId === a.id}
+                                    onChange={e => void patchApplication(a.id, { status: e.target.value })}
+                                  >
+                                    {PIPELINE_STATUSES.map(opt => (
+                                      <option key={opt.id} value={opt.id}>
+                                        {opt.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div className="partner-ph-app-grid">
+                                  <div>
+                                    <span className="partner-ph-k">Email</span>
+                                    <div className="partner-ph-v">{p.email || '—'}</div>
+                                  </div>
+                                  <div>
+                                    <span className="partner-ph-k">Teléfono</span>
+                                    <div className="partner-ph-v">{p.phone || '—'}</div>
+                                  </div>
+                                  <div>
+                                    <span className="partner-ph-k">Carrera</span>
+                                    <div className="partner-ph-v">{p.career || '—'}</div>
+                                  </div>
+                                  <div>
+                                    <span className="partner-ph-k">LinkedIn</span>
+                                    <div className="partner-ph-v">{p.linkedin_url || '—'}</div>
+                                  </div>
+                                  <div style={{ gridColumn: '1 / -1' }}>
+                                    <span className="partner-ph-k">CV</span>
+                                    <div className="partner-ph-v">{p.cv_url || '—'}</div>
+                                  </div>
+                                </div>
+                                {a.snapshot?.cover_letter ? (
+                                  <div className="partner-ph-app-msg">
+                                    <span className="partner-ph-k">Mensaje del candidato</span>
+                                    <div className="partner-ph-v">{String(a.snapshot.cover_letter)}</div>
+                                  </div>
+                                ) : null}
+                                <div className="partner-ph-notes-block">
+                                  <label className="partner-ph-k" htmlFor={`notes-${a.id}`}>
+                                    Notas internas (solo tu empresa)
+                                  </label>
+                                  <textarea
+                                    id={`notes-${a.id}`}
+                                    className="partner-ph-notes-input"
+                                    rows={2}
+                                    value={noteDrafts[a.id] ?? ''}
+                                    onChange={e =>
+                                      setNoteDrafts(prev => ({
+                                        ...prev,
+                                        [a.id]: e.target.value,
+                                      }))
+                                    }
+                                    placeholder="Ej.: Referido por… / feedback del hiring manager"
+                                  />
+                                  <button
+                                    type="button"
+                                    className="partner-ph-btn-notes-save"
+                                    disabled={
+                                      patchingAppId === a.id || (noteDrafts[a.id] ?? '') === (a.notes ?? '')
+                                    }
+                                    onClick={() =>
+                                      void patchApplication(a.id, { notes: noteDrafts[a.id] ?? '' })
+                                    }
+                                  >
+                                    {patchingAppId === a.id ? 'Guardando…' : 'Guardar nota'}
+                                  </button>
+                                </div>
+                              </article>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          </section>
+        </div>
+      </main>
 
       {formOpen && editing ? (
-        <div style={f.overlay} onClick={() => setFormOpen(false)}>
-          <div style={f.card} onClick={e => e.stopPropagation()}>
-            <div style={f.head}>
+        <div className="partner-ph-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title" onClick={() => setFormOpen(false)}>
+          <div className="partner-ph-modal" onClick={e => e.stopPropagation()}>
+            <div className="partner-ph-modal-head">
               <div>
-                <div style={f.kicker}>{editing.id ? 'Editar oferta' : 'Nueva oferta'}</div>
-                <div style={f.title}>{editing.title || '—'}</div>
+                <p className="partner-ph-modal-kicker">{editing.id ? 'Editar oferta' : 'Nueva oferta'}</p>
+                <h3 id="modal-title" className="partner-ph-modal-title">
+                  {editing.title.trim() || 'Sin título'}
+                </h3>
               </div>
-              <button type="button" style={f.close} onClick={() => setFormOpen(false)}>
-                ✕
+              <button type="button" className="partner-ph-modal-close" onClick={() => setFormOpen(false)} aria-label="Cerrar">
+                ×
               </button>
             </div>
-
-            <div style={f.grid}>
-              <Field label="Título" value={editing.title} onChange={v => setEditing({ ...editing, title: v })} />
-              <div>
-                <label style={f.label}>Empresa</label>
-                <input
-                  style={{ ...f.input, background: 'rgba(26,16,40,0.03)' }}
-                  value={company?.name ?? editing.company}
-                  disabled
-                />
+            <div className="partner-ph-modal-body">
+              <div className="partner-ph-form-grid">
+                <Field label="Título" value={editing.title} onChange={v => setEditing({ ...editing, title: v })} />
+                <div className="partner-ph-field">
+                  <span className="partner-ph-label">Empresa</span>
+                  <input className="partner-ph-input" value={company?.name ?? editing.company} disabled readOnly />
+                </div>
+                <Field label="Ubicación" value={editing.location} onChange={v => setEditing({ ...editing, location: v })} />
+                <Field label="Tipo de contrato" value={editing.type} onChange={v => setEditing({ ...editing, type: v })} />
+                <Field label="Área" value={editing.area} onChange={v => setEditing({ ...editing, area: v })} />
+                <Field label="Emoji" value={String(editing.emoji ?? '')} onChange={v => setEditing({ ...editing, emoji: v })} />
               </div>
-              <Field label="Ubicación" value={editing.location} onChange={v => setEditing({ ...editing, location: v })} />
-              <Field label="Tipo" value={editing.type} onChange={v => setEditing({ ...editing, type: v })} />
-              <Field label="Área" value={editing.area} onChange={v => setEditing({ ...editing, area: v })} />
-              <Field label="Emoji" value={String(editing.emoji ?? '')} onChange={v => setEditing({ ...editing, emoji: v })} />
-            </div>
 
-            <label style={f.label}>Descripción</label>
-            <textarea style={f.ta} rows={4} value={editing.description ?? ''} onChange={e => setEditing({ ...editing, description: e.target.value })} />
+              <span className="partner-ph-section-label">Descripción del puesto</span>
+              <textarea
+                className="partner-ph-textarea"
+                rows={4}
+                value={editing.description ?? ''}
+                onChange={e => setEditing({ ...editing, description: e.target.value })}
+              />
 
-            <label style={f.label}>Requisitos</label>
-            <textarea style={f.ta} rows={4} value={editing.requirements ?? ''} onChange={e => setEditing({ ...editing, requirements: e.target.value })} />
+              <span className="partner-ph-section-label">Requisitos</span>
+              <textarea
+                className="partner-ph-textarea"
+                rows={4}
+                value={editing.requirements ?? ''}
+                onChange={e => setEditing({ ...editing, requirements: e.target.value })}
+              />
 
-            <label style={f.label}>Beneficios</label>
-            <textarea style={f.ta} rows={4} value={editing.benefits ?? ''} onChange={e => setEditing({ ...editing, benefits: e.target.value })} />
+              <span className="partner-ph-section-label">Beneficios</span>
+              <textarea
+                className="partner-ph-textarea"
+                rows={4}
+                value={editing.benefits ?? ''}
+                onChange={e => setEditing({ ...editing, benefits: e.target.value })}
+              />
 
-            {jobsError ? <p style={s.err}>{jobsError}</p> : null}
+              {jobsError ? <p className="partner-ph-error">{jobsError}</p> : null}
 
-            <div style={f.footer}>
-              <button type="button" style={f.ghost} onClick={() => setFormOpen(false)}>
-                Cancelar
-              </button>
-              <button type="button" style={{ ...f.save, opacity: savingJob ? 0.6 : 1 }} disabled={savingJob} onClick={() => void saveJob()}>
-                {savingJob ? 'Guardando…' : 'Guardar'}
-              </button>
+              <div className="partner-ph-modal-footer">
+                <button type="button" className="partner-ph-btn-ghost" onClick={() => setFormOpen(false)}>
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="partner-ph-btn-primary"
+                  style={{ width: 'auto', marginTop: 0, paddingLeft: 22, paddingRight: 22 }}
+                  disabled={savingJob}
+                  onClick={() => void saveJob()}
+                >
+                  {savingJob ? 'Guardando…' : 'Guardar oferta'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -400,86 +845,13 @@ export default function PartnerPortal() {
 }
 
 function Field({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const id = useId();
   return (
-    <div>
-      <label style={f.label}>{label}</label>
-      <input style={f.input} value={value} onChange={e => onChange(e.target.value)} />
+    <div className="partner-ph-field">
+      <label className="partner-ph-label" htmlFor={id}>
+        {label}
+      </label>
+      <input id={id} className="partner-ph-input" value={value} onChange={e => onChange(e.target.value)} />
     </div>
   );
 }
-
-const s: Record<string, React.CSSProperties> = {
-  wrap: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: '#f6f1ea' },
-  card: { width: '100%', maxWidth: 420, background: '#fff', borderRadius: 18, border: '1px solid rgba(26,16,40,0.08)', padding: 28 },
-  h1: { fontFamily: "'Fraunces', serif", margin: 0, marginBottom: 8, color: 'var(--ink)', letterSpacing: '-0.02em' },
-  sub: { marginTop: 0, color: 'var(--ink-muted)', fontSize: 13, lineHeight: 1.5, marginBottom: 18 },
-  label: { display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink-muted)', marginBottom: 6 },
-  input: { width: '100%', padding: '10px 12px', borderRadius: 12, border: '1.5px solid var(--border-warm)', fontSize: 14, boxSizing: 'border-box' },
-  btn: { width: '100%', marginTop: 14, padding: '12px 14px', borderRadius: 12, border: 'none', background: 'var(--ink)', color: '#fff', fontWeight: 800, cursor: 'pointer' },
-  err: { color: '#9b2c20', fontSize: 13, margin: '10px 0 0' },
-
-  page: { minHeight: '100vh', background: '#f6f1ea', padding: '18px 22px 40px' },
-  top: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
-  kicker: { fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-muted)', fontWeight: 800 },
-  me: { fontSize: 13, color: 'var(--ink)', fontWeight: 700 },
-  out: { border: '1px solid rgba(26,16,40,0.12)', borderRadius: 10, padding: '8px 12px', background: '#fff', cursor: 'pointer', fontWeight: 700 },
-  grid: { display: 'grid', gridTemplateColumns: '360px 1fr', gap: 16, alignItems: 'start' },
-  panel: { background: '#fff', borderRadius: 16, border: '1px solid rgba(26,16,40,0.08)', padding: 16 },
-  panelHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 8 },
-  h2: { margin: 0, marginBottom: 12, fontFamily: "'Fraunces', serif", color: 'var(--ink)', letterSpacing: '-0.01em' },
-  smallBtn: { border: '1px solid rgba(26,16,40,0.12)', borderRadius: 10, padding: '8px 10px', background: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: 12 },
-  list: { display: 'flex', flexDirection: 'column', gap: 8 },
-  item: { border: '1px solid rgba(26,16,40,0.10)', background: '#fff', borderRadius: 12, padding: 10, textAlign: 'left' },
-  itemActive: { borderColor: 'rgba(96,62,249,0.25)', background: 'rgba(96,62,249,0.06)' },
-  itemMainBtn: { width: '100%', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', padding: 2 },
-  itemTitle: { fontSize: 14, fontWeight: 800, color: 'var(--ink)' },
-  itemMeta: { fontSize: 12, color: 'var(--ink-muted)', marginTop: 4, lineHeight: 1.35 },
-  itemActions: { display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 },
-  iconBtn: { border: '1px solid rgba(26,16,40,0.12)', borderRadius: 10, padding: '6px 8px', background: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: 12 },
-  muted: { margin: 0, color: 'var(--ink-muted)', fontSize: 13 },
-  apps: { display: 'flex', flexDirection: 'column', gap: 10 },
-  appCard: { border: '1px solid rgba(26,16,40,0.08)', borderRadius: 14, padding: 14, background: '#fff' },
-  appTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, marginBottom: 10 },
-  appName: { fontSize: 14, fontWeight: 900, color: 'var(--ink)' },
-  appDate: { fontSize: 12, color: 'var(--ink-muted)' },
-  appGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 },
-  k: { fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-muted)' },
-  v: { fontSize: 13, color: 'var(--ink)' },
-};
-
-const f: Record<string, React.CSSProperties> = {
-  overlay: {
-    position: 'fixed',
-    inset: 0,
-    zIndex: 1000,
-    background: 'rgba(26,16,40,0.6)',
-    backdropFilter: 'blur(6px)',
-    WebkitBackdropFilter: 'blur(6px)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 18,
-  },
-  card: {
-    width: '100%',
-    maxWidth: 820,
-    background: '#fff',
-    borderRadius: 18,
-    border: '1px solid rgba(26,16,40,0.10)',
-    boxShadow: '0 24px 70px rgba(26,16,40,0.22)',
-    padding: 18,
-    position: 'relative',
-  },
-  head: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 12 },
-  kicker: { fontSize: 11, fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-muted)' },
-  title: { fontFamily: "'Fraunces', serif", fontWeight: 700, color: 'var(--ink)', marginTop: 4 },
-  close: { border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 16, color: 'var(--ink-muted)' },
-  grid: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 },
-  label: { display: 'block', fontSize: 12, fontWeight: 800, color: 'var(--ink-muted)', marginBottom: 6 },
-  input: { width: '100%', padding: '10px 12px', borderRadius: 12, border: '1.5px solid var(--border-warm)', fontSize: 14, boxSizing: 'border-box' },
-  ta: { width: '100%', padding: '10px 12px', borderRadius: 12, border: '1.5px solid var(--border-warm)', fontSize: 14, boxSizing: 'border-box', fontFamily: "'Instrument Sans', sans-serif", marginBottom: 10 },
-  footer: { display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 },
-  ghost: { border: '1px solid rgba(26,16,40,0.12)', borderRadius: 12, padding: '10px 12px', background: '#fff', cursor: 'pointer', fontWeight: 900 },
-  save: { border: 'none', borderRadius: 12, padding: '10px 14px', background: 'var(--ink)', color: '#fff', cursor: 'pointer', fontWeight: 900 },
-};
-

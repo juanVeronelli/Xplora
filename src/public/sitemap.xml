@@ -16,11 +16,6 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://xploraucema.com/bolsa</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://xploraucema.com/somos-xplora</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>

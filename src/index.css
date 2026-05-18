@@ -48,6 +48,17 @@ em { font-style: italic; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/** Indicador de envío de campaña (admin) */
+.xplora-dispatch-spinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid var(--border);
+  border-top-color: var(--purple);
+  border-radius: 50%;
+  animation: spin 0.85s linear infinite;
+  flex-shrink: 0;
+}
+
 /* Reveal classes (JS-driven via IntersectionObserver) */
 /* ── Global mobile fixes ── */
 html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }

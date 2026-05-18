@@ -10,6 +10,7 @@ import { useAuth } from './hooks/useAuth';
 import { StaffPermissionsProvider } from './context/StaffPermissionsContext';
 import { authFetch, readApiError } from './lib/serverApi';
 import { getPanelPath, normalizePath, pageToPath, pathToPage } from './lib/routes';
+import { PUBLIC_BOLSA_ENABLED } from './config/publicFeatures';
 import Nav from './components/Nav';
 import LoginModal from './components/LoginModal';
 
@@ -51,6 +52,15 @@ export default function App() {
   const [selectedEmpleo, setSelectedEmpleo] = useState<Empleo | null>(null);
   const [autoApplyJobId, setAutoApplyJobId] = useState<string | null>(null);
   const goTo = useCallback((p: Page) => {
+    if (!PUBLIC_BOLSA_ENABLED && (p === 'bolsa' || p === 'empleo-detail')) {
+      setPage('home');
+      const nextPath = pageToPath('home');
+      if (normalizePath(window.location.pathname) !== nextPath) {
+        window.history.pushState({}, '', nextPath);
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     setPage(p);
     const nextPath = pageToPath(p);
     if (normalizePath(window.location.pathname) !== nextPath) {
@@ -76,6 +86,7 @@ export default function App() {
     goTo('charla-detail');
   };
   const openEmpleo = (e: Empleo, opts?: { autoApply?: boolean }) => {
+    if (!PUBLIC_BOLSA_ENABLED) return;
     setSelectedEmpleo(e);
     setAutoApplyJobId(opts?.autoApply ? e.id : null);
     goTo('empleo-detail');
@@ -137,10 +148,9 @@ export default function App() {
     'somos',
     'sponsors',
     'eventos',
-    'bolsa',
     'evento-detail',
     'charla-detail',
-    'empleo-detail',
+    ...(PUBLIC_BOLSA_ENABLED ? (['bolsa', 'empleo-detail'] as const) : []),
     'talento',
   ];
   const showNav = publicPages.includes(page);
@@ -162,8 +172,10 @@ export default function App() {
           {page === 'charla-detail' && selectedCharla && (
             <CharlaDetail charla={selectedCharla} goBack={() => goTo('eventos')} />
           )}
-          {page === 'bolsa' && <Bolsa openEmpleo={openEmpleo} goToTalento={() => goTo('talento')} />}
-          {page === 'empleo-detail' && selectedEmpleo && (
+          {PUBLIC_BOLSA_ENABLED && page === 'bolsa' && (
+            <Bolsa openEmpleo={openEmpleo} goToTalento={() => goTo('talento')} />
+          )}
+          {PUBLIC_BOLSA_ENABLED && page === 'empleo-detail' && selectedEmpleo && (
             <EmpleoDetail
               empleo={selectedEmpleo}
               goBack={() => goTo('bolsa')}

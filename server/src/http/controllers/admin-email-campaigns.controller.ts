@@ -3,18 +3,26 @@
  */
 import type { RequestHandler } from 'express';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { AppConfig } from '../../config/env.js';
+import { getAppConfig, loadEnvFromProjectRoot, type AppConfig } from '../../config/env.js';
 import { fetchAllMemberRows } from '../../services/admin-member-rows.service.js';
-import { createUserSupabase } from '../../infra/supabase-clients.js';
-import { BadRequestError } from '../errors/http-error.js';
+import { createUserSupabase, createServiceSupabase } from '../../infra/supabase-clients.js';
+import { BadRequestError, ForbiddenError, HttpError } from '../errors/http-error.js';
 import { asyncHandler } from '../middleware/async-handler.js';
-import { ForbiddenError } from '../errors/http-error.js';
 import {
   DEFAULT_EMAIL_TEMPLATE_ID,
   isValidEmailTemplateId,
   type EmailTemplateId,
 } from '../../domain/email-template-ids.js';
-import { getContactListById, listMembersForList } from '../../services/contact-lists.service.js';
+import { getContactListById } from '../../services/contact-lists.service.js';
+import {
+  mapUsuarioIdsToRecipientsWithEmail,
+  resolveCampaignUsuarioIdsFromBody,
+} from '../../services/email-campaign-audience.service.js';
+import {
+  createDispatchJob,
+  getDispatchJob,
+  startDispatchJobRunner,
+} from '../../services/email-dispatch-queue.service.js';
 
 const FETCH_PAGE = 1000;
 
@@ -143,48 +151,7 @@ export function createEmailCampaignLogEnviosHandler(config: AppConfig): RequestH
     const body = req.body as Record<string, unknown>;
     const sb = createUserSupabase(config, req.headers.authorization);
 
-    // Permite dos modos:
-    // - usuario_ids: ids explícitos (modo manual / externo)
-    // - contact_list_id: resolver destinatarios desde una lista guardada (modo CRM)
-    // - audience: 'all' para todos los usuarios (dinámico; incluye nuevos)
-    const rawListId = body.contact_list_id;
-    const rawIds = body.usuario_ids;
-    const rawAudience = body.audience;
-
-    let usuario_ids: string[] = [];
-
-    if (rawAudience === 'all') {
-      const members = await fetchAllMemberRows(sb);
-      usuario_ids = members.map(m => m.id).filter(Boolean);
-      if (usuario_ids.length === 0) {
-        throw new BadRequestError('No hay usuarios en la base para registrar envíos.');
-      }
-    } else if (typeof rawListId === 'string' && rawListId.trim()) {
-      const listId = rawListId.trim();
-      const uid = req.authUser?.id ?? null;
-      if (!uid) throw new ForbiddenError('No hay usuario autenticado.');
-      const list = await getContactListById(sb, listId);
-      if (!list) throw new BadRequestError('Lista no encontrada.');
-      if ((list.created_by_auth_user_id ?? null) !== uid) {
-        throw new ForbiddenError('Solo podés enviar a listas creadas por tu usuario.');
-      }
-      const members = await listMembersForList(sb, listId);
-      usuario_ids = members
-        .map(m => m.usuario_id)
-        .filter((x): x is string => typeof x === 'string' && x.trim().length > 0);
-      if (usuario_ids.length === 0) {
-        throw new BadRequestError('La lista elegida no tiene usuarios con id para registrar envíos.');
-      }
-    } else if (Array.isArray(rawIds)) {
-      usuario_ids = rawIds
-        .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
-        .map(s => s.trim());
-      if (usuario_ids.length === 0) {
-        throw new BadRequestError('usuario_ids no puede estar vacío.');
-      }
-    } else {
-      throw new BadRequestError("Enviá JSON con audience:'all', contact_list_id o usuario_ids (array de UUIDs).");
-    }
+    const usuario_ids = await resolveCampaignUsuarioIdsFromBody(sb, body, req.authUser?.id ?? null);
 
     const { data: campaignRow, error: cErr } = await sb
       .from('campanias_email')
@@ -247,5 +214,117 @@ export function createEmailCampaignAudienceHandler(config: AppConfig): RequestHa
     }));
 
     res.json({ campaign, rows });
+  });
+}
+
+function parseDispatchJobId(req: { params: { jobId?: string | string[] } }): string {
+  const raw = req.params.jobId;
+  const id = Array.isArray(raw) ? raw[0] : raw;
+  if (!id || typeof id !== 'string' || !id.trim()) throw new BadRequestError('Falta jobId.');
+  return id.trim();
+}
+
+/**
+ * GET /api/admin/email-campaign-dispatch/jobs/:jobId
+ * Estado de un envío en segundo plano (polling desde el panel).
+ */
+export function createEmailCampaignDispatchJobStatusHandler(_config: AppConfig): RequestHandler {
+  return asyncHandler(async (req, res) => {
+    const jobId = parseDispatchJobId(req);
+    const state = getDispatchJob(jobId);
+    if (!state) {
+      throw new HttpError(
+        404,
+        'Envío no encontrado o expiró (p. ej. reinicio del servidor).',
+        'DISPATCH_JOB_NOT_FOUND',
+      );
+    }
+    res.json(state);
+  });
+}
+
+/**
+ * POST /api/admin/email-campaigns/:id/dispatch/start
+ * Encola envío por Resend (HTML + audiencia igual que antes). Responde 202 al toque; el trabajo sigue en el servidor.
+ * Tras cada envío exitoso se inserta una fila en `campanias_envios`.
+ */
+export function createEmailCampaignDispatchStartHandler(config: AppConfig): RequestHandler {
+  return asyncHandler(async (req, res) => {
+    loadEnvFromProjectRoot();
+    const live = getAppConfig();
+    if (!live.resend) {
+      throw new BadRequestError(
+        'Envío de campañas: falta RESEND_API_KEY (o RESEND_KEY). En local: archivo `.env` en la raíz del repo (junto a package.json), sin espacios alrededor del =. Si el panel llama a un API en producción (Railway, etc.), definí la misma variable allí. Remitente: MAIL_FROM o RESEND_FROM.',
+      );
+    }
+
+    const campaignId = parseCampaignRouteId(req);
+    const body = req.body as Record<string, unknown>;
+    const sb =
+      createServiceSupabase(config) ?? createUserSupabase(config, req.headers.authorization);
+
+    const html = typeof body.html === 'string' ? body.html : '';
+    if (!html.trim()) throw new BadRequestError('Falta html del correo (plantilla renderizada).');
+    if (html.length > 2_500_000) throw new BadRequestError('HTML demasiado grande.');
+
+    const { data: campaignRow, error: cErr } = await sb
+      .from('campanias_email')
+      .select('id, asunto')
+      .eq('id', campaignId)
+      .maybeSingle();
+    if (cErr) throw new BadRequestError(cErr.message);
+    if (!campaignRow) throw new BadRequestError('Campaña no encontrada.');
+
+    const subject =
+      typeof body.asunto === 'string' && body.asunto.trim()
+        ? body.asunto.trim()
+        : String((campaignRow as { asunto?: string }).asunto ?? '').trim();
+    if (!subject) throw new BadRequestError('Falta asunto del correo (guardá la campaña con asunto o envialo en el JSON).');
+
+    const usuarioIdsResolved = await resolveCampaignUsuarioIdsFromBody(sb, body, req.authUser?.id ?? null);
+    const members = await fetchAllMemberRows(sb);
+    const recipients = mapUsuarioIdsToRecipientsWithEmail(usuarioIdsResolved, members);
+    if (recipients.length === 0) {
+      throw new BadRequestError(
+        'Ningún destinatario tiene un email válido en la tabla usuarios. Revisá los datos o la audiencia.',
+      );
+    }
+
+    const existing = await fetchUsuarioIdsEnvioCampaign(sb, campaignId);
+    const nuevos = recipients.filter(r => !existing.has(r.usuario_id));
+    const skipped_already_sent = recipients.length - nuevos.length;
+
+    if (nuevos.length === 0) {
+      res.json({
+        jobId: null,
+        status: 'completed' as const,
+        campaignId,
+        total: recipients.length,
+        skipped_already_sent,
+        attempted: 0,
+        sent: 0,
+        failed: [],
+        current_email: null,
+        from: live.resend.from,
+        message: 'No hay envíos nuevos: todos ya estaban registrados o la selección quedó vacía.',
+      });
+      return;
+    }
+
+    const jobId = createDispatchJob({
+      campaignId,
+      subject,
+      html,
+      recipients: nuevos,
+      skipped_already_sent,
+      resend: live.resend,
+      sb,
+    });
+
+    startDispatchJobRunner(jobId);
+
+    const snapshot = getDispatchJob(jobId);
+    if (!snapshot) throw new BadRequestError('No se pudo crear el trabajo de envío.');
+    res.status(202).json(snapshot);
   });
 }
