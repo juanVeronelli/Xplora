@@ -65,7 +65,7 @@ export function pageToPath(page: Page): string {
     case 'charlas':
       return '/eventos';
     case 'bolsa':
-      return '/bolsa';
+      return PUBLIC_BOLSA_ENABLED ? '/bolsa' : '/';
     case 'partner':
       return getPartnerPath();
     case 'talento':
@@ -77,7 +77,7 @@ export function pageToPath(page: Page): string {
     case 'charla-detail':
       return '/eventos';
     case 'empleo-detail':
-      return '/bolsa';
+      return PUBLIC_BOLSA_ENABLED ? '/bolsa' : '/';
     default:
       return '/';
   }

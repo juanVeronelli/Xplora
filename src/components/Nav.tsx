@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { Page } from '../types';
+import { PUBLIC_BOLSA_ENABLED } from '../config/publicFeatures';
 import { useSiteMedia } from '../context/SiteMediaContext';
 import { useIsMobile } from '../hooks/useIsMobile';
-import { PUBLIC_BOLSA_ENABLED } from '../config/publicFeatures';
 
 interface Props { current: Page; goTo: (p: Page) => void; }
 

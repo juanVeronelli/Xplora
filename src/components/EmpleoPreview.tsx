@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Page, Empleo } from '../types';
 import { fetchEmpleos } from '../lib/db';
+import { PUBLIC_BOLSA_ENABLED } from '../config/publicFeatures';
 import { useInView } from '../hooks/useInView';
 import { useIsMobile } from '../hooks/useIsMobile';
 import Tag from './Tag';
@@ -15,11 +16,14 @@ export default function EmpleoPreview({ goTo }: Props) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!PUBLIC_BOLSA_ENABLED) return;
     fetchEmpleos().then(data => {
       setEmpleos(data);
       setLoading(false);
     });
   }, []);
+
+  if (!PUBLIC_BOLSA_ENABLED) return null;
 
   return (
     <section

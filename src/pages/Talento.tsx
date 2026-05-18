@@ -463,7 +463,7 @@ export default function Talento() {
               </div>
             </div>
 
-            {returnApplyId ? (
+            {returnApplyId && PUBLIC_BOLSA_ENABLED ? (
               <div style={s.callout}>
                 <div style={s.calloutTitle}>Volver a la postulación</div>
                 <div style={s.calloutBody}>Cuando termines, podés volver al empleo donde estabas aplicando.</div>

@@ -70,6 +70,9 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!PUBLIC_BOLSA_ENABLED && normalizePath(window.location.pathname) === '/bolsa') {
+      window.history.replaceState({}, '', '/');
+    }
     const onPop = () => {
       setPage(pathToPage(window.location.pathname));
     };
