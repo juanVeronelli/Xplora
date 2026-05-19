@@ -1,4 +1,3 @@
-import type { MouseEvent } from 'react';
 import type { Page } from '../types';
 import { PUBLIC_BOLSA_ENABLED } from '../config/publicFeatures';
 import { useSiteMedia } from '../context/SiteMediaContext';
@@ -7,41 +6,6 @@ import { useIsMobile } from '../hooks/useIsMobile';
 interface Props {
   goTo?: (p: Page) => void;
   minimal?: boolean;
-}
-
-function DevCredit() {
-  const linkHover = (on: boolean) => (e: MouseEvent<HTMLAnchorElement>) => {
-    e.currentTarget.style.color = on ? 'var(--ink)' : 'var(--ink-muted)';
-    e.currentTarget.style.borderBottomColor = on ? 'var(--border-warm)' : 'transparent';
-  };
-
-  return (
-    <p style={s.dev}>
-      Desarrollado por{' '}
-      <a
-        href="https://www.linkedin.com/in/juanveronelli"
-        target="_blank"
-        rel="noopener noreferrer"
-        style={s.devLink}
-        onMouseEnter={linkHover(true)}
-        onMouseLeave={linkHover(false)}
-      >
-        Juan Ignacio Veronelli
-      </a>
-      {' '}y{' '}
-      <a
-        href="https://www.linkedin.com/in/robertino-barbuto/"
-        target="_blank"
-        rel="noopener noreferrer"
-        style={s.devLink}
-        onMouseEnter={linkHover(true)}
-        onMouseLeave={linkHover(false)}
-      >
-        Robertino Barbuto
-      </a>
-      .
-    </p>
-  );
 }
 
 export default function Footer({ goTo, minimal = false }: Props) {
@@ -54,16 +18,10 @@ export default function Footer({ goTo, minimal = false }: Props) {
         style={{
           ...s.footerMin,
           padding: isMobile ? '16px 24px' : '20px 80px',
-          flexDirection: 'column',
-          alignItems: 'stretch',
-          gap: 12,
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <span style={s.copy}>© 2025 Xplora UCEMA</span>
-          <Socials />
-        </div>
-        <DevCredit />
+        <span style={s.copy}>© 2025 Xplora UCEMA</span>
+        <Socials />
       </footer>
     );
   }
@@ -107,10 +65,7 @@ export default function Footer({ goTo, minimal = false }: Props) {
       </div>
 
       <div style={s.bottom}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: isMobile ? 'flex-start' : 'flex-start' }}>
-          <span style={s.copy}>© 2025 Xplora UCEMA. Todos los derechos reservados.</span>
-          <DevCredit />
-        </div>
+        <span style={s.copy}>© 2025 Xplora UCEMA. Todos los derechos reservados.</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <Socials />
         </div>
@@ -235,16 +190,4 @@ const s: Record<string, React.CSSProperties> = {
     borderTop: '1px solid var(--border-warm)', paddingTop: 24,
   },
   copy: { fontSize: 12, color: 'var(--ink-faint)' },
-  dev: {
-    margin: 0,
-    fontSize: 11,
-    color: 'var(--ink-faint)',
-    lineHeight: 1.5,
-  },
-  devLink: {
-    color: 'var(--ink-muted)',
-    textDecoration: 'none',
-    borderBottom: '1px solid transparent',
-    transition: 'color .2s, border-color .2s',
-  },
 };
