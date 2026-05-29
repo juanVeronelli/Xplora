@@ -11,7 +11,6 @@ export const CRM_PERMISSION_KEYS = [
   'past_events_edit_delete',
   'email_campaigns',
   'email_campaign_sends',
-  'analytics',
   'database_full',
   'database_members_only',
   'database_campaign_sends_only',
@@ -22,7 +21,6 @@ export const CRM_PERMISSION_KEYS = [
   'contact_lists_manage',
   'postulaciones_manage',
   'staff_accounts_manage',
-  'partner_accounts_manage',
   'members_data_delete',
   'access_total',
 ] as const;
@@ -37,7 +35,6 @@ export const CRM_PERMISSION_LABELS: Record<CrmPermissionKey, string> = {
   past_events_edit_delete: 'Editar / eliminar contenido del Archivo',
   email_campaigns: 'Email: redactar campañas (y ver envíos si aplica el rol)',
   email_campaign_sends: 'Email: registrar envíos y elegir audiencia (listas / todos)',
-  analytics: 'Analytics Xplora',
   database_full: 'Miembros + listas (vista completa)',
   database_members_only: 'Solo ver miembros (sin listas guardadas)',
   database_campaign_sends_only: 'Solo seguimiento de envíos (pestaña Email)',
@@ -49,7 +46,6 @@ export const CRM_PERMISSION_LABELS: Record<CrmPermissionKey, string> = {
   postulaciones_manage:
     'Postulaciones: ver leads de sponsors/empresas y solicitudes para sumarse a Xplora (incluye borrar registros)',
   staff_accounts_manage: 'Equipo — crear cuentas del panel y asignar permisos (excepto acceso total)',
-  partner_accounts_manage: 'Partners — alta de empresas y cuentas (portal de bolsa)',
   members_data_delete: 'Eliminar miembros del club (desde listados y audiencias)',
   access_total: 'Acceso total + otorgar acceso total a otros',
 };
@@ -85,8 +81,6 @@ export function canSeeAdminSection(section: AdminSectionId, perms: readonly CrmP
         'database_full',
         'database_campaign_sends_only',
       ]);
-    case 'analytics':
-      return hasPermission(perms, 'analytics');
     case 'database':
       return hasAnyPermission(perms, [
         'database_full',

@@ -3,7 +3,7 @@ import type { AppConfig } from '../../config/env.js';
 import { createAnonSupabase } from '../../infra/supabase-clients.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 
-export function createPublicListHandler(config: AppConfig, table: 'eventos' | 'charlas' | 'empleos'): RequestHandler {
+export function createPublicListHandler(config: AppConfig, table: 'eventos' | 'charlas'): RequestHandler {
   return asyncHandler(async (_req, res) => {
     const sb = createAnonSupabase(config);
     let q = sb.from(table).select('*').order('created_at', { ascending: false });

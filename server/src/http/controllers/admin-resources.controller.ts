@@ -1,5 +1,5 @@
 /**
- * Handlers genéricos **POST / PATCH / DELETE** para tablas de contenido (`eventos`, `charlas`, `empleos`).
+ * Handlers genéricos **POST / PATCH / DELETE** para tablas de contenido (`eventos`, `charlas`).
  * El cliente Supabase se crea con el JWT del request → RLS de Supabase aplica como el usuario autenticado.
  */
 import type { RequestHandler } from 'express';
@@ -8,7 +8,7 @@ import { createUserSupabase } from '../../infra/supabase-clients.js';
 import { BadRequestError } from '../errors/http-error.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 
-type AdminTable = 'eventos' | 'charlas' | 'empleos';
+type AdminTable = 'eventos' | 'charlas';
 
 function mapSbErr(msg: string): BadRequestError {
   return new BadRequestError(msg);

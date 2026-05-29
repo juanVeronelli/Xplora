@@ -1,4 +1,4 @@
-type Variant = 'eventos' | 'charlas' | 'empleos';
+type Variant = 'eventos' | 'charlas';
 
 const ICONS: Record<Variant, React.ReactNode> = {
   eventos: (
@@ -20,14 +20,6 @@ const ICONS: Record<Variant, React.ReactNode> = {
       <circle cx="46" cy="47.5" r="1" fill="#A08BFF"/>
     </svg>
   ),
-  empleos: (
-    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="8" y="22" width="48" height="32" rx="6" stroke="#C8B0FF" strokeWidth="2.5" fill="none"/>
-      <path d="M22 22v-4a4 4 0 014-4h12a4 4 0 014 4v4" stroke="#C8B0FF" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
-      <path d="M8 36h48" stroke="#C8B0FF" strokeWidth="2" strokeDasharray="4 3"/>
-      <circle cx="32" cy="36" r="4" fill="#A08BFF"/>
-    </svg>
-  ),
 };
 
 const COPY: Record<Variant, { title: string; sub: string }> = {
@@ -38,10 +30,6 @@ const COPY: Record<Variant, { title: string; sub: string }> = {
   charlas: {
     title: 'Todavía no hay contenido publicado en Pasados',
     sub: 'Las grabaciones y materiales van a aparecer acá cuando carguen el equipo.',
-  },
-  empleos: {
-    title: 'No hay ofertas disponibles',
-    sub: 'Próximamente publicaremos nuevas oportunidades laborales para la comunidad UCEMA.',
   },
 };
 

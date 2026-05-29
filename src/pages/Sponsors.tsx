@@ -9,7 +9,6 @@ import { marketingHeroWrap } from "../lib/pageBackgrounds";
 
 const INTERESES = [
   { id: "sponsor_eventos", label: "Quiero auspiciar eventos (logo / presencia)" },
-  { id: "busquedas_laborales", label: "Quiero publicar búsquedas laborales" },
   { id: "ambos", label: "Ambos" },
 ] as const;
 
@@ -42,7 +41,7 @@ export default function Sponsors() {
     () => [
       { t: "Logo en piezas", d: "Aparecé en flyers, pantallas y assets de difusión del evento." },
       { t: "Presencia en el evento", d: "Mención + espacio para activación (según el formato)." },
-      { t: "Employer branding", d: "Publicá búsquedas laborales y conectá con perfiles de alto potencial." },
+      { t: "Employer branding", d: "Conectá tu marca con perfiles de alto potencial dentro de UCEMA." },
       { t: "Contenido", d: "Clips y fotos para usar en redes (según disponibilidad del evento)." },
     ],
     [],

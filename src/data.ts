@@ -1,4 +1,4 @@
-import type { Evento, Charla, Empleo } from './types';
+import type { Evento, Charla } from './types';
 
 export const EVENTOS: Evento[] = [
   {
@@ -153,11 +153,3 @@ export const CHARLAS: Charla[] = [
   },
 ];
 
-export const EMPLEOS: Empleo[] = [
-  { id: '1', emoji: '🏦', title: 'Analista Financiero Jr.', company: 'Banco Galicia', location: 'Buenos Aires', type: 'Full-time', typeTag: 'g', area: 'Finanzas' },
-  { id: '2', emoji: '🚀', title: 'Product Manager Trainee', company: 'Mercado Libre', location: 'CABA', type: 'Full-time', typeTag: 'g', area: 'Tech' },
-  { id: '3', emoji: '📊', title: 'Consultor de Estrategia', company: 'McKinsey & Company', location: 'Buenos Aires', type: 'Part-time', typeTag: 'o', area: 'Strategy' },
-  { id: '4', emoji: '💳', title: 'Business Analyst — Fintech', company: 'Ualá', location: 'CABA', type: 'Full-time', typeTag: 'g', area: 'Finanzas' },
-  { id: '5', emoji: '🌱', title: 'Pasante — Sustentabilidad', company: 'YPF', location: 'Buenos Aires', type: 'Pasantía', typeTag: 'p', area: 'Strategy' },
-  { id: '6', emoji: '🤖', title: 'Data Scientist Jr.', company: 'Naranja X', location: 'Córdoba / Remoto', type: 'Remoto', typeTag: 'n', area: 'Tech' },
-];

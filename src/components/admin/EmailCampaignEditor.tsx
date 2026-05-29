@@ -1,34 +1,32 @@
 /**
  * Editor de **campañas de email** (pestaña Campañas): formulario + vista previa HTML en vivo.
- * Las plantillas viven en `emailTemplates/registry.ts`. El envío es por Resend en segundo plano (`POST .../dispatch/start` + polling).
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { authFetch, readApiError } from '../../lib/serverApi';
-import ThumbnailUpload from './ThumbnailUpload';
 import EmailHtmlLivePreview from './EmailHtmlLivePreview';
+import EmailCampaignEventFields from './EmailCampaignEventFields';
+import EmailCampaignPlatformFields from './EmailCampaignPlatformFields';
+import { emailSiteOrigin } from './emailCampaignHelpers';
 import {
   CrmSection,
   Field,
-  TA,
-  Sel,
-  ThreeCol,
-  TwoCol,
   FormSection,
+  Sel,
   useMediaQuery,
 } from './crm/CrmUi';
 import { crm } from './crm/crmTheme';
 import { useToast } from '../../context/FeedbackContext';
 import type { ContactListSummary } from '../../types';
 import type { EmailCampaignEstadoId } from './emailCampaignTypes';
-import { EMAIL_CAMPAIGN_ESTADO_OPTIONS } from './emailCampaignTypes';
 import type { EmailTemplateBuildInput } from './emailTemplateInput';
+import { defaultPlatformData } from './emailTemplateInput';
 import {
   buildEmailHtmlForTemplate,
   DEFAULT_EMAIL_TEMPLATE_ID,
   EMAIL_TEMPLATE_OPTIONS,
   type EmailTemplateId,
 } from './emailTemplates/registry';
-import { showCampaignField, templateFormConfig } from './emailTemplates/formFields';
+import { showCampaignField } from './emailTemplates/formFields';
 
 const DISPATCH_LS_KEY = 'xplora_email_dispatch_job_v1';
 
@@ -53,7 +51,6 @@ async function fetchDispatchJobStatus(jobId: string): Promise<DispatchJobState |
 }
 
 export type EmailCampaignEditorProps = {
-  /** Sin tarjeta `CrmSection` (cuando el hub Email ya muestra intro / pestañas). */
   bare?: boolean;
 };
 
@@ -64,7 +61,6 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
   const [lastCampaignId, setLastCampaignId] = useState<string | null>(null);
   const [listsLoading, setListsLoading] = useState(true);
   const [lists, setLists] = useState<ContactListSummary[]>([]);
-  // '__ALL__' = audiencia dinámica: todos los usuarios actuales en la base.
   const [contactListId, setContactListId] = useState<'__ALL__' | string>('__ALL__');
 
   const [tituloInterno, setTituloInterno] = useState('');
@@ -78,6 +74,7 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
   const [lugar, setLugar] = useState('');
   const [orador, setOrador] = useState('');
   const [ctaUrl, setCtaUrl] = useState('');
+  const [platform, setPlatform] = useState(defaultPlatformData);
 
   const [dispatchJob, setDispatchJob] = useState<DispatchJobState | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -163,10 +160,8 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
       cancelled = true;
       clearPoll();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reanudar solo al montar; toast estable en la práctica
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const formConf = templateFormConfig(templateId);
 
   useEffect(() => {
     let cancelled = false;
@@ -175,7 +170,6 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
       const res = await authFetch('/api/admin/contact-lists/mine');
       if (cancelled) return;
       if (!res.ok) {
-        // No bloquea redactar: solo deshabilita selector.
         setLists([]);
       } else {
         const data = (await res.json()) as { lists: ContactListSummary[] };
@@ -195,6 +189,13 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
     setOrador('');
   }, [templateId]);
 
+  useEffect(() => {
+    if (templateId !== 'platform_features') return;
+    const origin = emailSiteOrigin();
+    if (!origin) return;
+    setPlatform(prev => (prev.ctaUrl.trim() ? prev : { ...prev, ctaUrl: origin }));
+  }, [templateId]);
+
   const buildInput = useMemo<EmailTemplateBuildInput>(
     () => ({
       tituloInterno,
@@ -207,8 +208,21 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
       lugar,
       orador,
       ctaUrl,
+      platform,
     }),
-    [tituloInterno, asunto, estado, flyerUrl, textoPrincipal, fecha, hora, lugar, orador, ctaUrl],
+    [
+      tituloInterno,
+      asunto,
+      estado,
+      flyerUrl,
+      textoPrincipal,
+      fecha,
+      hora,
+      lugar,
+      orador,
+      ctaUrl,
+      platform,
+    ],
   );
 
   const saveCampaign = async (): Promise<string | null> => {
@@ -295,18 +309,15 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
 
   const sectionSubtitle = useMemo(() => {
     if (templateId === 'minimal_notice') {
-      return 'Plantilla aviso: solo los datos que ves en el formulario se usan en el mail. Separá párrafos con una línea en blanco si querés varios bloques.';
+      return 'Aviso corto: badge, texto y cuándo/dónde en una línea.';
     }
     if (templateId === 'editorial_event') {
-      return 'Plantilla editorial: speaker grande, franja violeta y CTA. Saludo fijo (sin merge por nombre). Fecha en varias líneas: 1ª = barra corta, resto = detalle.';
+      return 'Speaker destacado, franja violeta y CTA. Fecha multilínea: 1ª = barra corta, resto = detalle.';
     }
-    if (templateId === 'palatino_event') {
-      return 'Plantilla Palatino oscura: intro grande, flyer con sombra, dos columnas speaker / cuándo. Saludo y nombre para n8n; fecha multilínea como en editorial.';
+    if (templateId === 'platform_features') {
+      return 'Aviso de plataforma: hero, bloques, tip amarillo y CTA. Maquetación responsive.';
     }
-    if (templateId === 'verdana_invite') {
-      return 'Invitación Verdana: titular con el speaker, flyer, tarjeta blanca y bloque fecha/hora/lugar. El nombre del orador también va en el titular grande.';
-    }
-    return 'Plantilla evento: vista previa con layout completo (600px). Separá intro, cuerpo y cierre con una línea en blanco entre bloques.';
+    return 'Layout completo 600px: flyer, fecha, recordatorios y pie con imagen.';
   }, [templateId]);
 
   const editorGrid = (
@@ -353,103 +364,31 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
                 placeholder="Ej: Te esperamos el jueves en Xplora"
               />
             ) : null}
-            {showCampaignField('estado', templateId) ? (
-              <Sel
-                label="Estado (badge en el mail)"
-                hint="Solo afecta la vista previa; no se guarda en campanias_email."
-                value={estado}
-                onChange={v => setEstado(v as EmailCampaignEstadoId)}
-                options={EMAIL_CAMPAIGN_ESTADO_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
-              />
-            ) : null}
-            {showCampaignField('flyer', templateId) ? (
-              <ThumbnailUpload
-                label="Flyer"
-                hint={
-                  formConf.fechaCuandoDondeCombo
-                    ? 'Opcional. Si subís una imagen, aparece debajo del texto en el aviso.'
-                    : 'Imagen principal del correo (banner o afiche).'
-                }
-                value={flyerUrl}
-                onChange={setFlyerUrl}
-              />
-            ) : null}
-            {showCampaignField('textoPrincipal', templateId) ? (
-              <TA
-                label="Texto principal"
-                hint={
-                  formConf.hintTextoPrincipal ??
-                  'Primera parte = saludo de cuerpo; podés agregar bloques separados por una línea en blanco: intro, desarrollo y párrafo final.'
-                }
-                value={textoPrincipal}
-                onChange={setTextoPrincipal}
-                rows={formConf.fechaCuandoDondeCombo ? 5 : 6}
-                placeholder={
-                  formConf.fechaCuandoDondeCombo
-                    ? 'Ejemplo:\nHola,\n\nTe contamos una novedad importante para la comunidad.\n\nSaludos.'
-                    : 'Ejemplo:\nTe escribimos para contarte que…\n\nVan a participar referentes de…\n\nTe esperamos.'
-                }
-              />
-            ) : null}
-            {showCampaignField('fecha', templateId) && formConf.fechaCuandoDondeCombo ? (
-              <Field
-                label="Cuándo y dónde"
-                hint="Una línea o párrafo corto: fecha, hora, lugar o link (lo que aplique al aviso)."
-                value={fecha}
-                onChange={setFecha}
-                placeholder="Ej.: 20 de mayo de 2026 · 18:30 hs · Auditorio UCEMA"
-              />
-            ) : null}
-            {showCampaignField('fecha', templateId) && !formConf.fechaCuandoDondeCombo ? (
-              formConf.fechaAsTextarea ? (
-                <>
-                  <TA
-                    label="Fecha"
-                    hint={formConf.hintFecha ?? 'Primera línea corta · siguientes = detalle'}
-                    value={fecha}
-                    onChange={setFecha}
-                    rows={3}
-                    placeholder={'15 MAY\n15 de mayo de 2026'}
-                  />
-                  <TwoCol>
-                    <Field label="Hora" hint="Ej. 18:30 hs" value={hora} onChange={setHora} placeholder="18:30 hs" />
-                    <Field label="Lugar" value={lugar} onChange={setLugar} placeholder="Auditorio / Zoom" />
-                  </TwoCol>
-                </>
-              ) : (
-                <ThreeCol>
-                  <Field
-                    label="Fecha"
-                    hint="Texto libre, ej. 15 de mayo de 2026"
-                    value={fecha}
-                    onChange={setFecha}
-                    placeholder="15 de mayo de 2026"
-                  />
-                  <Field label="Hora" hint="Ej. 18:30 hs" value={hora} onChange={setHora} placeholder="18:30 hs" />
-                  <Field label="Lugar" value={lugar} onChange={setLugar} placeholder="Auditorio / Zoom" />
-                </ThreeCol>
-              )
-            ) : null}
-            {showCampaignField('orador', templateId) ? (
-              <Field
-                label="Orador"
-                hint="Opcional. Formato sugerido: Nombre, Rol o empresa. Si no aplica, dejalo vacío."
-                value={orador}
-                onChange={setOrador}
-                placeholder="María Pérez, CEO de ACME"
-              />
-            ) : null}
-            {showCampaignField('ctaUrl', templateId) ? (
-              <Field
-                label="Link del botón «Reservá tu lugar»"
-                hint="URL de inscripción o landing. Si queda vacío, el botón apunta a # en la vista previa."
-                value={ctaUrl}
-                onChange={setCtaUrl}
-                type="url"
-                placeholder="https://…"
-              />
-            ) : null}
           </FormSection>
+
+          <EmailCampaignEventFields
+            templateId={templateId}
+            estado={estado}
+            onEstadoChange={setEstado}
+            flyerUrl={flyerUrl}
+            onFlyerUrlChange={setFlyerUrl}
+            textoPrincipal={textoPrincipal}
+            onTextoPrincipalChange={setTextoPrincipal}
+            fecha={fecha}
+            onFechaChange={setFecha}
+            hora={hora}
+            onHoraChange={setHora}
+            lugar={lugar}
+            onLugarChange={setLugar}
+            orador={orador}
+            onOradorChange={setOrador}
+            ctaUrl={ctaUrl}
+            onCtaUrlChange={setCtaUrl}
+          />
+
+          {templateId === 'platform_features' ? (
+            <EmailCampaignPlatformFields platform={platform} onPlatformChange={setPlatform} />
+          ) : null}
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginTop: 8 }}>
             <button
@@ -482,27 +421,16 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
                       · último: <span style={{ wordBreak: 'break-all' }}>{dispatchJob.current_email}</span>
                     </span>
                   ) : null}
-                  <div style={{ fontSize: 12, marginTop: 4 }}>
-                    Podés cambiar de pestaña o cerrar esta ventana: el servidor sigue enviando. Al volver, el
-                    progreso se reanuda solo.
-                  </div>
                 </div>
               </div>
             ) : null}
             <div style={{ fontSize: 13, color: 'var(--ink-muted)', margin: 0, maxWidth: 520, lineHeight: 1.45 }}>
               <p style={{ margin: 0 }}>
-                El servidor toma los destinatarios de la <strong>lista elegida</strong> (o todos los usuarios), usa el{' '}
-                <strong>HTML de la plantilla</strong> que ves en la vista previa y envía <strong>uno por uno</strong> vía{' '}
-                <strong>Resend</strong>. Tras <strong>cada</strong> envío exitoso se guarda en{' '}
-                <code style={{ fontSize: 11 }}>campanias_envios</code>.
-              </p>
-              <p style={{ margin: '12px 0 0' }}>
-                En <strong>Email → Quién recibió el mail</strong> comparás audiencia vs envíos. Para marcar envíos sin
-                mandar desde acá, seguí usando <code style={{ fontSize: 11 }}>POST …/envios</code>.
+                El HTML de la vista previa es el que se envía por Resend tal cual lo ves acá.
               </p>
               {lastCampaignId ? (
                 <p style={{ margin: '10px 0 0', fontSize: 12, fontFamily: 'ui-monospace, monospace' }}>
-                  Última campaña creada · id: {lastCampaignId}
+                  Última campaña · id: {lastCampaignId}
                 </p>
               ) : null}
             </div>

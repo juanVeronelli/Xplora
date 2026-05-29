@@ -15,10 +15,8 @@ import SiteImagesPanel from '../components/admin/SiteImagesPanel';
 import ThumbnailUpload from '../components/admin/ThumbnailUpload';
 import EmailCampaignsHub from '../components/admin/EmailCampaignsHub';
 import DatabasePanel, { EventAudiencePanel } from '../components/admin/DatabasePanel';
-import AnalyticsPanel from '../components/admin/AnalyticsPanel';
 import StaffAccountsPanel from '../components/admin/StaffAccountsPanel';
 import CandidatesPanel from '../components/admin/CandidatesPanel';
-import AdminPartnersPanel from '../components/admin/AdminPartnersPanel';
 import AdminShell, { type AdminSectionId, type AdminNavItem } from '../components/admin/crm/AdminShell';
 import {
   CrmSection,
@@ -144,11 +142,9 @@ export default function Admin({ signOut, goToSite }: Props) {
 function DatabaseHub() {
   const { permissions } = useStaffPermissions();
   const tabs = useMemo(() => {
-    const items: Array<{ id: 'miembros' | 'analytics' | 'postulaciones' | 'partners' | 'equipo'; label: string; show: boolean }> = [
+    const items: Array<{ id: 'miembros' | 'postulaciones' | 'equipo'; label: string; show: boolean }> = [
       { id: 'miembros', label: 'Miembros', show: canSeeAdminSection('database', permissions) },
-      { id: 'analytics', label: 'Analytics', show: canSeeAdminSection('analytics', permissions) },
       { id: 'postulaciones', label: 'Postulaciones', show: canSeeAdminSection('candidatos', permissions) },
-      { id: 'partners', label: 'Partners', show: hasAnyPermission(permissions as any, ['partner_accounts_manage' as any]) },
       { id: 'equipo', label: 'Equipo', show: canSeeAdminSection('equipo', permissions) },
     ];
     return items.filter(t => t.show);
@@ -187,9 +183,7 @@ function DatabaseHub() {
       </div>
 
       {tab === 'miembros' ? <DatabasePanel /> : null}
-      {tab === 'analytics' ? <AnalyticsPanel /> : null}
       {tab === 'postulaciones' ? <CandidatesPanel /> : null}
-      {tab === 'partners' ? <AdminPartnersPanel /> : null}
       {tab === 'equipo' ? <StaffAccountsPanel /> : null}
     </>
   );
@@ -1044,5 +1038,3 @@ function CharlasSection() {
   );
 }
 
-// ── EMPLEOS ────────────────────────────────────────────────────────────
-// La gestión de empleos se hace desde el Partner Portal (no desde el CRM).

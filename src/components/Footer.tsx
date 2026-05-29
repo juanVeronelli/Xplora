@@ -1,5 +1,4 @@
 import type { Page } from '../types';
-import { PUBLIC_BOLSA_ENABLED } from '../config/publicFeatures';
 import { useSiteMedia } from '../context/SiteMediaContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 
@@ -52,7 +51,6 @@ export default function Footer({ goTo, minimal = false }: Props) {
             { label: 'Inicio', onClick: () => goTo?.('home') },
             { label: 'Somos Xplora', onClick: () => goTo?.('somos') },
             { label: 'Eventos', onClick: () => goTo?.('eventos') },
-            ...(PUBLIC_BOLSA_ENABLED ? [{ label: 'Bolsa de empleo', onClick: () => goTo?.('bolsa') }] : []),
             { label: 'Sponsors', onClick: () => goTo?.('sponsors') },
           ]}
         />

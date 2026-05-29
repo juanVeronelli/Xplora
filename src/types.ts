@@ -1,7 +1,7 @@
 /**
  * Tipos compartidos front + contratos con la API.
  *
- * - **UI** (`Evento`, `Charla`, `Empleo`): camelCase, lo que renderizan las páginas.
+ * - **UI** (`Evento`, `Charla`): camelCase, lo que renderizan las páginas.
  * - **DB** (`Db*`): reflejo de columnas Supabase en snake_case; el admin y el server las usan al guardar.
  */
 export interface Speaker {
@@ -17,10 +17,6 @@ export type Page =
   | 'evento-detail'
   | 'charlas'
   | 'charla-detail'
-  | 'bolsa'
-  | 'empleo-detail'
-  | 'partner'
-  | 'talento'
   | 'somos'
   | 'sponsors'
   | 'admin';
@@ -70,22 +66,6 @@ export interface Charla {
   whyXplora: string;
   recordingLink?: string;
   materialLink?: string;
-}
-
-export interface Empleo {
-  id: string;
-  emoji: string;
-  thumbnailUrl?: string;
-  title: string;
-  company: string;
-  location: string;
-  type: string;
-  typeTag: 'p' | 'g' | 'o' | 'n';
-  area: string;
-  description?: string;
-  requirements?: string;
-  benefits?: string;
-  applicationLink?: string;
 }
 
 // DB row types (snake_case from Supabase)
@@ -141,23 +121,6 @@ export interface DbCharla {
   attendees: string;
   recording_link: string;
   material_link: string;
-  thumbnail_url?: string | null;
-  created_at: string;
-}
-
-export interface DbEmpleo {
-  id: string;
-  title: string;
-  company: string;
-  location: string;
-  emoji: string;
-  type: string;
-  type_tag: string;
-  area: string;
-  description: string;
-  requirements: string;
-  benefits: string;
-  application_link: string;
   thumbnail_url?: string | null;
   created_at: string;
 }

@@ -44,14 +44,11 @@ import {
 } from '../controllers/admin-email-campaigns.controller.js';
 import { createSiteMediaUpsertHandler } from '../controllers/site-media-admin.controller.js';
 import { createRequireAuthMiddleware } from '../middleware/require-auth.middleware.js';
-import { createRequireSessionMiddleware } from '../middleware/require-session.middleware.js';
-import { createRequirePartnerLinkedMiddleware } from '../middleware/require-partner-linked.middleware.js';
 import { uploadSingleImage, uploadSingleCsv, uploadSingleSpreadsheet } from '../middleware/upload.middleware.js';
 import { createAdminLumaCsvImportHandler } from '../controllers/admin-luma-csv.controller.js';
 import { createAdminEventosListHandler } from '../controllers/admin-eventos-list.controller.js';
 import { createAdminEventoInscripcionesHandler } from '../controllers/admin-evento-inscripciones.controller.js';
 import { createAdminAnalyticsHandler } from '../controllers/admin-analytics.controller.js';
-import { createAdminTalentAnalyticsHandler } from '../controllers/admin-talent-analytics.controller.js';
 import { createAdminInstagramReelsAnalyticsHandler, createAdminInstagramReelsHandler } from '../controllers/admin-instagram.controller.js';
 import { createAdminCandidatosDeleteHandler, createAdminCandidatosListHandler } from '../controllers/admin-candidatos.controller.js';
 import { createAdminSponsorsLeadListHandler } from '../controllers/admin-sponsors.controller.js';
@@ -76,31 +73,6 @@ import {
 import { createLoadStaffProfileMiddleware } from '../middleware/load-staff.middleware.js';
 import { createRequireAnyCrmPermission } from '../middleware/require-crm-permission.middleware.js';
 import type { CrmPermissionKey } from '../../permissions/crm-permissions.js';
-import {
-  createPartnerEmpleoApplicationsListHandler,
-  createPartnerEmpleoCreateHandler,
-  createPartnerEmpleoDeleteHandler,
-  createPartnerEmpleoPatchHandler,
-  createPartnerEmpleosListHandler,
-} from '../controllers/partner-empleos.controller.js';
-import { createPartnerMeHandler } from '../controllers/partner-me.controller.js';
-import { createPartnerApplicationPatchHandler } from '../controllers/partner-applications.controller.js';
-import { createTalentProfileGetHandler, createTalentProfileUpsertHandler } from '../controllers/talent-profile.controller.js';
-import { createTalentApplyHandler } from '../controllers/talent-apply.controller.js';
-import { createTalentBootstrapHandler, createTalentOnboardHandler } from '../controllers/talent-bootstrap.controller.js';
-import {
-  createTalentApplicationsListHandler,
-  createTalentProfileCvUploadHandler,
-  createTalentProfilePhotoUploadHandler,
-} from '../controllers/talent-assets.controller.js';
-import {
-  createAdminPartnerCompaniesListHandler,
-  createAdminPartnerCreateHandler,
-  createAdminPartnerCompanyCreateHandler,
-  createAdminPartnerCompanyDeleteHandler,
-  createAdminPartnerCompanyUpdateHandler,
-  createAdminPartnerAccountUpdateHandler,
-} from '../controllers/admin-partners.controller.js';
 
 export interface ApiRoutesDeps {
   config: AppConfig;
@@ -111,8 +83,6 @@ export interface ApiRoutesDeps {
 /** Monta todas las rutas `/api/*`. */
 export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
   const requireAuth = createRequireAuthMiddleware(deps.auth);
-  const requireSession = createRequireSessionMiddleware(deps.auth);
-  const requirePartnerLinked = createRequirePartnerLinkedMiddleware(deps.config);
   const loadStaff = createLoadStaffProfileMiddleware(deps.config);
   const perm = (keys: readonly CrmPermissionKey[]) => createRequireAnyCrmPermission(keys);
 
@@ -146,42 +116,7 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
 
   app.get('/api/public/eventos', createPublicListHandler(deps.config, 'eventos'));
   app.get('/api/public/charlas', createPublicListHandler(deps.config, 'charlas'));
-  app.get('/api/public/empleos', createPublicListHandler(deps.config, 'empleos'));
   app.get('/api/public/site-media', createPublicSiteMediaHandler(deps.config));
-
-  // ── Talento (magic link) ────────────────────────────────────────────────
-  app.get('/api/talent/bootstrap', requireSession, createTalentBootstrapHandler(deps.config));
-  app.post('/api/talent/onboard', requireSession, createTalentOnboardHandler(deps.config));
-  app.get('/api/talent/profile', requireSession, createTalentProfileGetHandler(deps.config));
-  app.put('/api/talent/profile', requireSession, createTalentProfileUpsertHandler(deps.config));
-  app.post(
-    '/api/talent/profile/photo',
-    requireSession,
-    uploadSingleImage,
-    createTalentProfilePhotoUploadHandler({ config: deps.config, imageStorage: deps.imageStorage }),
-  );
-  app.post('/api/talent/profile/cv', requireSession, uploadSingleCv, createTalentProfileCvUploadHandler(deps.config));
-  app.get('/api/talent/applications', requireSession, createTalentApplicationsListHandler(deps.config));
-  app.post('/api/talent/apply', requireSession, createTalentApplyHandler(deps.config));
-
-  // ── Partner Portal (Supabase Auth + partner_users) ──────────────────────
-  app.get('/api/partner/me', requireSession, requirePartnerLinked, createPartnerMeHandler(deps.config));
-  app.get('/api/partner/empleos', requireSession, requirePartnerLinked, createPartnerEmpleosListHandler(deps.config));
-  app.post('/api/partner/empleos', requireSession, requirePartnerLinked, createPartnerEmpleoCreateHandler(deps.config));
-  app.patch('/api/partner/empleos/:id', requireSession, requirePartnerLinked, createPartnerEmpleoPatchHandler(deps.config));
-  app.delete('/api/partner/empleos/:id', requireSession, requirePartnerLinked, createPartnerEmpleoDeleteHandler(deps.config));
-  app.get(
-    '/api/partner/empleos/:id/applications',
-    requireSession,
-    requirePartnerLinked,
-    createPartnerEmpleoApplicationsListHandler(deps.config),
-  );
-  app.patch(
-    '/api/partner/applications/:id',
-    requireSession,
-    requirePartnerLinked,
-    createPartnerApplicationPatchHandler(deps.config),
-  );
 
   // ── Auth (login sin Bearer; logout valida sesión) ───────────────────────
   app.post('/api/auth/login', loginLimiter, createLoginHandler(deps.config));
@@ -271,17 +206,8 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
   app.put('/api/admin/site-media', requireAuth, loadStaff, siteEdit, createSiteMediaUpsertHandler(deps.config));
 
   app.get('/api/admin/analytics', requireAuth, loadStaff, analyticsPerm, createAdminAnalyticsHandler(deps.config));
-  app.get('/api/admin/talent-analytics', requireAuth, loadStaff, analyticsPerm, createAdminTalentAnalyticsHandler(deps.config));
   app.get('/api/admin/instagram/reels', requireAuth, loadStaff, analyticsPerm, createAdminInstagramReelsHandler(deps.config));
   app.get('/api/admin/instagram/reels/analytics', requireAuth, loadStaff, analyticsPerm, createAdminInstagramReelsAnalyticsHandler(deps.config));
-
-  // Partners (alta de empresas + cuentas)
-  app.get('/api/admin/partners/companies', requireAuth, loadStaff, perm(['partner_accounts_manage']), createAdminPartnerCompaniesListHandler(deps.config));
-  app.post('/api/admin/partners', requireAuth, loadStaff, perm(['partner_accounts_manage']), createAdminPartnerCreateHandler(deps.config));
-  app.post('/api/admin/partners/companies', requireAuth, loadStaff, perm(['partner_accounts_manage']), createAdminPartnerCompanyCreateHandler(deps.config));
-  app.patch('/api/admin/partners/companies/:id', requireAuth, loadStaff, perm(['partner_accounts_manage']), createAdminPartnerCompanyUpdateHandler(deps.config));
-  app.delete('/api/admin/partners/companies/:id', requireAuth, loadStaff, perm(['partner_accounts_manage']), createAdminPartnerCompanyDeleteHandler(deps.config));
-  app.patch('/api/admin/partners/companies/:id/account', requireAuth, loadStaff, perm(['partner_accounts_manage']), createAdminPartnerAccountUpdateHandler(deps.config));
 
   app.get('/api/admin/members', requireAuth, loadStaff, dbMembersList, createAdminMembersListHandler(deps.config));
   app.delete('/api/admin/members/:id', requireAuth, loadStaff, memberDelete, createAdminMemberDeleteHandler(deps.config));

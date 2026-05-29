@@ -20,7 +20,6 @@ export const CRM_PERMISSION_KEYS = [
   'contact_lists_manage',
   'postulaciones_manage',
   'staff_accounts_manage',
-  'partner_accounts_manage',
   'members_data_delete',
   'access_total',
 ] as const;

@@ -10,9 +10,7 @@ export type AdminSectionId =
   | 'sitio'
   | 'eventos'
   | 'charlas'
-  | 'empleos'
   | 'campanas_email'
-  | 'analytics'
   | 'database'
   | 'equipo'
   | 'candidatos';

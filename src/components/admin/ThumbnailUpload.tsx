@@ -1,6 +1,6 @@
 /**
  * Zona de arrastre + botón para subir imágenes al **API Cloudinary** (`/api/cloudinary-upload`, requiere auth).
- * Usado en eventos, charlas, empleos y campañas de email (flyer).
+ * Usado en eventos, charlas y campañas de email (flyer).
  */
 import { useCallback, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';

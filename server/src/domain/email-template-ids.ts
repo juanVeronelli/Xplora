@@ -1,13 +1,8 @@
-/**
- * Ids de plantilla alineados con `src/components/admin/emailTemplates/registry.ts`.
- * El servidor valida el POST para no guardar strings arbitrarios en BD.
- */
 export const EMAIL_TEMPLATE_IDS = [
   'classic_event',
   'minimal_notice',
   'editorial_event',
-  'palatino_event',
-  'verdana_invite',
+  'platform_features',
 ] as const;
 export type EmailTemplateId = (typeof EMAIL_TEMPLATE_IDS)[number];
 export const DEFAULT_EMAIL_TEMPLATE_ID: EmailTemplateId = 'classic_event';

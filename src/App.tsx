@@ -5,12 +5,11 @@
  */
 import { useState, lazy, Suspense, useEffect, useCallback } from 'react';
 import type { Page } from './types';
-import type { Evento, Charla, Empleo } from './types';
+import type { Evento, Charla } from './types';
 import { useAuth } from './hooks/useAuth';
 import { StaffPermissionsProvider } from './context/StaffPermissionsContext';
 import { authFetch, readApiError } from './lib/serverApi';
 import { getPanelPath, normalizePath, pageToPath, pathToPage } from './lib/routes';
-import { PUBLIC_BOLSA_ENABLED } from './config/publicFeatures';
 import Nav from './components/Nav';
 import LoginModal from './components/LoginModal';
 
@@ -18,10 +17,6 @@ const Home = lazy(() => import('./pages/Home'));
 const Eventos = lazy(() => import('./pages/Eventos'));
 const EventoDetail = lazy(() => import('./pages/EventoDetail'));
 const CharlaDetail = lazy(() => import('./pages/CharlaDetail'));
-const Bolsa = lazy(() => import('./pages/Bolsa'));
-const EmpleoDetail = lazy(() => import('./pages/EmpleoDetail'));
-const PartnerPortal = lazy(() => import('./pages/PartnerPortal'));
-const Talento = lazy(() => import('./pages/Talento'));
 const SomosXplora = lazy(() => import('./pages/SomosXplora'));
 const Sponsors = lazy(() => import('./pages/Sponsors'));
 const Admin = lazy(() => import('./pages/Admin'));
@@ -49,18 +44,7 @@ export default function App() {
   const [page, setPage] = useState<Page>(() => pathToPage(window.location.pathname));
   const [selectedEvento, setSelectedEvento] = useState<Evento | null>(null);
   const [selectedCharla, setSelectedCharla] = useState<Charla | null>(null);
-  const [selectedEmpleo, setSelectedEmpleo] = useState<Empleo | null>(null);
-  const [autoApplyJobId, setAutoApplyJobId] = useState<string | null>(null);
   const goTo = useCallback((p: Page) => {
-    if (!PUBLIC_BOLSA_ENABLED && (p === 'bolsa' || p === 'empleo-detail')) {
-      setPage('home');
-      const nextPath = pageToPath('home');
-      if (normalizePath(window.location.pathname) !== nextPath) {
-        window.history.pushState({}, '', nextPath);
-      }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
     setPage(p);
     const nextPath = pageToPath(p);
     if (normalizePath(window.location.pathname) !== nextPath) {
@@ -70,9 +54,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!PUBLIC_BOLSA_ENABLED && normalizePath(window.location.pathname) === '/bolsa') {
-      window.history.replaceState({}, '', '/');
-    }
     const onPop = () => {
       setPage(pathToPage(window.location.pathname));
     };
@@ -87,12 +68,6 @@ export default function App() {
   const openCharla = (c: Charla) => {
     setSelectedCharla(c);
     goTo('charla-detail');
-  };
-  const openEmpleo = (e: Empleo, opts?: { autoApply?: boolean }) => {
-    if (!PUBLIC_BOLSA_ENABLED) return;
-    setSelectedEmpleo(e);
-    setAutoApplyJobId(opts?.autoApply ? e.id : null);
-    goTo('empleo-detail');
   };
 
   const handleLogin = async (email: string, password: string) => {
@@ -153,8 +128,6 @@ export default function App() {
     'eventos',
     'evento-detail',
     'charla-detail',
-    ...(PUBLIC_BOLSA_ENABLED ? (['bolsa', 'empleo-detail'] as const) : []),
-    'talento',
   ];
   const showNav = publicPages.includes(page);
 
@@ -175,19 +148,6 @@ export default function App() {
           {page === 'charla-detail' && selectedCharla && (
             <CharlaDetail charla={selectedCharla} goBack={() => goTo('eventos')} />
           )}
-          {PUBLIC_BOLSA_ENABLED && page === 'bolsa' && (
-            <Bolsa openEmpleo={openEmpleo} goToTalento={() => goTo('talento')} />
-          )}
-          {PUBLIC_BOLSA_ENABLED && page === 'empleo-detail' && selectedEmpleo && (
-            <EmpleoDetail
-              empleo={selectedEmpleo}
-              goBack={() => goTo('bolsa')}
-              autoOpenApply={autoApplyJobId === selectedEmpleo.id}
-              onAutoOpenApplyConsumed={() => setAutoApplyJobId(null)}
-            />
-          )}
-          {page === 'partner' && <PartnerPortal />}
-          {page === 'talento' && <Talento />}
         </Suspense>
       </div>
     </>
