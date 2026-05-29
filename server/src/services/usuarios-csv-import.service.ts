@@ -35,8 +35,31 @@ function parseBooleanLike(raw: string): boolean | null {
   return null;
 }
 
-function splitCsvLine(line: string): string[] {
-  // CSV simple: soporta comillas dobles y comas.
+function detectCsvDelimiter(line: string): ',' | ';' | '\t' {
+  const counts = { ',': 0, ';': 0, '\t': 0 };
+  let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]!;
+    if (ch === '"') {
+      const next = line[i + 1];
+      if (inQ && next === '"') {
+        i++;
+      } else {
+        inQ = !inQ;
+      }
+      continue;
+    }
+    if (!inQ && (ch === ',' || ch === ';' || ch === '\t')) {
+      counts[ch as ',' | ';' | '\t']++;
+    }
+  }
+  if (counts[';'] >= counts[','] && counts[';'] > 0) return ';';
+  if (counts['\t'] > counts[','] && counts['\t'] > 0) return '\t';
+  return ',';
+}
+
+function splitCsvLine(line: string, delimiter: ',' | ';' | '\t' = ','): string[] {
+  // CSV simple: soporta comillas dobles y delimitador , ; o tab.
   const out: string[] = [];
   let cur = '';
   let inQ = false;
@@ -52,7 +75,7 @@ function splitCsvLine(line: string): string[] {
       }
       continue;
     }
-    if (ch === ',' && !inQ) {
+    if (ch === delimiter && !inQ) {
       out.push(cur);
       cur = '';
       continue;
@@ -116,7 +139,8 @@ export function parseUsuariosCsvBuffer(buf: Buffer): { rows: ParsedUsuarioCsvRow
   const lines = text.split(/\r?\n/).map(l => l.trimEnd()).filter(l => l.trim().length > 0);
   if (lines.length === 0) return { rows: [], warnings: [] };
 
-  const headersRaw = splitCsvLine(lines[0]!);
+  const delimiter = detectCsvDelimiter(lines[0]!);
+  const headersRaw = splitCsvLine(lines[0]!, delimiter);
   const headers = headersRaw.map(normalizeHeader);
 
   const idxEmail = headers.findIndex(h => EMAIL_HEADERS.has(h));
@@ -127,7 +151,7 @@ export function parseUsuariosCsvBuffer(buf: Buffer): { rows: ParsedUsuarioCsvRow
   const seen = new Set<string>();
 
   for (let i = 1; i < lines.length; i++) {
-    const cells = splitCsvLine(lines[i]!);
+    const cells = splitCsvLine(lines[i]!, delimiter);
     const obj = mapRow(headers, cells);
     const emailRaw = obj[headers[idxEmail]!] ?? '';
     const email = normalizeEmail(emailRaw);
@@ -197,31 +221,51 @@ export function parseUsuariosXlsxBuffer(buf: Buffer): { rows: ParsedUsuarioCsvRo
   return { rows, warnings };
 }
 
+const UPSERT_CHUNK = 400;
+const EXISTING_LOOKUP_CHUNK = 200;
+
+async function fetchExistingEmails(sb: SupabaseClient, emails: string[]): Promise<Set<string>> {
+  const existingSet = new Set<string>();
+  for (let i = 0; i < emails.length; i += EXISTING_LOOKUP_CHUNK) {
+    const chunk = emails.slice(i, i + EXISTING_LOOKUP_CHUNK);
+    const { data, error } = await sb.from('usuarios').select('email').in('email', chunk);
+    if (error) throw new BadRequestError(error.message);
+    for (const row of (data as { email: string }[] | null) ?? []) {
+      existingSet.add((row.email ?? '').toLowerCase());
+    }
+  }
+  return existingSet;
+}
+
+function buildUsuarioUpsertRow(r: ParsedUsuarioCsvRow): Record<string, unknown> {
+  const row: Record<string, unknown> = {
+    email: normalizeEmail(r.email),
+    // NOT NULL en BD: mismo default que import Luma.
+    es_alumno_cema: r.es_alumno_cema ?? false,
+    suscrito_newsletter: r.suscrito_newsletter ?? true,
+  };
+  const nombre = normalizeNombre(r.nombre);
+  if (nombre) row.nombre = nombre;
+  const carrera = normalizeCarrera(r.carrera);
+  if (carrera) row.carrera = carrera;
+  return row;
+}
+
 export async function upsertUsuariosFromCsv(
   sb: SupabaseClient,
   rows: ParsedUsuarioCsvRow[],
 ): Promise<{ upserted: number; inserted: number; updated: number }> {
   if (rows.length === 0) return { upserted: 0, inserted: 0, updated: 0 };
 
-  // Pre-carga existentes por email para contar inserts/updates
   const emails = rows.map(r => r.email);
-  const { data: existing, error: exErr } = await sb
-    .from('usuarios')
-    .select('id, email')
-    .in('email', emails);
-  if (exErr) throw new BadRequestError(exErr.message);
-  const existingSet = new Set(((existing as { email: string }[] | null) ?? []).map(r => (r.email ?? '').toLowerCase()));
+  const existingSet = await fetchExistingEmails(sb, emails);
+  const payload = rows.map(buildUsuarioUpsertRow);
 
-  const payload = rows.map(r => ({
-    email: normalizeEmail(r.email),
-    nombre: normalizeNombre(r.nombre) ?? undefined,
-    carrera: normalizeCarrera(r.carrera) ?? undefined,
-    es_alumno_cema: r.es_alumno_cema ?? undefined,
-    suscrito_newsletter: r.suscrito_newsletter ?? true,
-  }));
-
-  const { error } = await sb.from('usuarios').upsert(payload, { onConflict: 'email' });
-  if (error) throw new BadRequestError(error.message);
+  for (let i = 0; i < payload.length; i += UPSERT_CHUNK) {
+    const chunk = payload.slice(i, i + UPSERT_CHUNK);
+    const { error } = await sb.from('usuarios').upsert(chunk, { onConflict: 'email' });
+    if (error) throw new BadRequestError(error.message);
+  }
 
   const inserted = rows.filter(r => !existingSet.has(r.email)).length;
   const updated = rows.length - inserted;

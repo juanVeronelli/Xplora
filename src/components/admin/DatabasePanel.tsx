@@ -1303,6 +1303,7 @@ function DatabaseToolsPanel() {
 
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<string>("");
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const [sql, setSql] = useState<string>("select id, email, nombre from usuarios order by created_at desc");
   const [sqlLoading, setSqlLoading] = useState(false);
@@ -1335,24 +1336,43 @@ function DatabaseToolsPanel() {
     if (!file || !canImport) return;
     setImporting(true);
     setImportResult("");
-    const fd = new FormData();
-    fd.append("csv", file);
-    const res = await authFetch("/api/admin/db/import/usuarios-csv", { method: "POST", body: fd });
-    setImporting(false);
-    if (!res.ok) {
-      toast.error(await readApiError(res));
-      return;
+    try {
+      const fd = new FormData();
+      fd.append("csv", file);
+      const res = await authFetch("/api/admin/db/import/usuarios-csv", { method: "POST", body: fd });
+      if (!res.ok) {
+        toast.error(await readApiError(res));
+        return;
+      }
+      const j = (await res.json()) as {
+        filas_leidas?: number;
+        upserted?: number;
+        inserted?: number;
+        updated?: number;
+        warnings?: string[];
+      };
+      const nuevos = j.inserted ?? 0;
+      const actualizados = j.updated ?? 0;
+      const leidas = j.filas_leidas ?? 0;
+      const msg = `Import OK: ${j.upserted ?? 0} procesados (${nuevos} nuevos, ${actualizados} actualizados) · ${leidas} fila${leidas === 1 ? "" : "s"} leída${leidas === 1 ? "" : "s"}.`;
+      setImportResult([msg, ...(j.warnings?.slice(0, 8) ?? []).map((w) => `- ${w}`)].join("\n"));
+      if (leidas === 0) {
+        toast.error("El archivo no tenía filas válidas. Revisá que la columna email exista (también aceptamos CSV con ; de Excel).");
+      } else if (nuevos === 0 && actualizados === 0) {
+        toast.error("No se importó ningún usuario. Revisá el formato del archivo.");
+      } else {
+        toast.success(
+          nuevos > 0
+            ? `Import listo: ${nuevos} usuario${nuevos === 1 ? "" : "s"} nuevo${nuevos === 1 ? "" : "s"}${actualizados > 0 ? `, ${actualizados} actualizado${actualizados === 1 ? "" : "s"}` : ""}.`
+            : `Import listo: ${actualizados} usuario${actualizados === 1 ? "" : "s"} actualizado${actualizados === 1 ? "" : "s"}.`,
+        );
+      }
+    } catch {
+      toast.error("No se pudo conectar con el servidor. ¿Está corriendo el API?");
+    } finally {
+      setImporting(false);
+      if (importInputRef.current) importInputRef.current.value = "";
     }
-    const j = (await res.json()) as {
-      filas_leidas?: number;
-      upserted?: number;
-      inserted?: number;
-      updated?: number;
-      warnings?: string[];
-    };
-    const msg = `Import OK: ${j.upserted ?? 0} upserted (${j.inserted ?? 0} nuevos, ${j.updated ?? 0} actualizados) · ${j.filas_leidas ?? 0} filas leídas.`;
-    setImportResult([msg, ...(j.warnings?.slice(0, 8) ?? []).map((w) => `- ${w}`)].join("\n"));
-    toast.success("CSV importado.");
   };
 
   const exportUsuariosCsv = async () => {
@@ -1443,13 +1463,18 @@ function DatabaseToolsPanel() {
           <h3 style={{ margin: "0 0 10px", fontSize: 14 }}>2) Importar CSV a usuarios (normaliza)</h3>
           <p style={{ ...crm.hint, marginTop: 0 }}>
             Columnas aceptadas: <code>email</code> (obligatoria), <code>nombre</code>, <code>carrera</code>, <code>es_alumno_cema</code>, <code>suscrito_newsletter</code>.
+            CSV con coma o punto y coma (Excel).
           </p>
           <input
+            ref={importInputRef}
             type="file"
             accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
             disabled={importing}
-            onChange={(e) => onImportCsv(e.target.files?.[0] ?? null)}
+            onChange={(e) => void onImportCsv(e.target.files?.[0] ?? null)}
           />
+          {importing ? (
+            <p style={{ ...crm.hint, marginTop: 10 }}>Importando…</p>
+          ) : null}
           {importResult ? (
             <pre style={{ marginTop: 12, whiteSpace: "pre-wrap", fontSize: 12, color: "var(--ink-muted)" }}>
               {importResult}
