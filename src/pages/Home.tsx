@@ -22,11 +22,22 @@ interface Props {
 export default function Home({ goTo, openEvento }: Props) {
   const isMobile = useIsMobile();
   const [proximo, setProximo] = useState<Evento | null>(null);
+  const [loadingProximo, setLoadingProximo] = useState(true);
 
   useEffect(() => {
-    fetchEventos().then(list => {
-      setProximo(pickEarliestUpcoming(list));
-    });
+    let alive = true;
+    fetchEventos()
+      .then(list => {
+        if (!alive) return;
+        setProximo(pickEarliestUpcoming(list));
+      })
+      .catch(() => {
+        if (alive) setProximo(null);
+      })
+      .finally(() => {
+        if (alive) setLoadingProximo(false);
+      });
+    return () => { alive = false; };
   }, []);
 
   const divider: React.CSSProperties = {
@@ -37,7 +48,7 @@ export default function Home({ goTo, openEvento }: Props) {
 
   return (
     <>
-      <Hero goTo={goTo} />
+      <Hero goTo={goTo} evento={proximo} openEvento={openEvento} pending={loadingProximo} />
       <CompanyMarquee />
 
       {proximo && (

@@ -1,31 +1,148 @@
-import { useEffect, useRef } from 'react';
-import type { Page } from '../types';
+import { useEffect, useRef, useState } from 'react';
+import type { Evento, Page } from '../types';
 import { useSiteMedia } from '../context/SiteMediaContext';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { cloudinarySrcSet, cloudinaryWidth } from '../lib/cloudinaryImage';
 
-interface Props { goTo: (p: Page) => void; }
+interface Props {
+  goTo: (p: Page) => void;
+  /** Evento destacado del Home. Si tiene banner cargado, el hero pasa a ser ese banner. */
+  evento?: Evento | null;
+  openEvento?: (e: Evento) => void;
+  /** True mientras se está resolviendo el próximo evento (evita el parpadeo del hero clásico). */
+  pending?: boolean;
+}
 
-export default function Hero({ goTo }: Props) {
+export default function Hero({ goTo, evento, openEvento, pending }: Props) {
+  const banner = (evento?.thumbnailUrl?.trim() || evento?.homePosterUrl?.trim()) ?? '';
+
+  if (pending) return <HeroSkeleton />;
+  if (evento && banner) {
+    return <EventBanner ev={evento} banner={banner} openEvento={openEvento} goTo={goTo} />;
+  }
+  return <ClassicHero goTo={goTo} />;
+}
+
+/* ─────────────────────────  BANNER DEL EVENTO  ───────────────────────── */
+
+function EventBanner({
+  ev,
+  banner,
+  openEvento,
+  goTo,
+}: {
+  ev: Evento;
+  banner: string;
+  openEvento?: (e: Evento) => void;
+  goTo: (p: Page) => void;
+}) {
+  const isMobile = useIsMobile();
+  /** Ancho real del archivo: nunca lo pintamos más grande que eso o se ve borroso. */
+  const [naturalWidth, setNaturalWidth] = useState<number | null>(null);
+
+  const regLink = ev.registrationLink?.trim() ?? '';
+  const openDetail = () => (openEvento ? openEvento(ev) : goTo('eventos'));
+
+  const actions = (
+    <>
+      <button
+        type="button"
+        style={{ ...b.btnPrimary, width: isMobile ? '100%' : 'auto' }}
+        onClick={openDetail}
+        onMouseEnter={e => {
+          e.currentTarget.style.background = 'var(--purple)';
+          e.currentTarget.style.color = '#fff';
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.background = '#fff';
+          e.currentTarget.style.color = 'var(--ink)';
+        }}
+      >
+        Ver evento →
+      </button>
+
+      {regLink ? (
+        <a
+          href={regLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ ...b.btnGhost, width: isMobile ? '100%' : 'auto' }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(96,62,249,.30)';
+            e.currentTarget.style.color = '#fff';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = b.btnGhost.background as string;
+            e.currentTarget.style.color = b.btnGhost.color as string;
+          }}
+        >
+          Inscribirme
+        </a>
+      ) : (
+        <span
+          style={{ ...b.btnSoon, width: isMobile ? '100%' : 'auto' }}
+          title="La inscripción abre en los próximos días"
+        >
+          Inscripción muy pronto
+        </span>
+      )}
+    </>
+  );
+
+  return (
+    <section style={{ ...b.section, paddingBottom: isMobile ? 26 : 34 }}>
+      {/* Sin marco, sin bordes, sin sombra y sin hover: solo la imagen sobre el fondo oscuro. */}
+      <div style={{ ...b.media, maxWidth: naturalWidth ?? 1600 }}>
+        <button type="button" style={b.plate} onClick={openDetail} aria-label={`Ver ${ev.title}`}>
+          <img
+            src={cloudinaryWidth(banner, 1920)}
+            srcSet={cloudinarySrcSet(banner)}
+            sizes="100vw"
+            alt={ev.title}
+            decoding="async"
+            onLoad={e => setNaturalWidth(e.currentTarget.naturalWidth || null)}
+            style={b.img}
+          />
+        </button>
+        {/* Funde la base del arte con el fondo: ahí queda el espacio de los botones. */}
+        <div style={{ ...b.fade, height: isMobile ? 70 : 120 }} aria-hidden />
+      </div>
+
+      <div
+        style={{
+          ...b.actions,
+          marginTop: isMobile ? -22 : -26,
+          flexDirection: isMobile ? 'column' : 'row',
+          padding: isMobile ? '0 24px' : 0,
+        }}
+      >
+        {actions}
+      </div>
+    </section>
+  );
+}
+
+/** Placeholder mientras se resuelve el próximo evento: evita el salto de layout. */
+function HeroSkeleton() {
+  const isMobile = useIsMobile();
+  return (
+    <div
+      style={{
+        background: 'linear-gradient(168deg, #16102a 0%, #0b0616 100%)',
+        height: isMobile ? '58vh' : 'min(72vh, 660px)',
+      }}
+      aria-hidden
+    />
+  );
+}
+
+/* ─────────────────────────  HERO CLÁSICO (sin evento)  ───────────────────────── */
+
+function ClassicHero({ goTo }: { goTo: (p: Page) => void }) {
   const { heroUrl } = useSiteMedia();
   const isMobile = useIsMobile();
   const colRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const col = colRef.current;
-    if (!col) return;
-    const kids = Array.from(col.children) as HTMLElement[];
-    kids.forEach((el, i) => {
-      el.style.opacity = '0';
-      el.style.transform = 'translateY(18px)';
-      el.style.transition = `opacity 0.65s cubic-bezier(0.22,1,0.36,1) ${i * 100 + 60}ms,
-                              transform 0.65s cubic-bezier(0.22,1,0.36,1) ${i * 100 + 60}ms`;
-    });
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() =>
-        kids.forEach(el => { el.style.opacity = '1'; el.style.transform = 'none'; })
-      )
-    );
-  }, []);
+  useEntrance(colRef);
 
   return (
     <section style={{ ...s.hero, flexDirection: 'row', height: isMobile ? 'auto' : 'calc(100vh - 60px)', minHeight: isMobile ? 'auto' : 620 }}>
@@ -133,6 +250,121 @@ export default function Hero({ goTo }: Props) {
     </section>
   );
 }
+
+/** Fade-in escalonado de los hijos directos del contenedor. */
+function useEntrance(ref: React.RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    const col = ref.current;
+    if (!col) return;
+    const kids = Array.from(col.children) as HTMLElement[];
+    kids.forEach((el, i) => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(18px)';
+      el.style.transition = `opacity 0.65s cubic-bezier(0.22,1,0.36,1) ${i * 100 + 60}ms,
+                              transform 0.65s cubic-bezier(0.22,1,0.36,1) ${i * 100 + 60}ms`;
+    });
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() =>
+        kids.forEach(el => { el.style.opacity = '1'; el.style.transform = 'none'; })
+      )
+    );
+  }, [ref]);
+}
+
+const b: Record<string, React.CSSProperties> = {
+  section: {
+    position: 'relative',
+    background: '#0B0616',
+  },
+  media: {
+    position: 'relative',
+    lineHeight: 0,
+    margin: '0 auto',
+    width: '100%',
+    /** Difumina los bordes laterales para que el arte se funda con el fondo de la página. */
+    WebkitMaskImage:
+      'linear-gradient(to right, transparent 0%, #000 4%, #000 96%, transparent 100%)',
+    maskImage: 'linear-gradient(to right, transparent 0%, #000 4%, #000 96%, transparent 100%)',
+  },
+  /** Contenedor del banner: sin borde, sin radio, sin sombra y sin transición. */
+  plate: {
+    display: 'block',
+    width: '100%',
+    padding: 0,
+    margin: 0,
+    border: 'none',
+    background: 'transparent',
+    cursor: 'pointer',
+    font: 'inherit',
+  },
+  img: {
+    display: 'block',
+    width: '100%',
+    height: 'auto',
+  },
+  fade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'linear-gradient(to top, #0B0616 0%, rgba(11,6,22,.72) 45%, transparent 100%)',
+    pointerEvents: 'none',
+  },
+  actions: {
+    position: 'relative',
+    zIndex: 2,
+    display: 'flex',
+    gap: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+  },
+  btnPrimary: {
+    padding: '15px 30px',
+    borderRadius: 100,
+    fontSize: 14,
+    fontWeight: 700,
+    fontFamily: "'Instrument Sans', sans-serif",
+    cursor: 'pointer',
+    background: '#fff',
+    color: 'var(--ink)',
+    border: 'none',
+    textAlign: 'center',
+    transition: 'background .2s, color .2s',
+  },
+  btnGhost: {
+    padding: '14px 26px',
+    borderRadius: 100,
+    fontSize: 14,
+    fontWeight: 600,
+    fontFamily: "'Instrument Sans', sans-serif",
+    cursor: 'pointer',
+    background: 'rgba(96,62,249,.22)',
+    color: 'rgba(255,255,255,.92)',
+    border: '1.5px solid rgba(160,139,255,.5)',
+    textAlign: 'center',
+    textDecoration: 'none',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'background .2s, color .2s',
+  },
+  btnSoon: {
+    padding: '14px 26px',
+    borderRadius: 100,
+    fontSize: 14,
+    fontWeight: 600,
+    fontFamily: "'Instrument Sans', sans-serif",
+    background: 'rgba(255,255,255,.07)',
+    color: 'rgba(255,255,255,.6)',
+    border: '1.5px solid rgba(255,255,255,.2)',
+    textAlign: 'center',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'default',
+  },
+};
 
 const s: Record<string, React.CSSProperties> = {
   hero: { display: 'flex', overflow: 'hidden' },
