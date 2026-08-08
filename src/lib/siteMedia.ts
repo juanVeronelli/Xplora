@@ -1,6 +1,7 @@
 import type { CarouselSlide, DbSiteMedia, LogoBrand } from '../types';
 import {
   DEFAULT_CAROUSEL,
+  DEFAULT_CLUB_MODES,
   DEFAULT_COMPANY_BRANDS,
   DEFAULT_HERO_URL,
   DEFAULT_HIGHLIGHT_VIDEO_URL,
@@ -15,6 +16,8 @@ export interface ResolvedSiteMedia {
   /** Vacío = mostrar placeholder de video en la Home. */
   highlightVideoUrl: string;
   carousel: CarouselSlide[];
+  /** Las 4 fotos de El club (derivadas del carousel / defaults). */
+  clubModes: CarouselSlide[];
   companies: LogoBrand[];
   sponsors: LogoBrand[];
 }
@@ -63,12 +66,26 @@ function resolveHighlightVideoUrl(row: DbSiteMedia | null): string {
   return t;
 }
 
+/** Resuelve exactamente 4 slides del club (por id `mode-*` o defaults). */
+export function resolveClubModes(slides: CarouselSlide[]): CarouselSlide[] {
+  return DEFAULT_CLUB_MODES.map((slot, i) => {
+    const byId = slides.find((s) => s.id === slot.id);
+    if (byId?.url) return { id: slot.id, label: slot.label, url: byId.url };
+    // Compat: si el carousel viejo no tenía ids mode-*, usar por índice
+    const byIndex = slides[i];
+    if (byIndex?.url) return { id: slot.id, label: slot.label, url: byIndex.url };
+    return { ...slot };
+  });
+}
+
 export function mergeSiteMedia(row: DbSiteMedia | null): ResolvedSiteMedia {
+  const carousel = ensureSlideIds(row?.carousel);
   return {
     heroUrl: row?.hero_url?.trim() || DEFAULT_HERO_URL,
     logoUrl: row?.logo_url?.trim() || DEFAULT_LOGO_URL,
     highlightVideoUrl: resolveHighlightVideoUrl(row),
-    carousel: ensureSlideIds(row?.carousel),
+    carousel,
+    clubModes: resolveClubModes(carousel),
     companies: ensureLogoBrands(row?.company_logos, DEFAULT_COMPANY_BRANDS),
     sponsors: ensureLogoBrands(row?.sponsor_logos, DEFAULT_SPONSOR_BRANDS),
   };

@@ -1,19 +1,35 @@
 /**
- * Shell del panel admin: barra superior con marca, navegación simple de secciones
- * y acciones Ver sitio / Salir. El contenido de cada pestaña lo pinta `pages/Admin.tsx`.
+ * Shell del panel admin: marca Xplora, nav de secciones, Ver sitio / Salir.
  */
 import type { ReactNode } from 'react';
 import { crm } from './crmTheme';
 
 /** Identificador de pestaña; debe coincidir con las rutas internas en `Admin.tsx`. */
 export type AdminSectionId =
+  | 'inicio'
   | 'sitio'
+  | 'data'
   | 'eventos'
-  | 'charlas'
+  | 'comunidad'
   | 'campanas_email'
-  | 'database'
+  | 'sponsors'
+  | 'leads'
+  | 'charlas'
   | 'equipo'
+  /** @deprecated alias → comunidad */
+  | 'database'
+  /** @deprecated alias → leads */
   | 'candidatos';
+
+/** Secciones que viven dentro del hub Data. */
+export type AdminDataTabId =
+  | 'eventos'
+  | 'comunidad'
+  | 'campanas_email'
+  | 'sponsors'
+  | 'leads'
+  | 'charlas'
+  | 'equipo';
 
 export interface AdminNavItem {
   id: AdminSectionId;
@@ -27,9 +43,7 @@ interface Props {
   navItems: AdminNavItem[];
   goToSite: () => void;
   signOut: () => void;
-  /** Ej. botón «Mi contraseña» */
   headerExtra?: ReactNode;
-  /** Nombre y apellido (o email si no hay) junto a «Ver sitio». */
   staffDisplayName?: string;
   children: ReactNode;
 }
@@ -51,8 +65,8 @@ export default function AdminShell({
           <button
             type="button"
             className="xplora-admin-brand-wrap"
-            title="Ir al sitio público"
-            aria-label="Ir al sitio público"
+            title="Ir al inicio del panel"
+            aria-label="Ir al inicio del panel"
             style={{
               ...crm.brandCluster,
               border: 'none',
@@ -62,22 +76,22 @@ export default function AdminShell({
               font: 'inherit',
               textAlign: 'left',
             }}
-            onClick={goToSite}
-            onMouseEnter={e => {
+            onClick={() => onSection('inicio')}
+            onMouseEnter={(e) => {
               e.currentTarget.style.opacity = '0.85';
             }}
-            onMouseLeave={e => {
+            onMouseLeave={(e) => {
               e.currentTarget.style.opacity = '1';
             }}
           >
             <span style={crm.brandMark}>Xplora</span>
-            <span style={crm.brandSub}>panel</span>
+            <span style={crm.brandSub}>ops</span>
           </button>
 
           <nav className="xplora-admin-segment-wrap" style={crm.segmentRail} aria-label="Secciones del panel">
             <div className="xplora-admin-segment-scroll">
-              <div className="xplora-admin-segment-track" style={crm.segmentTrack}>
-                {navItems.map(item => {
+              <div className="xplora-admin-segment-track" style={crm.navTrack}>
+                {navItems.map((item) => {
                   const active = section === item.id;
                   return (
                     <button
@@ -85,7 +99,7 @@ export default function AdminShell({
                       type="button"
                       title={`${item.title} — ${item.desc}`}
                       className={`xplora-admin-seg${active ? ' is-active' : ''}`}
-                      style={crm.segmentBtn(active)}
+                      style={crm.navBtn(active)}
                       onClick={() => onSection(item.id)}
                     >
                       <span style={crm.segmentLabel}>{item.title}</span>

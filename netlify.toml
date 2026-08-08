@@ -1,4 +1,9 @@
 # Netlify: front estático; el API corre en Railway. El orden importa: /api antes que el fallback SPA.
+#
+# Subdominio Startup Day (mismo deploy; el front elige la landing por hostname):
+#   1. Domain management → Add domain alias: startupday.xploraucema.com
+#   2. DNS: CNAME `startupday` → target que indique Netlify (ej. <site>.netlify.app)
+#   3. SSL automático vía Netlify
 
 [build]
   publish = "dist"

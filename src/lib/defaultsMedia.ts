@@ -28,20 +28,48 @@ export const DEFAULT_CAROUSEL: CarouselSlide[] = [
   { id: 'def-8', url: '/images/Captura%20de%20pantalla%202024-12-31%20151753.webp', label: 'Networking' },
 ];
 
-/** Valores iniciales si la BD aún no tiene filas (activos en `src/public/logos/` → `/logos/*` en el sitio) */
+/** Las 4 puertas del club (El club / networking) — se guardan en `carousel` con estos ids. */
+export const DEFAULT_CLUB_MODES: readonly CarouselSlide[] = [
+  {
+    id: 'mode-net',
+    label: 'Networking',
+    url: '/images/IMG-20250827-WA0014.webp',
+  },
+  {
+    id: 'mode-jobs',
+    label: 'Empleo',
+    url: '/images/1725458411558.webp',
+  },
+  {
+    id: 'mode-build',
+    label: 'Emprender',
+    url: '/images/IMG-20251119-WA0044.webp',
+  },
+  {
+    id: 'mode-voices',
+    label: 'Referentes',
+    url: '/images/1722630248547.webp',
+  },
+] as const;
+
+/** Logos locales PNG (transparentes / sin fondo blanco). No Cloudinary. */
+const PARTNER_PNG = (file: string) => `/logos/partners-png/${file}?v=3`;
+
+/**
+ * Empresas en marquee — solo PNG locales curados.
+ * (Sin placeholders de texto ni assets con fondo blanco.)
+ */
 export const DEFAULT_COMPANY_BRANDS: LogoBrand[] = [
-  { id: 'co-1', name: 'Banco Galicia', logoUrl: '/logos/partners/galicia.svg' },
-  { id: 'co-2', name: 'Mercado Libre', logoUrl: '/logos/partners/mercadolibre.svg' },
-  { id: 'co-3', name: 'McKinsey & Co.', logoUrl: '/logos/partners/mckinsey.svg' },
-  { id: 'co-4', name: 'Ualá', logoUrl: '/logos/partners/uala.svg' },
-  { id: 'co-5', name: 'YPF', logoUrl: '/logos/partners/ypf.svg' },
-  { id: 'co-6', name: 'Naranja X', logoUrl: '/logos/partners/naranjax.svg' },
-  { id: 'co-7', name: 'Lemoncash', logoUrl: '/logos/partners/lemoncash.svg' },
-  { id: 'co-8', name: 'OCA', logoUrl: '/logos/partners/oca.svg' },
-  { id: 'co-9', name: 'Accenture', logoUrl: '/logos/partners/accenture.svg' },
-  { id: 'co-10', name: 'Globant', logoUrl: '/logos/partners/globant.svg' },
-  { id: 'co-11', name: 'Satellogic', logoUrl: '/logos/partners/satellogic.svg' },
-  { id: 'co-12', name: 'Mercado Pago', logoUrl: '/logos/partners/mercadopago.svg' },
+  { id: 'co-ml', name: 'Mercado Libre', logoUrl: PARTNER_PNG('mercadolibre.png') },
+  { id: 'co-mp', name: 'Mercado Pago', logoUrl: PARTNER_PNG('mercadopago.png') },
+  { id: 'co-globant', name: 'Globant', logoUrl: PARTNER_PNG('globant.png') },
+  { id: 'co-ypf', name: 'YPF', logoUrl: PARTNER_PNG('ypf.png') },
+  { id: 'co-google', name: 'Google', logoUrl: PARTNER_PNG('google.png') },
+  { id: 'co-aws', name: 'AWS', logoUrl: PARTNER_PNG('aws.png') },
+  { id: 'co-olx', name: 'OLX', logoUrl: PARTNER_PNG('olx.png') },
+  { id: 'co-tn', name: 'Tiendanube', logoUrl: PARTNER_PNG('tiendanube.png') },
+  { id: 'co-despegar', name: 'Despegar', logoUrl: PARTNER_PNG('despegar.png') },
+  { id: 'co-oracle', name: 'Oracle', logoUrl: PARTNER_PNG('oracle.png') },
 ];
 
 export const DEFAULT_SPONSOR_BRANDS: LogoBrand[] = [

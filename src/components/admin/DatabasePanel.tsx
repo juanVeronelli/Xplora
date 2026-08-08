@@ -117,9 +117,9 @@ export default function DatabasePanel() {
 
   return (
       <CrmSection
-      kicker="Comunidad"
-      title="Miembros"
-      subtitle="Explorá miembros con filtros o creá listas de contacto con datos congelados. Envíos por mail están en Email; inscriptos por evento en Archivo."
+      kicker="Base"
+      title="Comunidad"
+      subtitle="Miembros, filtros y listas de contacto. Campañas en Email; inscriptos por evento en Archivo."
       onNew={() => {}}
       showNew={false}
     >

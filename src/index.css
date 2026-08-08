@@ -153,8 +153,15 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 
 .xplora-admin-seg:not(.is-active):hover {
-  background: rgba(255, 255, 255, 0.4) !important;
-  color: var(--ink-soft) !important;
+  background: rgba(250, 248, 245, 0.1) !important;
+  color: #faf8f5 !important;
+}
+
+.xplora-admin-root h1,
+.xplora-admin-root h2,
+.xplora-admin-root h3 {
+  font-family: 'Syne', sans-serif;
+  font-style: normal;
 }
 
 .xplora-admin-primary {
@@ -162,7 +169,7 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 .xplora-admin-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(26, 16, 40, 0.2) !important;
+  box-shadow: 0 8px 22px rgba(96, 62, 249, 0.35) !important;
 }
 
 .xplora-admin-row {

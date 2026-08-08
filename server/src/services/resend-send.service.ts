@@ -22,7 +22,7 @@ function buildFromHeader(resend: NonNullable<AppConfig['resend']>): string {
  */
 export async function sendOneResendEmail(
   resend: NonNullable<AppConfig['resend']>,
-  opts: { to: string; subject: string; html: string },
+  opts: { to: string; subject: string; html: string; replyTo?: string },
 ): Promise<string | null> {
   const text = stripHtml(opts.html).slice(0, 12_000);
   const fromHeader = buildFromHeader(resend);
@@ -39,6 +39,7 @@ export async function sendOneResendEmail(
         subject: opts.subject,
         html: opts.html,
         text,
+        ...(opts.replyTo ? { reply_to: opts.replyTo } : {}),
       }),
       signal: AbortSignal.timeout(120_000),
     });

@@ -19,6 +19,7 @@ import {
 import { createPublicSubscribeHandler } from '../controllers/public-subscribe.controller.js';
 import { createPublicCandidatosHandler } from '../controllers/public-candidatos.controller.js';
 import { createPublicSponsorsLeadHandler } from '../controllers/public-sponsors.controller.js';
+import { createPublicStartupDayWaitlistHandler } from '../controllers/public-startup-day-waitlist.controller.js';
 import { uploadSingleCv } from '../middleware/upload.middleware.js';
 import {
   createAdminInsertHandler,
@@ -52,6 +53,7 @@ import { createAdminAnalyticsHandler } from '../controllers/admin-analytics.cont
 import { createAdminInstagramReelsAnalyticsHandler, createAdminInstagramReelsHandler } from '../controllers/admin-instagram.controller.js';
 import { createAdminCandidatosDeleteHandler, createAdminCandidatosListHandler } from '../controllers/admin-candidatos.controller.js';
 import { createAdminSponsorsLeadListHandler } from '../controllers/admin-sponsors.controller.js';
+import { createAdminStartupDayWaitlistListHandler } from '../controllers/admin-startup-day-waitlist.controller.js';
 import {
   createContactListAppendMembersHandler,
   createContactListCreateHandler,
@@ -113,6 +115,11 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
   app.post('/api/public/subscribe', subscribeLimiter, createPublicSubscribeHandler(deps.config));
   app.post('/api/public/candidatos', subscribeLimiter, uploadSingleCv, createPublicCandidatosHandler(deps.config));
   app.post('/api/public/sponsors', subscribeLimiter, createPublicSponsorsLeadHandler(deps.config));
+  app.post(
+    '/api/public/startup-day/waitlist',
+    subscribeLimiter,
+    createPublicStartupDayWaitlistHandler(deps.config),
+  );
 
   app.get('/api/public/eventos', createPublicListHandler(deps.config, 'eventos'));
   app.get('/api/public/charlas', createPublicListHandler(deps.config, 'charlas'));
@@ -310,6 +317,13 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
     createAdminCandidatosDeleteHandler(deps.config),
   );
   app.get('/api/admin/sponsors', requireAuth, loadStaff, postulacionesManage, createAdminSponsorsLeadListHandler(deps.config));
+  app.get(
+    '/api/admin/startup-day/waitlist',
+    requireAuth,
+    loadStaff,
+    postulacionesManage,
+    createAdminStartupDayWaitlistListHandler(deps.config),
+  );
 
   // ── Subida de imágenes (Cloudinary) ─────────────────────────────────────
   const uploadLimiter = rateLimit({

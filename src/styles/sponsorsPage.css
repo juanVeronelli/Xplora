@@ -1,0 +1,492 @@
+/* Landing /sponsors — identidad Xplora (ink / purple / cream), dirigida a marcas */
+
+.xp-sponsors {
+  background: var(--xp-ink, #0b0712);
+  overflow-x: clip;
+}
+
+/* ── Hero full-bleed ── */
+.xp-sp-hero {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  color: #fff;
+  background: var(--xp-ink, #0b0712);
+}
+
+.xp-sp-hero__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 40%;
+  transform: scale(1.04);
+  animation: xp-sp-ken 18s ease-in-out infinite alternate;
+}
+
+@keyframes xp-sp-ken {
+  from {
+    transform: scale(1.04) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.1) translate3d(-1.5%, -1%, 0);
+  }
+}
+
+.xp-sp-hero__veil {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(100deg, rgba(11, 7, 18, 0.88) 0%, rgba(11, 7, 18, 0.45) 55%, rgba(11, 7, 18, 0.55) 100%),
+    linear-gradient(180deg, rgba(11, 7, 18, 0.25) 0%, rgba(11, 7, 18, 0.9) 100%);
+  pointer-events: none;
+}
+
+.xp-sp-hero__content {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 820px);
+  padding:
+    calc(5.5rem + env(safe-area-inset-top, 0px))
+    clamp(20px, 5vw, 56px)
+    clamp(2.75rem, 7vw, 4.5rem);
+}
+
+.xp-sp-hero__eyebrow {
+  color: #c4b5ff;
+}
+
+.xp-sp-hero__title {
+  margin: 0 0 1.15rem;
+  font-family: var(--xp-display, 'Syne', sans-serif);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.92;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.xp-sp-hero__title .sd-char {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(0.55em);
+  animation: xp-sp-char 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes xp-sp-char {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.xp-sp-hero__brand {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: clamp(3.4rem, 12vw, 6.5rem);
+  color: #fff;
+}
+
+.xp-sp-hero__line {
+  display: block;
+  font-size: clamp(2.1rem, 7vw, 3.6rem);
+}
+
+.xp-sp-hero__line--accent {
+  color: #b8a4ff;
+}
+
+.xp-sp-hero__lead {
+  margin: 0;
+  max-width: 34rem;
+  font-family: var(--xp-body, 'Instrument Sans', sans-serif);
+  font-size: clamp(1.05rem, 2.2vw, 1.25rem);
+  line-height: 1.5;
+  color: rgba(250, 248, 245, 0.78);
+  animation: sd-fade-up 0.9s 0.55s ease both;
+}
+
+.xp-sp-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+  margin-top: 1.85rem;
+  animation: sd-fade-up 0.9s 0.7s ease both;
+}
+
+.xp-sp-hero__link {
+  font-family: var(--xp-body, 'Instrument Sans', sans-serif);
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: rgba(250, 248, 245, 0.78);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.xp-sp-hero__link:hover {
+  color: #fff;
+}
+
+/* ── Why + benefits ── */
+.xp-sp-why__intro {
+  margin-bottom: clamp(2rem, 4vw, 2.75rem);
+}
+
+.xp-sp-why__title {
+  max-width: 16ch;
+}
+
+.xp-sp-why__title em {
+  font-style: normal;
+  color: var(--xp-purple, #603ef9);
+}
+
+.xp-sp-why__grid {
+  display: grid;
+  gap: clamp(2rem, 4vw, 3rem);
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .xp-sp-why__grid {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    gap: clamp(2.5rem, 5vw, 3.5rem);
+  }
+}
+
+.xp-sp-benefits {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-top: 1px solid rgba(26, 16, 40, 0.12);
+}
+
+.xp-sp-benefit {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(0, 1fr);
+  gap: 1rem;
+  padding: 1.15rem 0;
+  border-bottom: 1px solid rgba(26, 16, 40, 0.12);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.xp-sp-benefit:hover {
+  transform: translateX(4px);
+}
+
+.xp-sp-benefit__n {
+  font-family: var(--xp-display, 'Syne', sans-serif);
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--xp-purple, #603ef9);
+  padding-top: 0.2rem;
+}
+
+.xp-sp-benefit__tag {
+  margin: 0 0 0.35rem;
+  font-family: var(--xp-display, 'Syne', sans-serif);
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  color: var(--xp-ink-2, #1a1028);
+}
+
+.xp-sp-benefit__text {
+  margin: 0;
+  font-family: var(--xp-body, 'Instrument Sans', sans-serif);
+  font-size: 0.98rem;
+  line-height: 1.45;
+  color: var(--sd-ink-soft, #3d3060);
+  max-width: 36rem;
+}
+
+.xp-sp-why__photo {
+  margin: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #1a1028;
+  aspect-ratio: 4 / 5;
+  max-height: 420px;
+  width: 100%;
+}
+
+.xp-sp-why__photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Club sponsors: reutiliza .sd-spn de Startup Day; solo el puente visual */
+.xp-sp-club.sd-spn.sd-band--cream {
+  padding-top: clamp(3.5rem, 7vw, 5rem);
+  padding-bottom: clamp(3.5rem, 7vw, 5rem);
+}
+
+/* ── Contact + form ── */
+.xp-sp-contact {
+  border-top: 1px solid rgba(26, 16, 40, 0.08);
+}
+
+.xp-sp-contact__layout {
+  display: grid;
+  gap: clamp(2rem, 4vw, 3.5rem);
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .xp-sp-contact__layout {
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+    gap: clamp(2.5rem, 5vw, 4rem);
+  }
+}
+
+.xp-sp-contact__title {
+  max-width: 12ch;
+}
+
+.xp-sp-contact__shine {
+  background: linear-gradient(110deg, #1a1028 0%, #603ef9 40%, #1a1028 80%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: xp-sp-shine 4.5s ease-in-out infinite;
+}
+
+@keyframes xp-sp-shine {
+  0%,
+  100% {
+    background-position: 100% 50%;
+  }
+  50% {
+    background-position: 0% 50%;
+  }
+}
+
+.xp-sp-contact__points {
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.xp-sp-contact__points li {
+  position: relative;
+  padding-left: 1.15rem;
+  font-family: var(--xp-body, 'Instrument Sans', sans-serif);
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: var(--xp-ink-2, #1a1028);
+}
+
+.xp-sp-contact__points li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 6px;
+  height: 6px;
+  background: var(--xp-purple, #603ef9);
+  border-radius: 1px;
+}
+
+.xp-sp-contact__panel {
+  background: #fff;
+  border: 1px solid rgba(26, 16, 40, 0.1);
+  border-radius: 14px;
+  padding: clamp(1.35rem, 3vw, 1.85rem);
+  box-shadow: 0 18px 48px rgba(26, 16, 40, 0.06);
+}
+
+/* Form propio — no pelear con .sd-form ink */
+.xp-sp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.xp-sp-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  font-family: var(--xp-body, 'Instrument Sans', sans-serif);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #6b6180;
+  box-sizing: border-box;
+}
+
+.xp-sp-form input,
+.xp-sp-form textarea,
+.xp-sp-form select {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(26, 16, 40, 0.16);
+  border-radius: var(--sd-radius, 10px);
+  background: #faf8f5;
+  color: #1a1028;
+  font-family: var(--xp-body, 'Instrument Sans', sans-serif);
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.xp-sp-form select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='rgba(26,16,40,0.45)' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-color: #faf8f5;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+.xp-sp-form select option {
+  color: #1a1028;
+  background: #faf8f5;
+}
+
+.xp-sp-form input:focus,
+.xp-sp-form textarea:focus,
+.xp-sp-form select:focus {
+  border-color: var(--xp-purple, #603ef9);
+  box-shadow: 0 0 0 3px rgba(96, 62, 249, 0.12);
+}
+
+.xp-sp-form input::placeholder,
+.xp-sp-form textarea::placeholder {
+  color: rgba(26, 16, 40, 0.38);
+}
+
+.xp-sp-form textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.xp-sp-form__row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  width: 100%;
+  min-width: 0;
+}
+
+@media (min-width: 480px) {
+  .xp-sp-form__row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.xp-sp-form .sd-btn {
+  width: 100%;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.xp-sp-form__error {
+  margin: 0;
+  font-family: var(--xp-body, 'Instrument Sans', sans-serif);
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #b42318;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.xp-sp-form__ok {
+  display: grid;
+  gap: 1rem;
+}
+
+.xp-sp-form__ok h3 {
+  margin: 0;
+  font-family: var(--xp-display, 'Syne', sans-serif);
+  font-size: 1.45rem;
+  color: var(--xp-ink-2, #1a1028);
+}
+
+.xp-sp-form__ok p {
+  margin: 0;
+  font-family: var(--xp-body, 'Instrument Sans', sans-serif);
+  line-height: 1.5;
+  color: var(--sd-ink-soft, #3d3060);
+}
+
+.xp-sp-form__ok .sd-btn {
+  justify-self: start;
+}
+
+/* ── Responsive ── */
+@media (max-width: 899px) {
+  .xp-sp-hero__content {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
+  .xp-sp-why__photo {
+    max-height: 320px;
+    aspect-ratio: 16 / 10;
+  }
+}
+
+@media (max-width: 719px) {
+  .xp-sp-hero__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .xp-sp-hero__actions .sd-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .xp-sp-hero__link {
+    text-align: center;
+  }
+
+  .xp-sp-form input,
+  .xp-sp-form textarea,
+  .xp-sp-form select {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xp-sp-hero__img,
+  .xp-sp-contact__shine,
+  .xp-sp-benefit {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .xp-sp-hero__img {
+    transform: none;
+  }
+}

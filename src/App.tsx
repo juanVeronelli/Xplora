@@ -1,25 +1,21 @@
 /**
  * App shell: enrutado por **estado** (`Page`) + `history.pushState` (sin React Router).
- * Carga perezosa de páginas. El panel CRM: entrar solo por la URL configurada (`VITE_PANEL_PATH`);
- * sin sesión se muestra login; sin botón público en el sitio.
+ * Público: XploraSite (shell SD) en el host principal; StartupDay en el subdominio.
+ * Panel CRM: entrar solo por la URL configurada (`VITE_PANEL_PATH`).
  */
 import { useState, lazy, Suspense, useEffect, useCallback } from 'react';
 import type { Page } from './types';
-import type { Evento, Charla } from './types';
 import { useAuth } from './hooks/useAuth';
 import { StaffPermissionsProvider } from './context/StaffPermissionsContext';
 import { authFetch, readApiError } from './lib/serverApi';
 import { getPanelPath, normalizePath, pageToPath, pathToPage } from './lib/routes';
-import Nav from './components/Nav';
+import { isStartupDayHost } from './lib/startupDayHost';
 import LoginModal from './components/LoginModal';
 
-const Home = lazy(() => import('./pages/Home'));
-const Eventos = lazy(() => import('./pages/Eventos'));
-const EventoDetail = lazy(() => import('./pages/EventoDetail'));
-const CharlaDetail = lazy(() => import('./pages/CharlaDetail'));
-const SomosXplora = lazy(() => import('./pages/SomosXplora'));
-const Sponsors = lazy(() => import('./pages/Sponsors'));
 const Admin = lazy(() => import('./pages/Admin'));
+const StartupDay = lazy(() => import('./pages/StartupDay'));
+const XploraSite = lazy(() => import('./pages/XploraSite'));
+const Sponsors = lazy(() => import('./pages/Sponsors'));
 
 function AdminLoading() {
   return (
@@ -42,8 +38,8 @@ function AdminLoading() {
 export default function App() {
   const { user, loading, signIn, signOut } = useAuth();
   const [page, setPage] = useState<Page>(() => pathToPage(window.location.pathname));
-  const [selectedEvento, setSelectedEvento] = useState<Evento | null>(null);
-  const [selectedCharla, setSelectedCharla] = useState<Charla | null>(null);
+  const startupDay = isStartupDayHost();
+
   const goTo = useCallback((p: Page) => {
     setPage(p);
     const nextPath = pageToPath(p);
@@ -61,14 +57,16 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  const openEvento = (e: Evento) => {
-    setSelectedEvento(e);
-    goTo('evento-detail');
-  };
-  const openCharla = (c: Charla) => {
-    setSelectedCharla(c);
-    goTo('charla-detail');
-  };
+  // Rutas públicas: home + sponsors; el resto → home
+  useEffect(() => {
+    if (startupDay) return;
+    if (page === 'admin' || page === 'home' || page === 'sponsors') return;
+    const path = normalizePath(window.location.pathname);
+    if (path !== '/' && path !== '/sponsors' && path !== getPanelPath()) {
+      window.history.replaceState({}, '', '/');
+      setPage('home');
+    }
+  }, [page, startupDay]);
 
   const handleLogin = async (email: string, password: string) => {
     const result = await signIn(email, password);
@@ -101,6 +99,14 @@ export default function App() {
     goTo('home');
   };
 
+  if (startupDay) {
+    return (
+      <Suspense fallback={null}>
+        <StartupDay />
+      </Suspense>
+    );
+  }
+
   if (loading) return null;
 
   if (page === 'admin') {
@@ -121,35 +127,9 @@ export default function App() {
     );
   }
 
-  const publicPages: Page[] = [
-    'home',
-    'somos',
-    'sponsors',
-    'eventos',
-    'evento-detail',
-    'charla-detail',
-  ];
-  const showNav = publicPages.includes(page);
-
   return (
-    <>
-      {showNav && <Nav current={page} goTo={goTo} />}
-      <div style={{ paddingTop: showNav ? 64 : 0 }}>
-        <Suspense fallback={null}>
-          {page === 'home' && (
-            <Home goTo={goTo} openEvento={openEvento} />
-          )}
-          {page === 'somos' && <SomosXplora />}
-          {page === 'sponsors' && <Sponsors />}
-          {page === 'eventos' && <Eventos openEvento={openEvento} openCharla={openCharla} />}
-          {page === 'evento-detail' && selectedEvento && (
-            <EventoDetail evento={selectedEvento} goBack={() => goTo('eventos')} />
-          )}
-          {page === 'charla-detail' && selectedCharla && (
-            <CharlaDetail charla={selectedCharla} goBack={() => goTo('eventos')} />
-          )}
-        </Suspense>
-      </div>
-    </>
+    <Suspense fallback={null}>
+      {page === 'sponsors' ? <Sponsors /> : <XploraSite />}
+    </Suspense>
   );
 }

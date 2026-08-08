@@ -10,14 +10,20 @@ import { useStaffPermissions } from '../context/StaffPermissionsContext';
 import { canSeeAdminSection, hasAnyPermission } from '../lib/crmPermissions';
 import { fetchAdminEventos, fetchRawCharlas } from '../lib/db';
 import { authFetch, readApiError } from '../lib/serverApi';
-import type { DbEvento, DbCharla, Speaker } from '../types';
+import type { DbEvento, DbCharla } from '../types';
 import SiteImagesPanel from '../components/admin/SiteImagesPanel';
 import ThumbnailUpload from '../components/admin/ThumbnailUpload';
 import EmailCampaignsHub from '../components/admin/EmailCampaignsHub';
 import DatabasePanel, { EventAudiencePanel } from '../components/admin/DatabasePanel';
 import StaffAccountsPanel from '../components/admin/StaffAccountsPanel';
 import CandidatesPanel from '../components/admin/CandidatesPanel';
-import AdminShell, { type AdminSectionId, type AdminNavItem } from '../components/admin/crm/AdminShell';
+import SponsorsPanel from '../components/admin/SponsorsPanel';
+import AdminHome from '../components/admin/AdminHome';
+import AdminShell, {
+  type AdminSectionId,
+  type AdminNavItem,
+  type AdminDataTabId,
+} from '../components/admin/crm/AdminShell';
 import {
   CrmSection,
   FormScreen,
@@ -36,15 +42,23 @@ import {
 import { crm } from '../components/admin/crm/crmTheme';
 import { useToast, useConfirm } from '../context/FeedbackContext';
 
-const SPEAKER_EMPTY: Speaker = { name: '', role: '', initials: '', bio: '' };
-
 const NAV_ITEMS: AdminNavItem[] = [
-  { id: 'sitio', title: 'Site', desc: 'Home pública: fotos, logo, marcas' },
-  { id: 'eventos', title: 'Eventos', desc: 'Próximos eventos del sitio' },
-  { id: 'charlas', title: 'Archivo', desc: 'Charlas + CSV Luma + audiencias por evento' },
-  { id: 'campanas_email', title: 'Email', desc: 'Campañas, envíos y audiencias' },
-  { id: 'database', title: 'Database', desc: 'Todo lo de base de datos (miembros, analytics, etc.)' },
+  { id: 'inicio', title: 'Inicio', desc: 'Panorama y atajos' },
+  { id: 'sitio', title: 'Web', desc: 'Hero y fotos del club' },
+  { id: 'data', title: 'Data', desc: 'Eventos, comunidad, email, leads…' },
 ];
+
+const DATA_TABS: Array<{ id: AdminDataTabId; label: string }> = [
+  { id: 'eventos', label: 'Eventos' },
+  { id: 'comunidad', label: 'Comunidad' },
+  { id: 'campanas_email', label: 'Email' },
+  { id: 'sponsors', label: 'Sponsors' },
+  { id: 'leads', label: 'Leads' },
+  { id: 'charlas', label: 'Archivo' },
+  { id: 'equipo', label: 'Equipo' },
+];
+
+const DATA_SECTION_IDS = new Set<AdminSectionId>(DATA_TABS.map((t) => t.id));
 
 interface Props {
   signOut: () => void;
@@ -58,7 +72,17 @@ export default function Admin({ signOut, goToSite }: Props) {
     return n || (email?.trim() ?? '');
   }, [nombre, apellido, email]);
   const visibleNav = useMemo(() => NAV_ITEMS.filter(i => canSeeAdminSection(i.id, permissions)), [permissions]);
-  const [section, setSection] = useState<AdminSectionId>('sitio');
+  const [section, setSection] = useState<AdminSectionId>('inicio');
+  const [dataTab, setDataTab] = useState<AdminDataTabId>('eventos');
+
+  const goTo = (id: AdminSectionId) => {
+    if (DATA_SECTION_IDS.has(id)) {
+      setDataTab(id as AdminDataTabId);
+      setSection('data');
+      return;
+    }
+    setSection(id);
+  };
 
   useEffect(() => {
     if (loading) return;
@@ -77,11 +101,11 @@ export default function Admin({ signOut, goToSite }: Props) {
           alignItems: 'center',
           justifyContent: 'center',
           fontFamily: "'Instrument Sans', sans-serif",
-          color: 'var(--ink-muted)',
-          background: 'linear-gradient(165deg, #F3EEE6 0%, #FAF8F5 45%, #F7F2EC 100%)',
+          color: 'rgba(250,248,245,0.65)',
+          background: '#0b0712',
         }}
       >
-        Cargando permisos…
+        Cargando panel…
       </div>
     );
   }
@@ -97,7 +121,8 @@ export default function Admin({ signOut, goToSite }: Props) {
           padding: 24,
           fontFamily: "'Instrument Sans', sans-serif",
           textAlign: 'center',
-          color: 'var(--ink-soft)',
+          color: 'rgba(250,248,245,0.8)',
+          background: '#0b0712',
         }}
       >
         <div>
@@ -111,80 +136,94 @@ export default function Admin({ signOut, goToSite }: Props) {
   }
 
   return (
-    <>
-      <AdminShell
-        section={section}
-        onSection={setSection}
-        navItems={visibleNav}
-        goToSite={goToSite}
-        signOut={signOut}
-        staffDisplayName={staffDisplayName}
-      >
+    <AdminShell
+      section={section}
+      onSection={setSection}
+      navItems={visibleNav}
+      goToSite={goToSite}
+      signOut={signOut}
+      staffDisplayName={staffDisplayName}
+    >
+      {section === 'inicio' && <AdminHome onGo={goTo} />}
       {section === 'sitio' && (
         <>
           <SectionIntro
             kicker="Web pública"
-            title="Contenido de la home"
-            subtitle="Un solo lugar para hero, carrusel, marcas y logos. Dentro del editor abrís pestañas (Inicio, Empresas, Sponsors); guardás una vez al pie y se publica todo junto."
+            title="Fotos del sitio"
+            subtitle="Solo el hero del inicio y las cuatro fotos de El club. Publicás al pie."
           />
           <SiteImagesPanel />
         </>
       )}
-      {section === 'eventos' && <EventosSection />}
-      {section === 'charlas' && <CharlasSection />}
-      {section === 'campanas_email' && <EmailCampaignsHub />}
-      {section === 'database' && <DatabaseHub />}
+      {section === 'data' && (
+        <DataHub tab={dataTab} onTab={setDataTab} permissions={permissions} />
+      )}
     </AdminShell>
-    </>
   );
 }
 
-function DatabaseHub() {
-  const { permissions } = useStaffPermissions();
-  const tabs = useMemo(() => {
-    const items: Array<{ id: 'miembros' | 'postulaciones' | 'equipo'; label: string; show: boolean }> = [
-      { id: 'miembros', label: 'Miembros', show: canSeeAdminSection('database', permissions) },
-      { id: 'postulaciones', label: 'Postulaciones', show: canSeeAdminSection('candidatos', permissions) },
-      { id: 'equipo', label: 'Equipo', show: canSeeAdminSection('equipo', permissions) },
-    ];
-    return items.filter(t => t.show);
-  }, [permissions]);
-
-  const [tab, setTab] = useState<(typeof tabs)[number]['id']>(() => tabs[0]?.id ?? 'miembros');
+function DataHub({
+  tab,
+  onTab,
+  permissions,
+}: {
+  tab: AdminDataTabId;
+  onTab: (id: AdminDataTabId) => void;
+  permissions: ReturnType<typeof useStaffPermissions>['permissions'];
+}) {
+  const visible = useMemo(
+    () => DATA_TABS.filter((t) => canSeeAdminSection(t.id, permissions)),
+    [permissions],
+  );
 
   useEffect(() => {
-    if (tabs.length === 0) return;
-    if (!tabs.some(t => t.id === tab)) setTab(tabs[0]!.id);
-  }, [tab, tabs]);
+    if (!visible.length) return;
+    if (!visible.some((t) => t.id === tab)) onTab(visible[0]!.id);
+  }, [visible, tab, onTab]);
 
-  if (tabs.length === 0) {
+  if (!visible.length) {
     return (
-      <div style={crm.listCard}>
-        Tu cuenta no tiene permisos para ver secciones de Database.
-      </div>
+      <div style={crm.listCard}>Tu cuenta no tiene permisos para Data.</div>
     );
   }
 
   return (
     <>
-      <div style={{ ...crm.listCard, marginBottom: 16, padding: 14 }}>
+      <SectionIntro
+        kicker="Operaciones"
+        title="Data"
+        subtitle="Eventos, comunidad, campañas, leads y equipo. Todo lo que no es contenido visual de la home."
+      />
+      <div style={{ ...crm.listCard, marginBottom: 18, padding: 12 }}>
         <div style={{ ...crm.segmentRail, marginBottom: 0 }}>
-          <div style={crm.segmentTrack}>
-            {tabs.map(t => {
-              const active = t.id === tab;
-              return (
-                <button key={t.id} type="button" style={crm.segmentBtn(active)} onClick={() => setTab(t.id)} title={t.label}>
-                  <span style={crm.segmentLabel}>{t.label}</span>
-                </button>
-              );
-            })}
+          <div className="xplora-admin-segment-scroll">
+            <div className="xplora-admin-segment-track" style={crm.segmentTrack}>
+              {visible.map((t) => {
+                const active = t.id === tab;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    className={`xplora-admin-seg${active ? ' is-active' : ''}`}
+                    style={crm.segmentBtn(active)}
+                    onClick={() => onTab(t.id)}
+                  >
+                    <span style={crm.segmentLabel}>{t.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
 
-      {tab === 'miembros' ? <DatabasePanel /> : null}
-      {tab === 'postulaciones' ? <CandidatesPanel /> : null}
-      {tab === 'equipo' ? <StaffAccountsPanel /> : null}
+      {tab === 'eventos' && <EventosSection />}
+      {tab === 'comunidad' && <DatabasePanel />}
+      {tab === 'campanas_email' && <EmailCampaignsHub />}
+      {tab === 'sponsors' && <SponsorsPanel />}
+      {tab === 'leads' && <CandidatesPanel />}
+      {tab === 'charlas' && <CharlasSection />}
+      {tab === 'equipo' && <StaffAccountsPanel />}
     </>
   );
 }
@@ -227,7 +266,6 @@ function EventosSection() {
   const [formOpen, setFormOpen] = useState(false);
   const [editRow, setEditRow] = useState<DbEvento | null>(null);
   const [form, setForm] = useState(EVENTO_EMPTY);
-  const [speakers, setSpeakers] = useState<Speaker[]>([{ ...SPEAKER_EMPTY }]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -243,18 +281,12 @@ function EventosSection() {
 
   const openCreate = () => {
     setForm(EVENTO_EMPTY);
-    setSpeakers([{ ...SPEAKER_EMPTY }]);
     setEditRow(null);
     setFormOpen(true);
     setError('');
   };
   const openEdit = (r: DbEvento) => {
     setForm({ ...EVENTO_EMPTY, ...r });
-    setSpeakers(
-      r.speakers?.length
-        ? r.speakers
-        : [{ name: r.speaker_name, role: r.speaker_role, initials: r.speaker_initials, bio: r.speaker_bio }],
-    );
     setEditRow(r);
     setFormOpen(true);
     setError('');
@@ -269,17 +301,44 @@ function EventosSection() {
       setError('El título es obligatorio');
       return;
     }
+    if (!form.date_display.trim() && !form.day.trim()) {
+      setError('Indicá la fecha (texto o día/mes).');
+      return;
+    }
     setSaving(true);
     setError('');
-    const validSpeakers = speakers.filter(sp => sp.name.trim());
-    const first = validSpeakers[0];
+    const name = form.speaker_name.trim();
+    const role = form.speaker_role.trim();
+    const initials =
+      form.speaker_initials.trim() ||
+      (name
+        ? name
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((w) => w[0]!.toUpperCase())
+            .join('')
+        : '');
+    const speakers = name
+      ? [{ name, role, initials, bio: form.speaker_bio || '' }]
+      : [];
+    const flyer = (form.home_poster_url || form.thumbnail_url || '').trim() || null;
     const payload = {
       ...form,
-      speakers: validSpeakers,
-      speaker_name: first?.name || '',
-      speaker_role: first?.role || '',
-      speaker_initials: first?.initials || '',
-      speaker_bio: first?.bio || '',
+      speakers,
+      speaker_name: name,
+      speaker_role: role,
+      speaker_initials: initials,
+      speaker_bio: form.speaker_bio || '',
+      home_poster_url: flyer,
+      thumbnail_url: flyer,
+      emoji: form.emoji || '',
+      tag_type: form.tag_type || 'p',
+      tag_label: form.tag_label || 'Evento',
+      modality: form.modality || 'Presencial',
+      cost: form.cost || 'Gratuito',
+      capacity: form.capacity || '',
+      about: form.about || '',
     };
     const res = editRow
       ? await authFetch(`/api/admin/eventos/${editRow.id}`, {
@@ -322,11 +381,6 @@ function EventosSection() {
 
   const f = (k: keyof typeof form, v: string) => setForm(p => ({ ...p, [k]: v }));
 
-  const setSp = (i: number, k: keyof Speaker, v: string) =>
-    setSpeakers(p => p.map((sp, idx) => (idx === i ? { ...sp, [k]: v } : sp)));
-  const addSpeaker = () => setSpeakers(p => [...p, { ...SPEAKER_EMPTY }]);
-  const removeSpeaker = (i: number) => setSpeakers(p => p.filter((_, idx) => idx !== i));
-
   const { activeRows, pastRows } = useMemo(() => {
     const active: DbEvento[] = [];
     const past: DbEvento[] = [];
@@ -340,8 +394,8 @@ function EventosSection() {
   return (
     <CrmSection
       kicker="Calendario"
-      title="Próximos eventos"
-      subtitle="Son las tarjetas que ves en la página de eventos. Agregá fecha, lugar y oradores; la gente usa esto para anotarse."
+      title="Eventos"
+      subtitle="Lo esencial para el bloque «Próximo evento» de la home: título, fecha, lugar, flyer e inscripción."
       onNew={openCreate}
       newLabel="+ Nuevo evento"
     >
@@ -350,24 +404,20 @@ function EventosSection() {
       ) : rows.length === 0 ? (
         <Empty
           title="Todavía no hay eventos"
-          text="Creá el primero con el botón de arriba. Solo necesitás un título y una fecha; el resto lo podés completar después."
+          text="Creá el primero: título, fecha y flyer alcanzan para publicarlo en la home."
         />
       ) : (
         <div style={crm.list}>
           {activeRows.length > 0 ? (
             <>
               <p style={{ ...crm.pageSubtitle, marginBottom: 12, maxWidth: 'none' }}>
-                <strong>Activos</strong> · {activeRows.length} evento{activeRows.length === 1 ? '' : 's'}
+                <strong>Activos</strong> · {activeRows.length}
               </p>
               {activeRows.map(r => (
                 <ListCard
                   key={r.id}
                   title={r.title}
-                  meta={`${r.date_display || 'Sin fecha'} · ${r.location || 'Sin ubicación'}${
-                    (r.total_inscriptos ?? 0) > 0 || (r.total_asistieron ?? 0) > 0
-                      ? ` · ${r.total_inscriptos ?? 0} inscriptos · ${r.total_asistieron ?? 0} asistieron`
-                      : ''
-                  }`}
+                  meta={`${r.date_display || 'Sin fecha'} · ${r.location || 'Sin lugar'}`}
                   actions={
                     <>
                       <ActionBtn onClick={() => openEdit(r)}>Editar</ActionBtn>
@@ -381,7 +431,7 @@ function EventosSection() {
             </>
           ) : (
             <p style={{ ...crm.pageSubtitle, marginBottom: 12, maxWidth: 'none', color: 'var(--ink-muted)' }}>
-              No hay eventos activos ahora mismo.
+              No hay eventos activos.
             </p>
           )}
 
@@ -389,17 +439,13 @@ function EventosSection() {
             <>
               <div style={{ height: 10 }} />
               <p style={{ ...crm.pageSubtitle, marginBottom: 12, maxWidth: 'none' }}>
-                <strong>Ya realizados / archivados</strong> · {pastRows.length} evento{pastRows.length === 1 ? '' : 's'}
+                <strong>Realizados</strong> · {pastRows.length}
               </p>
               {pastRows.map(r => (
                 <ListCard
                   key={r.id}
                   title={r.title}
-                  meta={`${r.date_display || 'Sin fecha'} · ${r.location || 'Sin ubicación'} · Realizado${
-                    (r.total_inscriptos ?? 0) > 0 || (r.total_asistieron ?? 0) > 0
-                      ? ` · ${r.total_inscriptos ?? 0} inscriptos · ${r.total_asistieron ?? 0} asistieron`
-                      : ''
-                  }`}
+                  meta={`${r.date_display || 'Sin fecha'} · Realizado`}
                   actions={
                     <>
                       <ActionBtn onClick={() => openEdit(r)}>Editar</ActionBtn>
@@ -418,78 +464,57 @@ function EventosSection() {
       {formOpen && (
         <FormScreen
           title={editRow ? 'Editar evento' : 'Nuevo evento'}
-          subtitle="Completá lo que puedas ahora; siempre podés volver a editar. Lo marcado con * es obligatorio."
+          subtitle="Solo lo que se muestra en la home. * obligatorio."
           onClose={closeForm}
           onSave={save}
           saving={saving}
           error={error}
         >
-          <FormSection title="Tarjeta y miniatura">
-            <TwoCol>
-              <Field
-                label="Símbolo en la tarjeta (opcional)"
-                hint="Un carácter o pictograma que se muestra en el sitio público; podés dejarlo vacío."
-                value={form.emoji}
-                onChange={v => f('emoji', v)}
-              />
-              <Field
-                label="Etiqueta corta"
-                hint="Aparece arriba del título, ej. «Charla», «Workshop»."
-                value={form.tag_label}
-                onChange={v => f('tag_label', v)}
-                placeholder="Charla"
-              />
-            </TwoCol>
-            <ThumbnailUpload
-              label="Banner (lista de eventos + detalle)"
-              hint="Horizontal, ej. 2400×720 px. Va en la franja de las tarjetas en /eventos y arriba del detalle del evento."
-              value={form.thumbnail_url ?? ''}
-              onChange={v => setForm(p => ({ ...p, thumbnail_url: v || null }))}
-            />
-            <ThumbnailUpload
-              label="Flyer para Home (próximo evento)"
-              hint="Recomendado: 1600×1200 px (proporción 4:3, igual que el bloque del Home). Así se ve a pantalla completa sin bandas. Alternativa: 1200×900 px. Si lo dejás vacío, se usa el banner."
-              value={form.home_poster_url ?? ''}
-              onChange={v => setForm(p => ({ ...p, home_poster_url: v || null }))}
-            />
-          </FormSection>
-
-          <FormSection title="Título y texto">
+          <FormSection title="Evento">
             <Field
-              label="Título del evento *"
-              hint="El nombre que verán en grande en la tarjeta."
+              label="Título *"
               value={form.title}
               onChange={v => f('title', v)}
-              placeholder="IA en el mundo de los negocios"
+              placeholder="Startup Day / Charla con…"
             />
             <Field
               label="Descripción corta"
-              hint="2–3 líneas que resumen el evento en la lista (no el texto largo)."
+              hint="Una o dos líneas bajo el título."
               value={form.summary}
               onChange={v => f('summary', v)}
-              placeholder="Breve descripción..."
+              placeholder="De qué se trata"
             />
-            <TA
-              label="Detalle completo"
-              hint="Texto largo con de qué se trata: ideal para quien ya quiere saber más."
-              value={form.about}
-              onChange={v => f('about', v)}
+            <ThumbnailUpload
+              label="Flyer"
+              hint="Imagen del bloque Próximo evento (recomendado 4:3)."
+              value={form.home_poster_url || form.thumbnail_url || ''}
+              onChange={v =>
+                setForm(p => ({
+                  ...p,
+                  home_poster_url: v || null,
+                  thumbnail_url: v || null,
+                }))
+              }
             />
           </FormSection>
 
-          <FormSection title="Presentación en el sitio">
+          <FormSection title="Cuándo y dónde">
+            <ThreeCol>
+              <Field
+                label="Fecha (texto)"
+                hint="Ej. 9 de septiembre de 2026"
+                value={form.date_display}
+                onChange={v => f('date_display', v)}
+              />
+              <Field label="Día" hint="Ej. 9" value={form.day} onChange={v => f('day', v)} />
+              <Field label="Mes" hint="Ej. SEP" value={form.month} onChange={v => f('month', v)} />
+            </ThreeCol>
             <TwoCol>
-              <Sel
-                label="Color de la etiqueta"
-                hint="Solo cambia el color del chip en el sitio."
-                value={form.tag_type}
-                onChange={v => f('tag_type', v)}
-                options={[
-                  { value: 'p', label: 'Charla (morado)' },
-                  { value: 'g', label: 'Workshop (verde)' },
-                  { value: 'o', label: 'Panel (naranja)' },
-                  { value: 'n', label: 'Networking (gris)' },
-                ]}
+              <Field
+                label="Lugar"
+                value={form.location}
+                onChange={v => f('location', v)}
+                placeholder="Av. Alem 882"
               />
               <Sel
                 label="Modalidad"
@@ -504,79 +529,54 @@ function EventosSection() {
             </TwoCol>
           </FormSection>
 
-          <FormSection title="Fecha y lugar">
-            <ThreeCol>
-              <Field
-                label="Fecha como la querés mostrar"
-                hint="Ej.: 18 de abril, 2025. Es el texto que lee el visitante."
-                value={form.date_display}
-                onChange={v => f('date_display', v)}
-              />
-              <Field label="Día (número)" hint="Para el calendario chico, ej. 18" value={form.day} onChange={v => f('day', v)} />
-              <Field label="Mes abreviado" hint="Ej. ABR o NOV" value={form.month} onChange={v => f('month', v)} />
-            </ThreeCol>
-            <TwoCol>
-              <Field
-                label="Lugar"
-                hint="Dirección o nombre del espacio."
-                value={form.location}
-                onChange={v => f('location', v)}
-                placeholder="Auditorio UCEMA"
-              />
-              <Field
-                label="Cupos"
-                hint="Texto libre, ej. «40 lugares» o «Cupo limitado»."
-                value={form.capacity}
-                onChange={v => f('capacity', v)}
-              />
-            </TwoCol>
-          </FormSection>
-
           <FormSection title="Inscripción">
             <TwoCol>
               <Field label="Costo" value={form.cost} onChange={v => f('cost', v)} placeholder="Gratuito" />
               <Field
                 label="Link de inscripción"
-                hint="Pegá el enlace a Google Forms, Typeform, etc."
                 value={form.registration_link}
                 onChange={v => f('registration_link', v)}
-                placeholder="https://forms.gle/..."
+                placeholder="https://…"
               />
             </TwoCol>
           </FormSection>
 
-          <FormSection
-            title="Oradores / panelistas"
-            action={
-              <button type="button" onClick={addSpeaker} style={crm.addSpeakerBtn}>
-                + Agregar orador/a
-              </button>
-            }
-          >
-          {speakers.map((sp, i) => (
-            <div key={i} style={crm.speakerCard}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-muted)' }}>Persona {i + 1}</span>
-                {speakers.length > 1 && (
-                  <button type="button" onClick={() => removeSpeaker(i)} style={crm.removeSpeakerBtn}>
-                    Quitar
-                  </button>
-                )}
-              </div>
-              <TwoCol>
-                <Field label="Nombre completo" value={sp.name} onChange={v => setSp(i, 'name', v)} placeholder="María García" />
-                <Field
-                  label="Iniciales"
-                  hint="Para el avatar circular, ej. MG"
-                  value={sp.initials}
-                  onChange={v => setSp(i, 'initials', v)}
-                  placeholder="MG"
-                />
-              </TwoCol>
-              <Field label="Rol o cargo" value={sp.role} onChange={v => setSp(i, 'role', v)} placeholder="Founder & CEO" />
-              <TA label="Bio breve" value={sp.bio} onChange={v => setSp(i, 'bio', v)} rows={2} />
-            </div>
-          ))}
+          <FormSection title="Con (opcional)">
+            <TwoCol>
+              <Field
+                label="Nombre"
+                value={form.speaker_name}
+                onChange={v => f('speaker_name', v)}
+                placeholder="Nombre del speaker"
+              />
+              <Field
+                label="Rol"
+                value={form.speaker_role}
+                onChange={v => f('speaker_role', v)}
+                placeholder="Cargo / empresa"
+              />
+            </TwoCol>
+          </FormSection>
+
+          <FormSection title="Estado">
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                fontSize: 14,
+                fontWeight: 600,
+                color: 'var(--ink)',
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={Boolean(form.realizado)}
+                onChange={(e) => setForm((p) => ({ ...p, realizado: e.target.checked }))}
+              />
+              Ya se realizó (no mostrar como próximo en la home)
+            </label>
           </FormSection>
         </FormScreen>
       )}

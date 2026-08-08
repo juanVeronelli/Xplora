@@ -20,30 +20,31 @@ type CandidateRow = {
   created_at: string;
 };
 
-type SponsorLeadRow = {
+type WaitlistRow = {
   id: string;
-  empresa: string;
-  nombre_contacto: string;
   email: string;
-  telefono: string | null;
-  interes: string;
-  mensaje: string | null;
+  nombre_completo: string | null;
+  universidad: string | null;
+  carrera: string | null;
+  que_estan_creando: string | null;
   created_at: string;
 };
+
+type LeadView = "waitlist" | "miembros";
 
 export default function CandidatesPanel() {
   const toast = useToast();
   const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
   const [candRows, setCandRows] = useState<CandidateRow[]>([]);
-  const [sponsorRows, setSponsorRows] = useState<SponsorLeadRow[]>([]);
-  const [view, setView] = useState<"sponsors" | "miembros">("sponsors");
+  const [waitlistRows, setWaitlistRows] = useState<WaitlistRow[]>([]);
+  const [view, setView] = useState<LeadView>("waitlist");
   const [openCandidate, setOpenCandidate] = useState<CandidateRow | null>(null);
 
   const viewOptions = useMemo(
     () => [
-      { value: "sponsors", label: "Sponsors / Empresas" },
-      { value: "miembros", label: "Miembros (candidatos)" },
+      { value: "waitlist", label: "Waitlist Startup Day" },
+      { value: "miembros", label: "Candidatos al club" },
     ],
     [],
   );
@@ -52,7 +53,10 @@ export default function CandidatesPanel() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [cRes, sRes] = await Promise.all([authFetch("/api/admin/candidatos"), authFetch("/api/admin/sponsors")]);
+      const [cRes, wRes] = await Promise.all([
+        authFetch("/api/admin/candidatos"),
+        authFetch("/api/admin/startup-day/waitlist"),
+      ]);
       if (cancelled) return;
       if (!cRes.ok) {
         toast.error(await readApiError(cRes));
@@ -61,12 +65,12 @@ export default function CandidatesPanel() {
         const j = (await cRes.json()) as { rows?: CandidateRow[] };
         setCandRows(j.rows ?? []);
       }
-      if (!sRes.ok) {
-        toast.error(await readApiError(sRes));
-        setSponsorRows([]);
+      if (!wRes.ok) {
+        toast.error(await readApiError(wRes));
+        setWaitlistRows([]);
       } else {
-        const j = (await sRes.json()) as { rows?: SponsorLeadRow[] };
-        setSponsorRows(j.rows ?? []);
+        const j = (await wRes.json()) as { rows?: WaitlistRow[] };
+        setWaitlistRows(j.rows ?? []);
       }
       setLoading(false);
     })();
@@ -75,52 +79,59 @@ export default function CandidatesPanel() {
     };
   }, [toast]);
 
-  const rows = view === "sponsors" ? sponsorRows : candRows;
+  const empty =
+    (view === "waitlist" && waitlistRows.length === 0) ||
+    (view === "miembros" && candRows.length === 0);
 
   return (
     <CrmSection
-      kicker="Comunidad"
-      title="Postulaciones"
-      subtitle="Leads de sponsors/empresas y solicitudes para sumarse a Xplora."
+      kicker="Inbound"
+      title="Leads"
+      subtitle="Waitlist de Startup Day y candidatos que quieren sumarse al club. Los sponsors tienen su propia vista."
       onNew={() => {}}
       showNew={false}
     >
       <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <div style={{ minWidth: 260 }}>
+        <div style={{ minWidth: 280 }}>
           <Sel
             label="Ver"
             value={view}
             options={viewOptions}
-            onChange={(v) => setView(v as "sponsors" | "miembros")}
+            onChange={(v) => setView(v as LeadView)}
           />
         </div>
         <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>
-          {view === "sponsors"
-            ? `${sponsorRows.length} lead(s) de sponsors`
-            : `${candRows.length} candidato(s) a sumarse como miembro`}
+          {view === "waitlist"
+            ? `${waitlistRows.length} en waitlist Startup Day`
+            : `${candRows.length} candidato(s) al club`}
         </span>
       </div>
 
       {loading ? (
         <Spinner />
-      ) : rows.length === 0 ? (
+      ) : empty ? (
         <Empty
-          title="Todavía no hay postulaciones"
+          title="Todavía no hay registros"
           text="Cuando alguien complete el formulario, aparecerá acá."
         />
       ) : (
         <div className="xplora-admin-table-scroll" style={{ marginTop: 8 }}>
-          <table style={{ ...table, minWidth: view === "sponsors" ? 980 : 760 }}>
+          <table
+            style={{
+              ...table,
+              minWidth: view === "waitlist" ? 900 : 760,
+            }}
+          >
             <thead>
               <tr>
                 <th style={th}>Fecha</th>
-                {view === "sponsors" ? (
+                {view === "waitlist" ? (
                   <>
-                    <th style={th}>Empresa</th>
-                    <th style={th}>Contacto</th>
+                    <th style={th}>Nombre</th>
                     <th style={th}>Email</th>
-                    <th style={th}>Interés</th>
-                    <th style={th}>Teléfono</th>
+                    <th style={th}>Universidad</th>
+                    <th style={th}>Carrera</th>
+                    <th style={th}>Qué están creando</th>
                   </>
                 ) : (
                   <>
@@ -138,26 +149,24 @@ export default function CandidatesPanel() {
               </tr>
             </thead>
             <tbody>
-              {view === "sponsors"
-                ? sponsorRows.map((r) => (
-                    <tr key={r.id}>
-                      <td style={{ ...td, fontSize: 12, color: "var(--ink-muted)" }}>
-                        {new Date(r.created_at).toLocaleString("es-AR", {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        })}
-                      </td>
-                      <td style={td}>
-                        <strong>{r.empresa}</strong>
-                      </td>
-                      <td style={td}>{r.nombre_contacto}</td>
-                      <td style={{ ...td, wordBreak: "break-all" as const }}>{r.email}</td>
-                      <td style={td}>
-                        <span style={badge}>{r.interes}</span>
-                      </td>
-                      <td style={td}>{r.telefono ?? ""}</td>
-                    </tr>
-                  ))
+              {view === "waitlist"
+                  ? waitlistRows.map((r) => (
+                      <tr key={r.id}>
+                        <td style={{ ...td, fontSize: 12, color: "var(--ink-muted)" }}>
+                          {new Date(r.created_at).toLocaleString("es-AR", {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          })}
+                        </td>
+                        <td style={td}>
+                          <strong>{r.nombre_completo || "—"}</strong>
+                        </td>
+                        <td style={{ ...td, wordBreak: "break-all" as const }}>{r.email}</td>
+                        <td style={td}>{r.universidad || "—"}</td>
+                        <td style={td}>{r.carrera || "—"}</td>
+                        <td style={{ ...td, maxWidth: 280 }}>{r.que_estan_creando || "—"}</td>
+                      </tr>
+                    ))
                 : candRows.map((r) => (
                     <tr
                       key={r.id}

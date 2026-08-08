@@ -63,8 +63,21 @@ export function hasAnyPermission(perms: readonly CrmPermissionKey[], keys: reado
 export function canSeeAdminSection(section: AdminSectionId, perms: readonly CrmPermissionKey[]): boolean {
   if (hasPermission(perms, 'access_total')) return true;
   switch (section) {
+    case 'inicio':
+      // Cualquier staff con al menos un permiso ve el panorama.
+      return perms.length > 0;
     case 'sitio':
       return hasPermission(perms, 'site_edit');
+    case 'data':
+      return (
+        canSeeAdminSection('eventos', perms) ||
+        canSeeAdminSection('comunidad', perms) ||
+        canSeeAdminSection('campanas_email', perms) ||
+        canSeeAdminSection('sponsors', perms) ||
+        canSeeAdminSection('leads', perms) ||
+        canSeeAdminSection('charlas', perms) ||
+        canSeeAdminSection('equipo', perms)
+      );
     case 'eventos':
       return hasAnyPermission(perms, ['events_create', 'events_edit_delete']);
     case 'charlas':
@@ -81,6 +94,7 @@ export function canSeeAdminSection(section: AdminSectionId, perms: readonly CrmP
         'database_full',
         'database_campaign_sends_only',
       ]);
+    case 'comunidad':
     case 'database':
       return hasAnyPermission(perms, [
         'database_full',
@@ -94,6 +108,8 @@ export function canSeeAdminSection(section: AdminSectionId, perms: readonly CrmP
       ]);
     case 'equipo':
       return hasAnyPermission(perms, ['staff_accounts_manage']);
+    case 'sponsors':
+    case 'leads':
     case 'candidatos':
       return hasPermission(perms, 'postulaciones_manage');
     default:

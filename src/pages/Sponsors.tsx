@@ -1,516 +1,402 @@
-import { useEffect, useMemo, useState } from "react";
-import { useIsMobile } from "../hooks/useIsMobile";
-import { useToast } from "../context/FeedbackContext";
-import { publicFetch, readApiError } from "../lib/serverApi";
-import { fetchCharlas } from "../lib/db";
-import type { Charla } from "../types";
-import Footer from "../components/Footer";
-import { marketingHeroWrap } from "../lib/pageBackgrounds";
+/**
+ * Landing pública /sponsors — dirigida a marcas y empresas que quieren
+ * auspiciar el club Xplora. Lead → API → mail a xplora.ucema@gmail.com.
+ */
+import { useEffect, useState } from 'react';
+import { SdReveal } from '../components/startup-day/SdReveal';
+import { SdShell } from '../components/startup-day/SdShell';
+import { splitChars } from '../components/startup-day/splitChars';
+import { SD_XPLORA_PARTNERS } from '../data/startupDay';
+import { MAIN_SITE_URL } from '../lib/startupDayHost';
+import { publicFetch, readApiError } from '../lib/serverApi';
+import { useToast } from '../context/FeedbackContext';
+import '../styles/startupDay.css';
+import '../styles/xploraSite.css';
+import '../styles/sponsorsPage.css';
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const INTERESES = [
-  { id: "sponsor_eventos", label: "Quiero auspiciar eventos (logo / presencia)" },
-  { id: "ambos", label: "Ambos" },
+  { id: 'sponsor_club', label: 'Ser sponsor del club' },
+  { id: 'sponsor_eventos', label: 'Auspiciar eventos' },
+  { id: 'ambos', label: 'Club + eventos / Startup Day' },
+  { id: 'charla', label: 'Dar una charla o workshop' },
+  { id: 'empleo', label: 'Conectar con talento' },
 ] as const;
 
-type InteresId = (typeof INTERESES)[number]["id"];
+const BENEFITS = [
+  {
+    n: '01',
+    tag: 'Audiencia',
+    text: 'Estudiantes y jóvenes con foco emprendedor, tech y negocios — en UCEMA y de toda la Argentina.',
+  },
+  {
+    n: '02',
+    tag: 'Presencia',
+    text: 'Logo, menciones y activaciones en eventos del año. Tu marca frente a la comunidad, no en un banner olvidado.',
+  },
+  {
+    n: '03',
+    tag: 'Talento',
+    text: 'Puente directo con perfiles que quieren construir: networking, empleo y primeros proyectos reales.',
+  },
+  {
+    n: '04',
+    tag: 'Startup Day',
+    text: 'La edición grande del año: un día completo de stands, workshops y pitch en UCEMA.',
+  },
+] as const;
+
+const HERO_IMG = '/images/20251007_165830.webp';
 
 export default function Sponsors() {
-  const isMobile = useIsMobile();
   const toast = useToast();
-
-  const [empresa, setEmpresa] = useState("");
-  const [nombreContacto, setNombreContacto] = useState("");
-  const [email, setEmail] = useState("");
-  const [telefono, setTelefono] = useState("");
-  const [interes, setInteres] = useState<InteresId | "">("");
-  const [mensaje, setMensaje] = useState("");
+  const [loaderDone, setLoaderDone] = useState(false);
+  const [empresa, setEmpresa] = useState('');
+  const [nombre, setNombre] = useState('');
+  const [apellido, setApellido] = useState('');
+  const [email, setEmail] = useState('');
+  const [telefono, setTelefono] = useState('');
+  const [interes, setInteres] = useState('sponsor_club');
+  const [mensaje, setMensaje] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const [charlas, setCharlas] = useState<Charla[]>([]);
-
-  const stats = useMemo(
-    () => [
-      { k: "Asistentes", v: "120+ por evento" },
-      { k: "Frecuencia", v: "semanal" },
-      { k: "Talento", v: "UCEMA top" },
-    ],
-    [],
-  );
-
-  const deliverables = useMemo(
-    () => [
-      { t: "Logo en piezas", d: "Aparecé en flyers, pantallas y assets de difusión del evento." },
-      { t: "Presencia en el evento", d: "Mención + espacio para activación (según el formato)." },
-      { t: "Employer branding", d: "Conectá tu marca con perfiles de alto potencial dentro de UCEMA." },
-      { t: "Contenido", d: "Clips y fotos para usar en redes (según disponibilidad del evento)." },
-    ],
-    [],
-  );
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
-    fetchCharlas().then((rows) => setCharlas(rows));
+    const prevTitle = document.title;
+    document.title = 'Sponsors — Xplora';
+
+    let canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    const prevHref = canonical?.href ?? '';
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.rel = 'canonical';
+      document.head.appendChild(canonical);
+    }
+    canonical.href = `${MAIN_SITE_URL.replace(/\/$/, '')}/sponsors`;
+
+    const metaDesc = document.querySelector<HTMLMetaElement>('meta[name="description"]');
+    const prevDesc = metaDesc?.content ?? '';
+    if (metaDesc) {
+      metaDesc.content =
+        'Sé sponsor de Xplora: conectá tu marca con talento emprendedor, eventos y Startup Day en UCEMA.';
+    }
+
+    const t = window.setTimeout(() => setLoaderDone(true), 900);
+    return () => {
+      window.clearTimeout(t);
+      document.title = prevTitle;
+      if (canonical) canonical.href = prevHref || MAIN_SITE_URL;
+      if (metaDesc) metaDesc.content = prevDesc;
+    };
   }, []);
 
-  const featured = useMemo(() => {
-    const wanted = [
-      "beltran",
-      "briones",
-      "rastellino",
-      "martin rastellino",
-      "mujeres lider",
-      "mujeres líderes",
-      "panel de mujeres",
-    ];
-    const pick = (c: Charla) => {
-      const hay = `${c.title} ${c.speakerName}`.toLowerCase();
-      return wanted.some((w) => hay.includes(w));
-    };
-    const hits = charlas.filter(pick);
-    const fallback = charlas.slice(0, 3);
-    return (hits.length ? hits : fallback).slice(0, 3);
-  }, [charlas]);
-
-  const canSubmit =
-    empresa.trim().length > 1 &&
-    nombreContacto.trim().length > 2 &&
-    email.trim().includes("@") &&
-    Boolean(interes) &&
-    !loading;
-
-  const submit = async (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
-    setLoading(true);
-    const res = await publicFetch("/api/public/sponsors", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        empresa: empresa.trim(),
-        nombre_contacto: nombreContacto.trim(),
-        email: email.trim(),
-        telefono: telefono.trim(),
-        interes,
-        mensaje: mensaje.trim(),
-      }),
-    });
-    setLoading(false);
-    if (!res.ok) {
-      toast.error(await readApiError(res));
+    setFormError('');
+    const emp = empresa.trim();
+    const nom = nombre.trim();
+    const ape = apellido.trim();
+    const em = email.trim().toLowerCase();
+    const interesMeta = INTERESES.find((i) => i.id === interes);
+    if (!interesMeta) {
+      setFormError('Elegí qué les interesa.');
       return;
     }
-    setSent(true);
-    toast.success("¡Listo! Te contactamos a la brevedad.");
+    const interesLabel = interesMeta.label;
+
+    if (emp.length < 2) {
+      setFormError('Completá el nombre de la empresa o marca.');
+      return;
+    }
+    if (nom.length < 2 || ape.length < 2) {
+      setFormError('Completá nombre y apellido del contacto.');
+      return;
+    }
+    if (!em || !EMAIL_RE.test(em)) {
+      setFormError('Ingresá un email corporativo válido.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await publicFetch('/api/public/sponsors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          empresa: emp,
+          nombre_contacto: `${nom} ${ape}`.trim(),
+          email: em,
+          telefono: telefono.trim() || undefined,
+          interes: interesLabel,
+          mensaje: [
+            'Origen: landing /sponsors (sponsor del club)',
+            `Interés: ${interesLabel}`,
+            mensaje.trim() ? `\n${mensaje.trim()}` : '',
+          ]
+            .join('\n')
+            .trim(),
+        }),
+      });
+      if (!res.ok) {
+        const msg = await readApiError(res);
+        setFormError(msg);
+        toast.error(msg);
+        return;
+      }
+      toast.success('Listo. Te escribimos a la brevedad.');
+      setSent(true);
+      setEmpresa('');
+      setNombre('');
+      setApellido('');
+      setEmail('');
+      setTelefono('');
+      setInteres('sponsor_club');
+      setMensaje('');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'No se pudo enviar. Probá de nuevo.';
+      setFormError(msg);
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <main style={{ padding: 0 }}>
-      <section style={s.heroWrap}>
-        <div style={{ ...s.container, padding: isMobile ? "92px 24px 40px" : "120px 80px 64px" }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr",
-              gap: isMobile ? 18 : 22,
-              alignItems: "start",
-            }}
-          >
-            <div>
-              <div style={s.badge}>Sponsors · Empresas · Marcas</div>
-              <h1 style={{ ...s.h1, fontSize: isMobile ? 36 : 56, marginTop: 12 }}>
-                Publicitá tu marca donde nace el próximo talento emprendedor.
-              </h1>
-              <p style={{ ...s.p, fontSize: isMobile ? 14 : 16, marginTop: 10 }}>
-                Xplora es el club de emprendedores de UCEMA. Hacemos eventos semanales con estudiantes de alto potencial
-                y speakers top. Sponsorizar es visibilidad real + employer branding.
-              </p>
-
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 18 }}>
-                <a href="#form" style={s.primaryCta}>
-                  Agendar reunión →
-                </a>
-              </div>
-
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
-                {stats.map((x) => (
-                  <div key={x.k} style={s.statPill}>
-                    <div style={s.statK}>{x.k}</div>
-                    <div style={s.statV}>{x.v}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section style={{ ...s.container, padding: isMobile ? "22px 24px 0" : "26px 80px 0" }}>
-        <div style={s.sectionHead}>
-          <h2 style={s.h2}>Qué obtiene un sponsor</h2>
-          <p style={s.p}>Un paquete pensado para que tu marca se vea y genere pipeline real.</p>
-        </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "repeat(4, 1fr)",
-            gap: 14,
-            marginTop: 16,
-          }}
-        >
-          {deliverables.map((d) => (
-            <article key={d.t} style={s.featureCard}>
-              <div style={s.featureTitle}>{d.t}</div>
-              <div style={s.featureDesc}>{d.d}</div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section style={{ ...s.container, padding: isMobile ? "26px 24px 0" : "34px 80px 0" }}>
-        <div style={s.sectionHead}>
-          <h2 style={s.h2}>Charlas destacadas</h2>
-          <p style={s.p}>
-            Esto es lo que sponsorizás al unirte a Xplora UCEMA: eventos con nuestros mejores speakers.
-          </p>
-        </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
-            gap: 16,
-            marginTop: 16,
-          }}
-        >
-          {featured.map((ch) => (
-            <article key={ch.id} style={s.talkCard}>
-              <div style={s.talkThumb}>
-                {ch.thumbnailUrl ? <img src={ch.thumbnailUrl} alt="" style={s.talkThumbImg} /> : null}
-                <div style={s.talkOverlay} aria-hidden />
-                <div style={s.talkTitle}>{ch.title}</div>
-              </div>
-              <div style={s.talkBody}>
-                <div style={s.talkSpeaker}>{ch.speakerName}</div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section id="form" style={{ ...s.container, padding: isMobile ? "34px 24px 64px" : "52px 80px 92px" }}>
-        <div style={s.ctaBox}>
-          <div>
-            <h2 style={{ ...s.h2, marginTop: 0 }}>Agendá una reunión</h2>
-            <p style={{ ...s.p, marginBottom: 0 }}>
-              Dejanos tus datos y te escribimos. Si ya querés coordinar, también podés usar el link de agenda.
+    <SdShell
+      active="sponsors"
+      showLoader
+      loaderDone={loaderDone}
+      cta={{ label: 'Ser sponsor', href: '#contacto' }}
+      brandBlurb="Organización estudiantil de la Universidad del CEMA. Por y para emprendedores."
+    >
+      <div className="xp-page xp-sponsors">
+        {/* Hero full-bleed — marca + foto de comunidad */}
+        <section className="xp-sp-hero">
+          <img className="xp-sp-hero__img" src={HERO_IMG} alt="" aria-hidden decoding="async" />
+          <div className="xp-sp-hero__veil" aria-hidden />
+          <div className="xp-sp-hero__content">
+            <p className="sd-hero__eyebrow xp-sp-hero__eyebrow">Para marcas y empresas</p>
+            <h1 className="xp-sp-hero__title">
+              <span className="xp-sp-hero__brand">{splitChars('XPLORA')}</span>
+              <span className="xp-sp-hero__line">{splitChars('Sé sponsor', 0.42)}</span>
+              <span className="xp-sp-hero__line xp-sp-hero__line--accent">
+                {splitChars('del club', 0.72)}
+              </span>
+            </h1>
+            <p className="xp-sp-hero__lead">
+              Conectá tu marca con la comunidad emprendedora que arma Xplora: eventos, talento y
+              Startup Day.
             </p>
-            <div style={{ marginTop: 10 }}>
-              <a
-                href="#form"
-                style={s.linkBtn}
-              >
-                Agendar reunión →
+            <div className="xp-sp-hero__actions">
+              <a className="sd-btn sd-btn--primary" href="#contacto">
+                Quiero ser sponsor
+              </a>
+              <a className="xp-sp-hero__link" href="#club">
+                Ver sponsors actuales
               </a>
             </div>
           </div>
+        </section>
 
-          {sent ? (
-            <div style={s.success}>
-              <div style={s.successTitle}>Formulario enviado</div>
-              <div style={s.successText}>Gracias. Nos ponemos en contacto a la brevedad.</div>
+        {/* Por qué */}
+        <section className="xp-section xp-section--cream xp-sp-why">
+          <SdReveal className="xp-sp-why__intro">
+            <p className="sd-kicker">Por qué Xplora</p>
+            <h2 className="sd-h2 xp-sp-why__title">
+              Tu marca frente a quien <em>está construyendo</em>
+            </h2>
+          </SdReveal>
+
+          <div className="xp-sp-why__grid">
+            <div className="xp-sp-benefits">
+              {BENEFITS.map((b, i) => (
+                <SdReveal key={b.tag} delay={(i % 3) as 0 | 1 | 2} className="xp-sp-benefit">
+                  <span className="xp-sp-benefit__n" aria-hidden>
+                    {b.n}
+                  </span>
+                  <div>
+                    <p className="xp-sp-benefit__tag">{b.tag}</p>
+                    <p className="xp-sp-benefit__text">{b.text}</p>
+                  </div>
+                </SdReveal>
+              ))}
             </div>
-          ) : (
-            <form onSubmit={submit} style={s.form} noValidate>
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label style={s.label}>Empresa / Marca</label>
-                  <input style={s.input} value={empresa} onChange={(e) => setEmpresa(e.target.value)} required />
+
+            <SdReveal delay={1} className="xp-sp-why__photo" as="figure">
+              <img
+                src="/images/IMG-20250827-WA0014.webp"
+                alt="Sala llena en un evento Xplora"
+                loading="lazy"
+                decoding="async"
+              />
+            </SdReveal>
+          </div>
+        </section>
+
+        {/* Sponsors del club — mismo formato que Startup Day */}
+        <section id="club" className="sd-band sd-band--cream sd-spn xp-sp-club">
+          <SdReveal className="sd-spn__inner">
+            <p className="sd-spn__label">Sponsors del club</p>
+            <div className="sd-spn__logos" aria-label="Sponsors del club">
+              {SD_XPLORA_PARTNERS.map((sp) => {
+                const href = sp.website;
+                const img = (
+                  <img src={sp.logoUrl} alt={sp.name} loading="lazy" decoding="async" />
+                );
+                return href ? (
+                  <a
+                    key={sp.id}
+                    className="sd-spn__logo"
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {img}
+                  </a>
+                ) : (
+                  <div key={sp.id} className="sd-spn__logo">
+                    {img}
+                  </div>
+                );
+              })}
+            </div>
+          </SdReveal>
+        </section>
+
+        {/* CTA + form */}
+        <section id="contacto" className="xp-section xp-section--cream xp-sp-contact">
+          <div className="xp-sp-contact__layout">
+            <SdReveal className="xp-sp-contact__copy">
+              <p className="sd-kicker">Sumate</p>
+              <h2 className="sd-h2 xp-sp-contact__title">
+                Contanos de tu <span className="xp-sp-contact__shine">marca</span>
+              </h2>
+              <p className="sd-lead">
+                Si querés ser sponsor del club, auspiciar un evento o aparecer en Startup Day,
+                dejanos tus datos. El equipo de Xplora te escribe a la brevedad.
+              </p>
+              <ul className="xp-sp-contact__points">
+                <li>Respuesta del equipo Xplora</li>
+                <li>Formatos a medida según presupuesto</li>
+                <li>Foco en marcas y empresas</li>
+              </ul>
+            </SdReveal>
+
+            <SdReveal delay={1} className="xp-sp-contact__panel">
+              {sent ? (
+                <div className="xp-sp-form__ok">
+                  <h3>Recibimos tu mensaje</h3>
+                  <p>Te vamos a escribir desde el equipo de Xplora para charlar el mejor formato.</p>
+                  <button type="button" className="sd-btn sd-btn--ink" onClick={() => setSent(false)}>
+                    Enviar otro
+                  </button>
                 </div>
-                <div>
-                  <label style={s.label}>Nombre y apellido</label>
-                  <input
-                    style={s.input}
-                    value={nombreContacto}
-                    onChange={(e) => setNombreContacto(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginTop: 12 }}>
-                <div>
-                  <label style={s.label}>Email</label>
-                  <input
-                    style={s.input}
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <label style={s.label}>Teléfono (opcional)</label>
-                  <input style={s.input} value={telefono} onChange={(e) => setTelefono(e.target.value)} />
-                </div>
-              </div>
-
-              <div style={{ marginTop: 12 }}>
-                <label style={s.label}>Interés</label>
-                <select
-                  style={s.select}
-                  value={interes}
-                  onChange={(e) => setInteres(e.target.value as InteresId | "")}
-                  required
-                >
-                  <option value="" disabled>
-                    Elegí una opción
-                  </option>
-                  {INTERESES.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ marginTop: 12 }}>
-                <label style={s.label}>Mensaje (opcional)</label>
-                <textarea style={s.textarea} value={mensaje} onChange={(e) => setMensaje(e.target.value)} rows={4} />
-              </div>
-
-              <button
-                type="submit"
-                disabled={!canSubmit}
-                style={{
-                  ...s.btn,
-                  opacity: !canSubmit ? 0.6 : 1,
-                  cursor: !canSubmit ? "not-allowed" : "pointer",
-                }}
-              >
-                {loading ? "Enviando…" : "Enviar y coordinar →"}
-              </button>
-            </form>
-          )}
-        </div>
-      </section>
-
-      <Footer minimal />
-    </main>
+              ) : (
+                <form className="xp-sp-form" onSubmit={onSubmit} noValidate>
+                  <label>
+                    Empresa / marca
+                    <input
+                      type="text"
+                      name="empresa"
+                      value={empresa}
+                      onChange={(e) => setEmpresa(e.target.value)}
+                      required
+                      maxLength={240}
+                      autoComplete="organization"
+                      placeholder="Nombre de la empresa"
+                    />
+                  </label>
+                  <div className="xp-sp-form__row">
+                    <label>
+                      Nombre
+                      <input
+                        type="text"
+                        name="nombre"
+                        autoComplete="given-name"
+                        value={nombre}
+                        onChange={(e) => setNombre(e.target.value)}
+                        required
+                        maxLength={120}
+                      />
+                    </label>
+                    <label>
+                      Apellido
+                      <input
+                        type="text"
+                        name="apellido"
+                        autoComplete="family-name"
+                        value={apellido}
+                        onChange={(e) => setApellido(e.target.value)}
+                        required
+                        maxLength={120}
+                      />
+                    </label>
+                  </div>
+                  <div className="xp-sp-form__row">
+                    <label>
+                      Email
+                      <input
+                        type="email"
+                        name="email"
+                        autoComplete="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        maxLength={240}
+                        placeholder="vos@empresa.com"
+                      />
+                    </label>
+                    <label>
+                      Teléfono
+                      <input
+                        type="tel"
+                        name="telefono"
+                        autoComplete="tel"
+                        value={telefono}
+                        onChange={(e) => setTelefono(e.target.value)}
+                        maxLength={40}
+                        placeholder="Opcional"
+                      />
+                    </label>
+                  </div>
+                  <label>
+                    Qué les interesa
+                    <select
+                      name="interes"
+                      value={interes}
+                      onChange={(e) => setInteres(e.target.value)}
+                      required
+                    >
+                      {INTERESES.map((i) => (
+                        <option key={i.id} value={i.id}>
+                          {i.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Mensaje
+                    <textarea
+                      name="mensaje"
+                      rows={4}
+                      value={mensaje}
+                      onChange={(e) => setMensaje(e.target.value)}
+                      maxLength={4000}
+                      placeholder="Contanos presupuesto, fechas o qué buscan (opcional)"
+                    />
+                  </label>
+                  {formError ? <p className="xp-sp-form__error">{formError}</p> : null}
+                  <button type="submit" className="sd-btn sd-btn--ink" disabled={loading}>
+                    {loading ? 'Enviando…' : 'Quiero ser sponsor'}
+                  </button>
+                </form>
+              )}
+            </SdReveal>
+          </div>
+        </section>
+      </div>
+    </SdShell>
   );
 }
-
-const s: Record<string, React.CSSProperties> = {
-  heroWrap: { ...marketingHeroWrap },
-  container: { maxWidth: 1120, margin: "0 auto" },
-  badge: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    padding: "8px 12px",
-    borderRadius: 999,
-    background: "rgba(255,255,255,0.65)",
-    border: "1px solid rgba(26,16,40,0.10)",
-    color: "var(--ink)",
-    fontSize: 12,
-    fontWeight: 800,
-    letterSpacing: "0.08em",
-    textTransform: "uppercase",
-  },
-  kicker: {
-    fontSize: 11,
-    fontWeight: 700,
-    letterSpacing: "0.22em",
-    textTransform: "uppercase",
-    color: "var(--purple)",
-    marginBottom: 10,
-  },
-  h1: {
-    fontFamily: "'Fraunces', serif",
-    fontWeight: 700,
-    letterSpacing: "-1.2px",
-    marginBottom: 10,
-    color: "var(--ink)",
-  },
-  h2: {
-    fontFamily: "'Fraunces', serif",
-    fontSize: 24,
-    fontWeight: 700,
-    letterSpacing: "-0.6px",
-    margin: "0 0 10px",
-    color: "var(--ink)",
-  },
-  p: {
-    color: "var(--ink-muted)",
-    lineHeight: 1.8,
-    maxWidth: 820,
-  },
-  primaryCta: {
-    display: "inline-block",
-    padding: "12px 16px",
-    borderRadius: 14,
-    background: "var(--ink)",
-    color: "white",
-    textDecoration: "none",
-    fontFamily: "'Instrument Sans', sans-serif",
-    fontSize: 14,
-    fontWeight: 900,
-  },
-  secondaryCta: {
-    display: "inline-block",
-    padding: "12px 16px",
-    borderRadius: 14,
-    background: "rgba(255,255,255,0.7)",
-    color: "var(--ink)",
-    textDecoration: "none",
-    border: "1.5px solid var(--border-warm)",
-    fontFamily: "'Instrument Sans', sans-serif",
-    fontSize: 14,
-    fontWeight: 800,
-  },
-  statPill: {
-    padding: "10px 12px",
-    borderRadius: 14,
-    background: "rgba(255,255,255,0.75)",
-    border: "1px solid rgba(26,16,40,0.10)",
-    minWidth: 150,
-  },
-  statK: { fontSize: 11, fontWeight: 900, color: "var(--ink-muted)", letterSpacing: "0.12em", textTransform: "uppercase" },
-  statV: { marginTop: 4, fontSize: 16, fontWeight: 950 as any, color: "var(--ink)", letterSpacing: "-0.3px" },
-  sectionHead: { display: "flex", flexDirection: "column", gap: 6 },
-  featureCard: {
-    borderRadius: 16,
-    border: "1px solid rgba(26,16,40,0.10)",
-    background: "white",
-    padding: 16,
-    boxShadow: "0 12px 40px rgba(26,16,40,0.05)",
-  },
-  featureTitle: { fontSize: 14, fontWeight: 900, color: "var(--ink)", letterSpacing: "-0.2px" },
-  featureDesc: { marginTop: 8, fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.65 },
-  talkCard: {
-    borderRadius: 16,
-    overflow: "hidden",
-    border: "1px solid rgba(26,16,40,0.1)",
-    background: "white",
-    boxShadow: "0 10px 36px rgba(26,16,40,0.06)",
-  },
-  talkThumb: {
-    position: "relative",
-    height: 140,
-    background: "linear-gradient(135deg, #1A1028, #2D1B50)",
-  },
-  talkThumbImg: {
-    position: "absolute",
-    inset: 0,
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-  },
-  talkOverlay: {
-    position: "absolute",
-    inset: 0,
-    background: "linear-gradient(180deg, rgba(26,16,40,0.15) 0%, rgba(26,16,40,0.75) 100%)",
-  },
-  talkTitle: {
-    position: "absolute",
-    left: 14,
-    right: 14,
-    bottom: 14,
-    color: "white",
-    fontFamily: "'Fraunces', serif",
-    fontWeight: 700,
-    fontSize: 16,
-    lineHeight: 1.25,
-    letterSpacing: "-0.2px",
-  },
-  talkBody: { padding: 14 },
-  talkSpeaker: { fontSize: 13, color: "var(--ink)", fontWeight: 900, letterSpacing: "-0.1px" },
-  ctaBox: {
-    display: "grid",
-    gridTemplateColumns: "1fr",
-    gap: 16,
-    borderRadius: 18,
-    border: "1px solid rgba(26,16,40,0.1)",
-    background:
-      "linear-gradient(135deg, rgba(96,62,249,0.08) 0%, rgba(255,255,255,0.82) 55%, rgba(168,255,120,0.05) 100%)",
-    padding: 20,
-  },
-  linkBtn: {
-    display: "inline-block",
-    padding: "10px 14px",
-    borderRadius: 14,
-    background: "var(--ink)",
-    color: "white",
-    textDecoration: "none",
-    fontFamily: "'Instrument Sans', sans-serif",
-    fontSize: 13,
-    fontWeight: 800,
-  },
-  form: {
-    marginTop: 12,
-    display: "flex",
-    flexDirection: "column",
-  },
-  label: {
-    display: "block",
-    fontSize: 11,
-    fontWeight: 700,
-    letterSpacing: "0.12em",
-    textTransform: "uppercase",
-    color: "var(--ink-muted)",
-    marginBottom: 6,
-  },
-  input: {
-    width: "100%",
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: "1.5px solid var(--border-warm)",
-    background: "white",
-    fontFamily: "'Instrument Sans', sans-serif",
-    fontSize: 14,
-    outline: "none",
-    boxSizing: "border-box",
-  },
-  textarea: {
-    width: "100%",
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: "1.5px solid var(--border-warm)",
-    background: "white",
-    fontFamily: "'Instrument Sans', sans-serif",
-    fontSize: 14,
-    outline: "none",
-    boxSizing: "border-box",
-    resize: "vertical" as const,
-  },
-  select: {
-    width: "100%",
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: "1.5px solid var(--border-warm)",
-    background: "white",
-    fontFamily: "'Instrument Sans', sans-serif",
-    fontSize: 14,
-    outline: "none",
-    boxSizing: "border-box",
-    cursor: "pointer",
-  },
-  btn: {
-    marginTop: 14,
-    padding: "12px 16px",
-    borderRadius: 14,
-    border: "none",
-    background: "var(--ink)",
-    color: "white",
-    fontFamily: "'Instrument Sans', sans-serif",
-    fontSize: 14,
-    fontWeight: 800,
-    transition: "all .2s",
-  },
-  success: {
-    borderRadius: 16,
-    border: "1px solid rgba(45,106,79,0.18)",
-    background: "rgba(45,106,79,0.06)",
-    padding: 16,
-  },
-  successTitle: { fontWeight: 800, color: "var(--ink)", marginBottom: 4 },
-  successText: { color: "var(--ink-muted)", fontSize: 13, lineHeight: 1.6 },
-};
-
