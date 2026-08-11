@@ -1,7 +1,7 @@
 /**
  * Landing exclusiva startupday.xploraucema.com — funnel Startup Day.
  */
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { useSiteMedia } from '../context/SiteMediaContext';
 import { DEFAULT_LOGO_URL } from '../lib/defaultsMedia';
 import { MAIN_SITE_URL, STARTUP_DAY_CANONICAL } from '../lib/startupDayHost';
@@ -21,6 +21,10 @@ import { StartupDaySponsorCta } from '../components/startup-day/StartupDaySponso
 import { StartupDayCursor } from '../components/startup-day/StartupDayCursor';
 import { StartupDayHeroFx } from '../components/startup-day/StartupDayHeroFx';
 import '../styles/startupDay.css';
+
+const StartupDayFloor3D = lazy(() =>
+  import('../components/startup-day/StartupDayFloor3D').then((m) => ({ default: m.StartupDayFloor3D })),
+);
 
 function useComingSoonGate() {
   const [gated, setGated] = useState(SD_COMING_SOON);
@@ -214,6 +218,10 @@ function StartupDayContent({ onReserve }: { onReserve: () => void }) {
       </section>
 
       <StartupDayAgenda />
+
+      <Suspense fallback={null}>
+        <StartupDayFloor3D />
+      </Suspense>
 
       <section id="confirmadas" className="sd-band sd-band--ink">
         <SdReveal>

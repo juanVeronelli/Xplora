@@ -132,6 +132,36 @@ export const SD_SCHEDULE: readonly SdScheduleBeat[] = [
   },
 ] as const;
 
+/** Nodos del piso 3D (pp2.glb) — nombres exactos exportados desde el modelo, no inventar. */
+export type SdClassroomId =
+  | 'C-aula01'
+  | 'C-aula02'
+  | 'C-aula03'
+  | 'C-aula04'
+  | 'C-aula05'
+  | 'C-aula06';
+
+export type SdClassroomCopy = {
+  title: string;
+  copy: string;
+};
+
+/** Placeholders — el copy final se completa después. */
+export const SD_CLASSROOMS: Record<SdClassroomId, SdClassroomCopy> = {
+  'C-aula01': { title: '{{TITULO_AULA_01}}', copy: '{{COPY_AULA_01}}' },
+  'C-aula02': { title: '{{TITULO_AULA_02}}', copy: '{{COPY_AULA_02}}' },
+  'C-aula03': { title: '{{TITULO_AULA_03}}', copy: '{{COPY_AULA_03}}' },
+  'C-aula04': { title: '{{TITULO_AULA_04}}', copy: '{{COPY_AULA_04}}' },
+  'C-aula05': { title: '{{TITULO_AULA_05}}', copy: '{{COPY_AULA_05}}' },
+  'C-aula06': { title: '{{TITULO_AULA_06}}', copy: '{{COPY_AULA_06}}' },
+};
+
+/** Nodos sin interacción por ahora — preparados para sumarse fácilmente después. */
+export const SD_FLOOR_INERT_NODES = ['C-pasillo', 'C-toilets'] as const;
+
+/** Escala aproximada del modelo pp2.glb, en unidades del archivo (ancho x alto x profundidad). */
+export const SD_FLOOR_BOUNDS = { width: 159, height: 13.4, depth: 108 } as const;
+
 /** Startups confirmadas — logos normalizados en `/logos/startup-day/*.webp`. */
 export const SD_STARTUPS: StartupDayCompany[] = [
   {

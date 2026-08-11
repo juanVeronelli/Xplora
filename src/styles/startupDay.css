@@ -1601,6 +1601,118 @@ html.sd-coming-soon body {
   }
 }
 
+/* ── Piso 3D (Aulas) — entre Agenda y Confirmadas, mismo ink continuo ── */
+.sd-floor3d {
+  --sd-floor-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sd-floor3d__head {
+  margin-bottom: clamp(1.75rem, 4vw, 2.75rem);
+}
+
+.sd-floor3d__stage-wrap {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.sd-floor3d__stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--sd-radius);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.sd-floor3d__canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.sd-floor3d__canvas canvas {
+  display: block;
+  touch-action: pan-y;
+}
+
+.sd-floor3d__stage.is-hovering .sd-floor3d__canvas canvas {
+  cursor: pointer;
+}
+
+.sd-floor3d__panel {
+  position: absolute;
+  left: clamp(14px, 3vw, 28px);
+  bottom: clamp(14px, 3vw, 28px);
+  z-index: 1;
+  width: min(320px, calc(100% - clamp(28px, 6vw, 56px)));
+  padding: 18px 20px;
+  border-radius: var(--sd-radius);
+  background: rgba(18, 12, 28, 0.92);
+  border: 1px solid rgba(96, 62, 249, 0.4);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: opacity 0.25s var(--sd-floor-ease), transform 0.25s var(--sd-floor-ease);
+}
+
+.sd-floor3d__panel.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.sd-floor3d__panel-title {
+  margin: 0 0 0.4rem;
+  font-family: var(--sd-font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--sd-cream);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.25s var(--sd-floor-ease), transform 0.25s var(--sd-floor-ease);
+}
+
+.sd-floor3d__panel-copy {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: rgba(250, 248, 245, 0.72);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.25s 0.06s var(--sd-floor-ease), transform 0.25s 0.06s var(--sd-floor-ease);
+}
+
+.sd-floor3d__panel.is-visible .sd-floor3d__panel-title,
+.sd-floor3d__panel.is-visible .sd-floor3d__panel-copy {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-width: 719px) {
+  .sd-floor3d__stage {
+    aspect-ratio: 4 / 5;
+  }
+
+  .sd-floor3d__panel {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sd-floor3d__panel,
+  .sd-floor3d__panel-title,
+  .sd-floor3d__panel-copy {
+    transition: none;
+  }
+}
+
 .sd-btn {
   display: inline-flex;
   align-items: center;
@@ -1674,8 +1786,13 @@ html.sd-coming-soon body {
   padding: clamp(56px, 9vw, 100px) clamp(20px, 5vw, 56px);
 }
 
-/* Agenda → Confirmadas: mismo ink, menos aire entre medias */
+/* Agenda → Aulas → Confirmadas: mismo ink, menos aire entre medias */
 #agenda.sd-band {
+  padding-bottom: clamp(28px, 4vw, 48px);
+}
+
+#aulas.sd-band {
+  padding-top: clamp(28px, 4vw, 48px);
   padding-bottom: clamp(28px, 4vw, 48px);
 }
 
