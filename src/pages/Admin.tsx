@@ -502,7 +502,7 @@ function EventosSection() {
             <ThreeCol>
               <Field
                 label="Fecha (texto)"
-                hint="Ej. 9 de septiembre de 2026"
+                hint="Ej. 11 de septiembre de 2026"
                 value={form.date_display}
                 onChange={v => f('date_display', v)}
               />

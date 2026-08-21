@@ -19,7 +19,10 @@ export type Page =
   | 'charla-detail'
   | 'somos'
   | 'sponsors'
-  | 'admin';
+  | 'admin'
+  | 'cuenta'
+  | 'cuenta-confirm'
+  | 'empleo';
 
 export interface Evento {
   id: string;

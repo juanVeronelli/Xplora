@@ -16,6 +16,9 @@ const Admin = lazy(() => import('./pages/Admin'));
 const StartupDay = lazy(() => import('./pages/StartupDay'));
 const XploraSite = lazy(() => import('./pages/XploraSite'));
 const Sponsors = lazy(() => import('./pages/Sponsors'));
+const MemberAccount = lazy(() => import('./pages/MemberAccount'));
+const MemberConfirm = lazy(() => import('./pages/MemberConfirm'));
+const MemberJobs = lazy(() => import('./pages/MemberJobs'));
 
 function AdminLoading() {
   return (
@@ -57,12 +60,29 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  // Rutas públicas: home + sponsors; el resto → home
+  // Rutas públicas: home + sponsors + cuenta/empleo; el resto → home
   useEffect(() => {
     if (startupDay) return;
-    if (page === 'admin' || page === 'home' || page === 'sponsors') return;
+    if (
+      page === 'admin' ||
+      page === 'home' ||
+      page === 'sponsors' ||
+      page === 'cuenta' ||
+      page === 'cuenta-confirm' ||
+      page === 'empleo'
+    ) {
+      return;
+    }
     const path = normalizePath(window.location.pathname);
-    if (path !== '/' && path !== '/sponsors' && path !== getPanelPath()) {
+    if (
+      path !== '/' &&
+      path !== '/sponsors' &&
+      path !== '/cuenta' &&
+      path !== '/cuenta/confirmar' &&
+      path !== '/empleo' &&
+      path !== '/bolsa' &&
+      path !== getPanelPath()
+    ) {
       window.history.replaceState({}, '', '/');
       setPage('home');
     }
@@ -123,6 +143,30 @@ export default function App() {
         <StaffPermissionsProvider>
           <Admin signOut={handleSignOut} goToSite={() => goTo('home')} />
         </StaffPermissionsProvider>
+      </Suspense>
+    );
+  }
+
+  if (page === 'cuenta-confirm') {
+    return (
+      <Suspense fallback={null}>
+        <MemberConfirm />
+      </Suspense>
+    );
+  }
+
+  if (page === 'cuenta') {
+    return (
+      <Suspense fallback={null}>
+        <MemberAccount onGoEmpleo={() => goTo('empleo')} />
+      </Suspense>
+    );
+  }
+
+  if (page === 'empleo') {
+    return (
+      <Suspense fallback={null}>
+        <MemberJobs />
       </Suspense>
     );
   }

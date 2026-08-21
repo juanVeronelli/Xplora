@@ -68,8 +68,11 @@ export function StartupDayWaitlistForm() {
       <div className="sd-form__ok">
         <h3>Estás en la lista</h3>
         <p>
-          Hay cupos limitados. Dejarte acá aumenta tus chances de entrar cuando abra la inscripción.
-          Te mandamos confirmación por mail.
+          Te avisamos novedades del Startup Day. Si todavía no te inscribiste,{' '}
+          <a href="https://luma.com/1ubys1uc" target="_blank" rel="noopener noreferrer">
+            reservá tu lugar en Luma
+          </a>
+          .
         </p>
       </div>
     );
@@ -78,8 +81,8 @@ export function StartupDayWaitlistForm() {
   return (
     <form className="sd-form" onSubmit={handleSubmit} noValidate>
       <p className="sd-form__hint">
-        Cupos limitados. Dejá tu email para aumentar la posibilidad de asistir cuando abra la
-        inscripción. El resto es opcional.
+        La inscripción ya está abierta en Luma. Acá podés dejar tu email para recibir novedades. El
+        resto es opcional.
       </p>
 
       <label>
@@ -146,7 +149,7 @@ export function StartupDayWaitlistForm() {
       ) : null}
 
       <button className="sd-btn sd-btn--primary sd-btn--block" type="submit" disabled={status === 'loading'}>
-        {status === 'loading' ? 'Enviando…' : 'Aumentar mis chances'}
+        {status === 'loading' ? 'Enviando…' : 'Recibir novedades'}
       </button>
     </form>
   );

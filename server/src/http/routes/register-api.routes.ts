@@ -75,6 +75,20 @@ import {
 import { createLoadStaffProfileMiddleware } from '../middleware/load-staff.middleware.js';
 import { createRequireAnyCrmPermission } from '../middleware/require-crm-permission.middleware.js';
 import type { CrmPermissionKey } from '../../permissions/crm-permissions.js';
+import { createRequireMemberAuthMiddleware } from '../middleware/require-member-auth.middleware.js';
+import {
+  createMemberConfirmHandler,
+  createMemberLoginRequestHandler,
+  createMemberLoginVerifyHandler,
+  createMemberRegisterHandler,
+} from '../controllers/member-auth.controller.js';
+import {
+  createMemberAvatarUploadHandler,
+  createMemberCvUploadHandler,
+  createMemberMeHandler,
+  createMemberPatchMeHandler,
+} from '../controllers/member-profile.controller.js';
+import { createMemberJobsListHandler } from '../controllers/member-jobs.controller.js';
 
 export interface ApiRoutesDeps {
   config: AppConfig;
@@ -125,7 +139,36 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
   app.get('/api/public/charlas', createPublicListHandler(deps.config, 'charlas'));
   app.get('/api/public/site-media', createPublicSiteMediaHandler(deps.config));
 
-  // ── Auth (login sin Bearer; logout valida sesión) ───────────────────────
+  // ── Miembros (cuenta comunidad: registro / código / JWT propio) ─────────
+  const memberLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 40,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  const requireMember = createRequireMemberAuthMiddleware(deps.config);
+
+  app.post('/api/member/register', memberLimiter, createMemberRegisterHandler(deps.config));
+  app.post('/api/member/confirm', memberLimiter, createMemberConfirmHandler(deps.config));
+  app.post('/api/member/login/request', memberLimiter, createMemberLoginRequestHandler(deps.config));
+  app.post('/api/member/login/verify', memberLimiter, createMemberLoginVerifyHandler(deps.config));
+  app.get('/api/member/me', requireMember, createMemberMeHandler(deps.config));
+  app.patch('/api/member/me', requireMember, createMemberPatchMeHandler(deps.config));
+  app.post(
+    '/api/member/me/avatar',
+    requireMember,
+    uploadSingleImage,
+    createMemberAvatarUploadHandler(deps.config),
+  );
+  app.post(
+    '/api/member/me/cv',
+    requireMember,
+    uploadSingleCv,
+    createMemberCvUploadHandler(deps.config),
+  );
+  app.get('/api/member/jobs', requireMember, createMemberJobsListHandler(deps.config));
+
+  // ── Auth CRM (login sin Bearer; logout valida sesión) ───────────────────
   app.post('/api/auth/login', loginLimiter, createLoginHandler(deps.config));
   app.post('/api/auth/logout', requireAuth, createLogoutHandler());
   app.get('/api/auth/me', requireAuth, createAuthMeHandler(deps.config));

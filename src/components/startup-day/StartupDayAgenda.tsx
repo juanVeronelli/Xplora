@@ -1,107 +1,47 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { SD_EVENT, SD_SCHEDULE, SD_STANDS, type SdScheduleBeat } from '../../data/startupDay';
 import { SdReveal } from './SdReveal';
 
-function speakerOf(beat: SdScheduleBeat): string | undefined {
-  if (beat.kind === 'workshop') return beat.label;
-  if (beat.kind === 'stands') return undefined;
-  return beat.detail;
+function kindLabel(beat: SdScheduleBeat): string {
+  if (beat.kind === 'main') return 'Charla';
+  if (beat.kind === 'final') return 'Charla';
+  if (beat.kind === 'workshop') return 'Workshop';
+  if (beat.kind === 'stands') return 'Stands';
+  return 'Charla';
 }
 
-function titleOf(beat: SdScheduleBeat): string {
-  if (beat.kind === 'main') return 'Charla principal';
-  if (beat.kind === 'final') return 'Charla final';
-  if (beat.kind === 'stands') return 'Stands abiertos';
-  return 'Workshop';
+function timeRange(beat: SdScheduleBeat): string {
+  return beat.timeEnd ? `${beat.time} – ${beat.timeEnd}` : beat.time;
+}
+
+/** Agrupa sesiones que arrancan juntas (paralelas en aulas distintas). */
+function groupSchedule(beats: readonly SdScheduleBeat[]) {
+  const groups: { key: string; time: string; items: SdScheduleBeat[] }[] = [];
+  for (const beat of beats) {
+    const key = `${beat.time}|${beat.timeEnd ?? ''}`;
+    const last = groups[groups.length - 1];
+    if (last && last.key === key) {
+      last.items.push(beat);
+    } else {
+      groups.push({ key, time: timeRange(beat), items: [beat] });
+    }
+  }
+  return groups;
 }
 
 export function StartupDayAgenda() {
-  const rootRef = useRef<HTMLElement>(null);
-  const lineRef = useRef<HTMLOListElement>(null);
-  const rowRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const [active, setActive] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const [inView, setInView] = useState(false);
-  const [spine, setSpine] = useState({ top: 0, bottom: 0, fill: 0 });
-  const userLocked = useRef(false);
-
-  const measureSpine = () => {
-    const line = lineRef.current;
-    if (!line) return;
-
-    const dots = rowRefs.current
-      .map((row) => row?.querySelector<HTMLElement>('.sd-agenda__dot-hit') ?? null)
-      .filter((el): el is HTMLElement => Boolean(el));
-
-    if (dots.length === 0) return;
-
-    const lineRect = line.getBoundingClientRect();
-    const centers = dots.map((dot) => {
-      const r = dot.getBoundingClientRect();
-      return r.top - lineRect.top + r.height / 2;
-    });
-
-    const first = centers[0] ?? 0;
-    const last = centers[centers.length - 1] ?? first;
-    const current = centers[active] ?? first;
-
-    setSpine({
-      top: first,
-      bottom: lineRect.height - last,
-      fill: Math.max(0, current - first),
-    });
-  };
-
-  useEffect(() => {
-    const el = rootRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => setInView(entry.isIntersecting),
-      { threshold: 0.3 },
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (!inView || paused) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    const id = window.setInterval(() => {
-      if (userLocked.current) return;
-      setActive((i) => (i + 1) % SD_SCHEDULE.length);
-    }, 2200);
-    return () => window.clearInterval(id);
-  }, [inView, paused]);
-
-  useEffect(() => {
-    if (!paused || !userLocked.current) return;
-    const id = window.setTimeout(() => {
-      userLocked.current = false;
-      setPaused(false);
-    }, 7000);
-    return () => window.clearTimeout(id);
-  }, [paused, active]);
-
-  useLayoutEffect(() => {
-    measureSpine();
-  }, [active]);
-
-  useEffect(() => {
-    const onResize = () => measureSpine();
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, [active]);
+  const groups = groupSchedule(SD_SCHEDULE);
 
   return (
-    <section id="agenda" className="sd-band sd-band--ink" ref={rootRef}>
+    <section id="agenda" className="sd-band sd-band--ink">
       <SdReveal className="sd-agenda__head">
         <p className="sd-kicker">Agenda</p>
+        <h2 className="sd-h2">El día, bloque a bloque</h2>
         <p className="sd-agenda__when">
-          <span>9 de septiembre</span>
+          <span>11 de septiembre</span>
           <span aria-hidden className="sd-agenda__dot" />
           <span>{SD_EVENT.timeLabel}</span>
         </p>
+        <p className="sd-agenda__disclaimer">Agenda sujeta a cambios</p>
       </SdReveal>
 
       <SdReveal className="sd-agenda">
@@ -116,62 +56,23 @@ export function StartupDayAgenda() {
           </span>
         </p>
 
-        <ol
-          ref={lineRef}
-          className="sd-agenda__line"
-          onMouseLeave={() => {
-            if (!userLocked.current) setPaused(false);
-          }}
-        >
-          <div
-            className="sd-agenda__spine"
-            aria-hidden
-            style={{ top: spine.top, bottom: spine.bottom }}
-          >
-            <span className="sd-agenda__spine-base" />
-            <span className="sd-agenda__spine-fill" style={{ height: spine.fill }} />
-          </div>
-
-          {SD_SCHEDULE.map((beat, i) => {
-            const speaker = speakerOf(beat);
-            const selected = i === active;
-            return (
-              <li key={`${beat.time}-${beat.label}`}>
-                <button
-                  type="button"
-                  ref={(el) => {
-                    rowRefs.current[i] = el;
-                  }}
-                  className={`sd-agenda__row sd-agenda__row--${beat.kind}${selected ? ' is-active' : ''}`}
-                  aria-current={selected ? 'true' : undefined}
-                  onMouseEnter={() => {
-                    setPaused(true);
-                    setActive(i);
-                  }}
-                  onFocus={() => {
-                    setPaused(true);
-                    setActive(i);
-                  }}
-                  onClick={() => {
-                    userLocked.current = true;
-                    setActive(i);
-                    setPaused(true);
-                  }}
-                >
-                  <time className="sd-agenda__time" dateTime={`2026-09-09T${beat.time}:00`}>
-                    {beat.time}
-                  </time>
-                  <span className="sd-agenda__dot-hit" aria-hidden />
-                  <span className="sd-agenda__title">{titleOf(beat)}</span>
-                  {speaker ? (
-                    <span className="sd-agenda__speaker">{speaker}</span>
-                  ) : (
-                    <span className="sd-agenda__speaker sd-agenda__speaker--empty" aria-hidden />
-                  )}
-                </button>
-              </li>
-            );
-          })}
+        <ol className="sd-agenda__slots">
+          {groups.map((group) => (
+            <li key={group.key} className="sd-agenda__slot">
+              <time className="sd-agenda__slot-time">{group.time}</time>
+              <ul className="sd-agenda__slot-items">
+                {group.items.map((beat) => (
+                  <li key={`${beat.label}-${beat.room ?? ''}`} className="sd-agenda__item">
+                    <span className="sd-agenda__item-name">{beat.label}</span>
+                    <span className="sd-agenda__item-meta">
+                      {kindLabel(beat)}
+                      {beat.room ? ` · Aula ${beat.room}` : ''}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          ))}
         </ol>
       </SdReveal>
     </section>

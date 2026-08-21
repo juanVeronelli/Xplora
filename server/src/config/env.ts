@@ -80,6 +80,10 @@ export interface AppConfig {
      */
     accessToken: string;
   } | null;
+  /** Origen público del front (links de confirmación de cuenta). */
+  readonly publicSiteUrl: string;
+  /** Secreto HS256 para JWT de miembros (cuenta / bolsa). */
+  readonly memberJwtSecret: string | null;
   readonly paths: {
     /** Carpeta `dist` del front (Vite) */
     webDist: string;
@@ -132,6 +136,14 @@ export function getAppConfig(): AppConfig {
   const metaVersion = firstNonEmpty('META_GRAPH_VERSION') || 'v20.0';
   const meta = igUserId && metaAccessToken ? { instagramUserId: igUserId, accessToken: metaAccessToken, graphApiVersion: metaVersion } : null;
 
+  const publicSiteUrl =
+    firstNonEmpty('PUBLIC_SITE_URL', 'SITE_URL', 'VITE_SITE_URL') ||
+    (nodeEnv === 'production' ? 'https://xploraucema.com' : 'http://localhost:5173');
+
+  const memberJwtSecret =
+    firstNonEmpty('MEMBER_JWT_SECRET', 'JWT_SECRET') ||
+    (nodeEnv === 'production' ? null : 'dev-member-jwt-secret-change-me');
+
   return {
     nodeEnv: nodeEnv === 'production' || nodeEnv === 'test' ? nodeEnv : 'development',
     port: Number.isFinite(port) && port > 0 ? port : 8787,
@@ -141,6 +153,8 @@ export function getAppConfig(): AppConfig {
     cloudinary,
     resend,
     meta,
+    publicSiteUrl,
+    memberJwtSecret,
     paths: { webDist: resolveWebDist() },
   };
 }

@@ -54,6 +54,7 @@ export function SdShell({
 
   const sdHref = startupDayUrl();
   const xpHref = mainSiteUrl();
+  const joinHref = `${xpHref.replace(/\/$/, '')}/cuenta`;
 
   useEffect(() => {
     document.documentElement.classList.add('sd-mode');
@@ -130,25 +131,32 @@ export function SdShell({
               </a>
             </nav>
 
-            {cta ? (
-              cta.href ? (
-                <a
-                  className="sd-top__cta"
-                  href={cta.href}
-                  {...(cta.href.startsWith('http')
-                    ? { target: '_blank', rel: 'noopener noreferrer' }
-                    : {})}
-                >
-                  {cta.label}
-                </a>
-              ) : (
-                <button type="button" className="sd-top__cta" onClick={cta.onClick}>
-                  {cta.label}
-                </button>
-              )
-            ) : (
-              <span className="sd-top__cta-spacer" aria-hidden />
-            )}
+            <div className="sd-top__actions">
+              <a className="sd-top__cta" href={joinHref}>
+                Iniciar sesión
+              </a>
+              {cta ? (
+                cta.href ? (
+                  <a
+                    className="sd-top__cta sd-top__cta--secondary"
+                    href={cta.href}
+                    {...(cta.href.startsWith('http')
+                      ? { target: '_blank', rel: 'noopener noreferrer' }
+                      : {})}
+                  >
+                    {cta.label}
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    className="sd-top__cta sd-top__cta--secondary"
+                    onClick={cta.onClick}
+                  >
+                    {cta.label}
+                  </button>
+                )
+              ) : null}
+            </div>
           </header>
         </div>
 
@@ -176,10 +184,10 @@ export function SdShell({
                   <h3>Startup Day</h3>
                   <a href="#para-quien">Para quién</a>
                   <a href="#agenda">Agenda</a>
-                  <a href="#sponsors">Sponsors</a>
                   <a href="#confirmadas">Confirmadas</a>
+                  <a href="#sponsors">Sponsors</a>
                   <a href="#que-pasa">Qué pasa</a>
-                  <a href="#reservar">Lista de asistencia</a>
+                  <a href="#reservar">Inscripción</a>
                 </div>
               ) : (
                 <div className="sd-footer__col">
@@ -187,6 +195,8 @@ export function SdShell({
                   <a href="/#que-es">El club</a>
                   <a href="/#empresas">Empresas</a>
                   <a href="/sponsors">Sponsors</a>
+                  <a href="/cuenta">Mi cuenta</a>
+                  <a href="/empleo">Bolsa de empleo</a>
                   <a href="/#newsletter">Newsletter</a>
                   <a href={sdHref}>Startup Day</a>
                 </div>

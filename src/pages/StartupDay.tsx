@@ -1,7 +1,7 @@
 /**
  * Landing exclusiva startupday.xploraucema.com — funnel Startup Day.
  */
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSiteMedia } from '../context/SiteMediaContext';
 import { DEFAULT_LOGO_URL } from '../lib/defaultsMedia';
 import { MAIN_SITE_URL, STARTUP_DAY_CANONICAL } from '../lib/startupDayHost';
@@ -10,6 +10,7 @@ import {
   SD_DAY_STORY,
   SD_EDITION_SPONSORS,
   SD_EVENT,
+  SD_LUMA_URL,
   SD_STARTUPS,
 } from '../data/startupDay';
 import { SdReveal } from '../components/startup-day/SdReveal';
@@ -20,11 +21,9 @@ import { StartupDayWaitlistForm } from '../components/startup-day/StartupDayWait
 import { StartupDaySponsorCta } from '../components/startup-day/StartupDaySponsorForm';
 import { StartupDayCursor } from '../components/startup-day/StartupDayCursor';
 import { StartupDayHeroFx } from '../components/startup-day/StartupDayHeroFx';
+import { StartupDayWho } from '../components/startup-day/StartupDayWho';
+import { StartupDayQuest } from '../components/startup-day/StartupDayQuest';
 import '../styles/startupDay.css';
-
-const StartupDayFloor3D = lazy(() =>
-  import('../components/startup-day/StartupDayFloor3D').then((m) => ({ default: m.StartupDayFloor3D })),
-);
 
 function useComingSoonGate() {
   const [gated, setGated] = useState(SD_COMING_SOON);
@@ -67,8 +66,8 @@ export default function StartupDay() {
     const prevDesc = metaDesc?.content ?? '';
     if (metaDesc) {
       metaDesc.content = comingSoon
-        ? 'Startup Day by Xplora UCEMA. Lo estamos construyendo — pronto disponible. 9 de septiembre 2026. Entrada 100% gratuita.'
-        : 'Startup Day by Xplora UCEMA. 9 de septiembre 2026, Av. Alem 882. Entrada 100% gratuita. Startups, workshops, pitch e inversores.';
+        ? 'Startup Day by Xplora UCEMA. Lo estamos construyendo — pronto disponible. 11 de septiembre 2026. Entrada 100% gratuita.'
+        : 'Startup Day by Xplora UCEMA. 11 de septiembre 2026, 15 a 20 hs, Av. Alem 882. Entrada 100% gratuita. Inscripción abierta.';
     }
 
     const t = comingSoon ? undefined : window.setTimeout(() => setLoaderDone(true), 1300);
@@ -84,12 +83,6 @@ export default function StartupDay() {
     };
   }, [comingSoon]);
 
-  const scrollToReserve = () => {
-    window.requestAnimationFrame(() => {
-      document.getElementById('reservar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  };
-
   if (comingSoon) {
     return (
       <div className="sd-root is-loaded">
@@ -104,15 +97,19 @@ export default function StartupDay() {
       active="startupday"
       showLoader
       loaderDone={loaderDone}
-      cta={{ label: 'Sumarme a la lista', onClick: scrollToReserve }}
+      cta={{ label: 'Inscribirme', href: SD_LUMA_URL }}
     >
-      <StartupDayContent onReserve={scrollToReserve} />
+      <StartupDayContent />
     </SdShell>
   );
 }
 
-function StartupDayContent({ onReserve }: { onReserve: () => void }) {
-  const marquee = [...SD_STARTUPS, ...SD_STARTUPS];
+function StartupDayContent() {
+  const rows = [
+    SD_STARTUPS.filter((_, i) => i % 3 === 0),
+    SD_STARTUPS.filter((_, i) => i % 3 === 1),
+    SD_STARTUPS.filter((_, i) => i % 3 === 2),
+  ].map((row) => (row.length ? row : SD_STARTUPS.slice(0, 8)));
 
   return (
     <>
@@ -135,7 +132,7 @@ function StartupDayContent({ onReserve }: { onReserve: () => void }) {
           <div className="sd-hero__facts">
             <div>
               <span className="sd-hero__fact-k">Fecha</span>
-              <strong>09.09.26</strong>
+              <strong>11.09.26</strong>
             </div>
             <div>
               <span className="sd-hero__fact-k">Horario</span>
@@ -152,12 +149,17 @@ function StartupDayContent({ onReserve }: { onReserve: () => void }) {
           </div>
 
           <div className="sd-hero__actions">
-            <button type="button" className="sd-btn sd-btn--primary is-disabled" disabled>
-              Inscripción próxima a abrir
-            </button>
-            <button type="button" className="sd-btn sd-btn--ghost" onClick={onReserve}>
-              Aumentar mis chances
-            </button>
+            <a
+              className="sd-btn sd-btn--primary"
+              href={SD_LUMA_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Inscribirme
+            </a>
+            <a className="sd-btn sd-btn--ghost" href="#agenda">
+              Ver agenda
+            </a>
           </div>
         </div>
 
@@ -167,61 +169,9 @@ function StartupDayContent({ onReserve }: { onReserve: () => void }) {
         </a>
       </section>
 
-      <section id="para-quien" className="sd-band sd-band--cream">
-        <SdReveal className="sd-who__head">
-          <p className="sd-kicker">Para quién es</p>
-          <h2 className="sd-h2 sd-h2--wide">Si estás construyendo — o querés empezar</h2>
-          <p className="sd-lead">
-            Para estudiantes, founders y startups. Un espacio para mostrar producto, hacer preguntas
-            y conectar con inversores y pares del ecosistema.
-          </p>
-        </SdReveal>
-
-        <div className="sd-who">
-          {[
-            {
-              n: '01',
-              title: 'Estudiantes',
-              text: 'Con una idea, un equipo en formación o interés real en el ecosistema emprendedor.',
-            },
-            {
-              n: '02',
-              title: 'Founders',
-              text: 'Ya estás en marcha. Venís a contrastar aprendizajes y sumar contactos relevantes.',
-            },
-            {
-              n: '03',
-              title: 'Startups',
-              text: 'Producto en escena. Stands, pitch e inversores en un mismo día.',
-            },
-          ].map((item, i) => (
-            <SdReveal key={item.n} delay={(i % 3) as 0 | 1 | 2} className="sd-who__item">
-              <span className="sd-who__n" aria-hidden>
-                {item.n}
-              </span>
-              <div className="sd-who__body">
-                <h3 className="sd-who__title">{item.title}</h3>
-                <p className="sd-who__text">{item.text}</p>
-              </div>
-            </SdReveal>
-          ))}
-        </div>
-
-        <SdReveal delay={1} className="sd-who__formats">
-          <span>Stands</span>
-          <span>Workshops</span>
-          <span>Pitch</span>
-          <span>Inversores</span>
-          <span>Aceleradoras</span>
-          <span>UCEMA</span>
-        </SdReveal>
-      </section>
-
       <StartupDayAgenda />
 
-      <Suspense fallback={null}>
-        <StartupDayFloor3D />
-      </Suspense>
+      <StartupDayWho />
 
       <section id="confirmadas" className="sd-band sd-band--ink">
         <SdReveal>
@@ -229,27 +179,64 @@ function StartupDayContent({ onReserve }: { onReserve: () => void }) {
           <h2 className="sd-h2">Startups en el piso</h2>
         </SdReveal>
 
-        <div className="sd-marquee" aria-label="Startups confirmadas">
-          <div className="sd-marquee__track">
-            <div className="sd-marquee__group">
-              {marquee.map((co, i) => (
-                <a
-                  key={`${co.id}-${i}`}
-                  className="sd-logo-tile"
-                  href={co.website || co.linkedin || co.instagram || '#'}
-                  target={co.website || co.linkedin || co.instagram ? '_blank' : undefined}
-                  rel="noopener noreferrer"
-                  onClick={(e) => {
-                    if (!co.website && !co.linkedin && !co.instagram) e.preventDefault();
-                  }}
-                  title={co.name}
-                >
-                  <img src={co.logoUrl} alt={co.name} loading="lazy" />
-                </a>
-              ))}
-            </div>
-          </div>
+        <div className="sd-marquee-stack" aria-label="Startups confirmadas">
+          {rows.map((row, rowIndex) => {
+            const dir = rowIndex % 2 === 0 ? 'left' : 'right';
+            const duration = `${42 + rowIndex * 10}s`;
+            return (
+              <div
+                key={rowIndex}
+                className={`sd-marquee-row sd-marquee-row--${dir}`}
+                style={{ ['--sd-marquee-duration' as string]: duration }}
+              >
+                <div className="sd-marquee-row__track">
+                  {[0, 1].map((dup) => (
+                    <div
+                      key={dup}
+                      className="sd-marquee-row__group"
+                      aria-hidden={dup === 1 || undefined}
+                    >
+                      {row.map((co) => {
+                        const href = co.website || co.linkedin || co.instagram;
+                        const inner = co.logoUrl ? (
+                          <img src={co.logoUrl} alt={dup === 0 ? co.name : ''} loading="lazy" />
+                        ) : (
+                          <span className="sd-logo-tile__name">{co.name}</span>
+                        );
+                        if (href) {
+                          return (
+                            <a
+                              key={`${dup}-${co.id}`}
+                              className="sd-logo-tile"
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title={co.name}
+                              tabIndex={dup === 1 ? -1 : undefined}
+                            >
+                              {inner}
+                            </a>
+                          );
+                        }
+                        return (
+                          <div
+                            key={`${dup}-${co.id}`}
+                            className="sd-logo-tile"
+                            title={co.name}
+                          >
+                            {inner}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
+
+        <StartupDayQuest />
       </section>
 
       <section id="que-pasa" className="sd-band sd-band--purple-wash sd-pulse">
@@ -284,7 +271,7 @@ function StartupDayContent({ onReserve }: { onReserve: () => void }) {
               ) : (
                 <span className="sd-spn__brand">{sp.name}</span>
               );
-              const className = `sd-spn__logo${sp.id === 'mercadolibre' ? ' sd-spn__logo--icon' : ''}`;
+              const className = 'sd-spn__logo';
               return href ? (
                 <a
                   key={sp.id}
@@ -312,21 +299,26 @@ function StartupDayContent({ onReserve }: { onReserve: () => void }) {
       <section id="reservar" className="sd-band sd-band--ink">
         <div className="sd-reserve">
           <SdReveal>
-            <p className="sd-kicker">Cupos limitados</p>
-            <h2 className="sd-h2">Aumentá tus chances de entrar</h2>
+            <p className="sd-kicker">Inscripción abierta</p>
+            <h2 className="sd-h2">Reservá tu lugar</h2>
             <p className="sd-lead">
-              El evento es 100% gratuito. La inscripción aún no está abierta: dejar tu email no
-              garantiza el lugar, pero prioriza tu lugar en la lista cuando abramos. Solo
-              necesitamos el correo; vas a recibir confirmación por mail.
+              El evento es 100% gratuito. Inscribite en Luma y asegurate tu entrada al Startup Day.
             </p>
             <div style={{ marginTop: 20 }}>
-              <button type="button" className="sd-btn sd-btn--primary is-disabled" disabled>
-                Inscripción próxima a abrir
-              </button>
-              <p className="sd-cta-disabled-note">Abrimos inscripción formal en los próximos días.</p>
+              <a
+                className="sd-btn sd-btn--primary"
+                href={SD_LUMA_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Inscribirme en Luma
+              </a>
             </div>
           </SdReveal>
           <SdReveal delay={1}>
+            <p className="sd-lead" style={{ marginBottom: 16 }}>
+              ¿Querés que te avisemos novedades? Dejá tu email.
+            </p>
             <StartupDayWaitlistForm />
           </SdReveal>
         </div>

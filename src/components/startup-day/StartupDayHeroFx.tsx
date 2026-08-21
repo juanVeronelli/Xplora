@@ -13,7 +13,7 @@ type Particle = {
  * Evita el look genérico de “orbs + grid”.
  */
 export function StartupDayHeroFx({
-  band = 'STARTUP DAY · PRIMERA EDICIÓN · XPLORA · 09.09.26 · UCEMA · ',
+  band = 'STARTUP DAY · PRIMERA EDICIÓN · XPLORA · 11.09.26 · UCEMA · ',
 }: {
   band?: string;
 } = {}) {

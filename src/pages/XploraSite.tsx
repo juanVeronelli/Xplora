@@ -104,7 +104,7 @@ export default function XploraSite() {
       active="xplora"
       showLoader
       loaderDone={loaderDone}
-      cta={{ label: 'Sumarme', href: SD_XPLORA_SOCIALS.whatsapp }}
+      cta={undefined}
       brandBlurb="Organización estudiantil de la Universidad del CEMA. Por y para emprendedores."
     >
       <div className="xp-page">
