@@ -8,6 +8,11 @@ const MAX_CV_BYTES = 8 * 1024 * 1024;
 export const uploadSingleImage = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_BYTES },
+  fileFilter: (_req, file, cb) => {
+    const ok = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+    if (ok.has(file.mimetype)) return cb(null, true);
+    cb(new Error('Formato de imagen inválido. Usá JPG, PNG, WebP o GIF.'));
+  },
 }).single('file');
 
 /** CSV Luma (campo multipart `csv`). */

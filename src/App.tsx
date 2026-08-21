@@ -69,6 +69,9 @@ export default function App() {
       page === 'sponsors' ||
       page === 'cuenta' ||
       page === 'cuenta-confirm' ||
+      page === 'cuenta-perfil' ||
+      page === 'cuenta-eventos' ||
+      page === 'cuenta-propuestas' ||
       page === 'empleo'
     ) {
       return;
@@ -79,6 +82,9 @@ export default function App() {
       path !== '/sponsors' &&
       path !== '/cuenta' &&
       path !== '/cuenta/confirmar' &&
+      path !== '/cuenta/perfil' &&
+      path !== '/cuenta/eventos' &&
+      path !== '/cuenta/propuestas' &&
       path !== '/empleo' &&
       path !== '/bolsa' &&
       path !== getPanelPath()
@@ -155,10 +161,23 @@ export default function App() {
     );
   }
 
-  if (page === 'cuenta') {
+  if (
+    page === 'cuenta' ||
+    page === 'cuenta-perfil' ||
+    page === 'cuenta-eventos' ||
+    page === 'cuenta-propuestas'
+  ) {
+    const section =
+      page === 'cuenta-perfil'
+        ? 'perfil'
+        : page === 'cuenta-eventos'
+          ? 'eventos'
+          : page === 'cuenta-propuestas'
+            ? 'propuestas'
+            : 'overview';
     return (
       <Suspense fallback={null}>
-        <MemberAccount onGoEmpleo={() => goTo('empleo')} />
+        <MemberAccount section={section} />
       </Suspense>
     );
   }

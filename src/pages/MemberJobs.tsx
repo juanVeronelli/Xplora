@@ -2,8 +2,11 @@
  * Bolsa de empleo — solo con cuenta de miembro.
  */
 import { useEffect, useState } from 'react';
+import { MemberEmptyState } from '../components/member/MemberEmptyState';
+import { MemberShell } from '../components/member/MemberShell';
 import { useMemberAuth } from '../context/MemberAuthContext';
 import { memberFetch } from '../lib/memberAuth';
+import { normalizePath } from '../lib/routes';
 import '../styles/memberAccount.css';
 
 type Job = {
@@ -11,9 +14,8 @@ type Job = {
   title: string;
   company: string;
   location: string;
-  emoji: string;
   type: string;
-  modality: string;
+  area: string;
   description: string;
   application_link: string;
 };
@@ -27,12 +29,13 @@ export default function MemberJobs() {
   useEffect(() => {
     if (!account) return;
     setLoadingJobs(true);
+    setErr('');
     void (async () => {
       const res = await memberFetch('/api/member/jobs');
       setLoadingJobs(false);
       if (!res.ok) {
-        const j = (await res.json().catch(() => ({}))) as { error?: string };
-        setErr(j.error || 'No se pudo cargar la bolsa');
+        setErr('No se pudieron cargar las ofertas. Probá de nuevo en un momento.');
+        setJobs([]);
         return;
       }
       const data = (await res.json()) as { jobs: Job[] };
@@ -40,86 +43,92 @@ export default function MemberJobs() {
     })();
   }, [account]);
 
+  useEffect(() => {
+    if (loading || account) return;
+    if (normalizePath(window.location.pathname) === '/cuenta') return;
+    window.history.replaceState({}, '', '/cuenta');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  }, [loading, account]);
+
   if (loading) {
     return (
-      <div className="ma-page">
-        <p className="ma-muted">Cargando…</p>
+      <div className="ma-app">
+        <p className="ma-empty">Cargando…</p>
       </div>
     );
   }
 
   if (!account) {
     return (
-      <div className="ma-page">
-        <header className="ma-top">
-          <a className="ma-brand" href="/">
-            Xplora
-          </a>
-        </header>
-        <main className="ma-main">
-          <section className="ma-card">
-            <h1 className="ma-h1">Bolsa de empleo</h1>
-            <p className="ma-lead">
-              Necesitás una cuenta Xplora para ver las ofertas. Registrate o iniciá sesión con tu
-              email.
-            </p>
-            <a className="ma-btn" href="/cuenta">
-              Crear cuenta / Entrar
-            </a>
-          </section>
-        </main>
+      <div className="ma-app">
+        <div className="ma-panel ma-panel--narrow">
+          <MemberEmptyState
+            title="Iniciá sesión"
+            copy="La bolsa de empleo es solo para miembros de Xplora."
+            action={
+              <a className="ma-btn ma-btn--ghost" href="/cuenta">
+                Ir a mi cuenta
+              </a>
+            }
+          />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="ma-page">
-      <header className="ma-top">
-        <a className="ma-brand" href="/">
-          Xplora
-        </a>
-        <nav className="ma-nav">
-          <a href="/cuenta">Mi cuenta</a>
-          <a href="/empleo" aria-current="page">
-            Bolsa
-          </a>
-        </nav>
-      </header>
-      <main className="ma-main">
-        <h1 className="ma-h1">Bolsa de empleo</h1>
-        <p className="ma-lead">Ofertas para la comunidad Xplora.</p>
-        {loadingJobs ? <p className="ma-muted">Cargando ofertas…</p> : null}
-        {err ? <p className="ma-err">{err}</p> : null}
-        {!loadingJobs && jobs.length === 0 ? (
-          <p className="ma-muted">Todavía no hay ofertas publicadas.</p>
+    <MemberShell active="empleo">
+      <div className="ma-panel">
+        <header className="ma-panel__head">
+          <p className="ma-kicker">Comunidad</p>
+          <h1 className="ma-title">Bolsa de empleo</h1>
+          <p className="ma-sub">Ofertas para miembros de Xplora.</p>
+        </header>
+
+        {loadingJobs ? <p className="ma-empty">Cargando ofertas…</p> : null}
+
+        {!loadingJobs && err ? (
+          <MemberEmptyState title="No se pudo cargar" copy={err} />
         ) : null}
-        <ul className="ma-jobs">
-          {jobs.map((job) => (
-            <li key={job.id} className="ma-job">
-              <div className="ma-job__emoji" aria-hidden>
-                {job.emoji || '💼'}
-              </div>
-              <div>
-                <h2 className="ma-h2">{job.title}</h2>
-                <p className="ma-muted">
-                  {[job.company, job.location, job.type, job.modality].filter(Boolean).join(' · ')}
-                </p>
-                {job.description ? <p className="ma-job__desc">{job.description}</p> : null}
-                {job.application_link ? (
-                  <a
-                    className="ma-btn ma-btn--ghost"
-                    href={job.application_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Postularme
-                  </a>
-                ) : null}
-              </div>
-            </li>
-          ))}
-        </ul>
-      </main>
-    </div>
+
+        {!loadingJobs && !err && jobs.length === 0 ? (
+          <MemberEmptyState
+            title="Todavía no hay ofertas"
+            copy="Cuando publiquemos roles de la comunidad, van a aparecer acá. Mientras tanto, completá tu perfil."
+            action={
+              <a className="ma-btn ma-btn--ghost" href="/cuenta/perfil">
+                Completar perfil
+              </a>
+            }
+          />
+        ) : null}
+
+        {!loadingJobs && !err && jobs.length > 0 ? (
+          <ul className="ma-jobs">
+            {jobs.map((job) => (
+              <li key={job.id} className="ma-job">
+                <div>
+                  <h2 className="ma-job__title">{job.title}</h2>
+                  <p className="ma-job__meta">
+                    {[job.company, job.location, job.type, job.area].filter(Boolean).join(' · ')}
+                  </p>
+                  {job.description ? <p className="ma-job__desc">{job.description}</p> : null}
+                  {job.application_link ? (
+                    <a
+                      className="ma-btn ma-btn--ghost"
+                      href={job.application_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Postularme
+                    </a>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+    </MemberShell>
   );
 }

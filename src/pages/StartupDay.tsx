@@ -1,7 +1,7 @@
 /**
  * Landing exclusiva startupday.xploraucema.com — funnel Startup Day.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSiteMedia } from '../context/SiteMediaContext';
 import { DEFAULT_LOGO_URL } from '../lib/defaultsMedia';
 import { MAIN_SITE_URL, STARTUP_DAY_CANONICAL } from '../lib/startupDayHost';
@@ -22,7 +22,6 @@ import { StartupDaySponsorCta } from '../components/startup-day/StartupDaySponso
 import { StartupDayCursor } from '../components/startup-day/StartupDayCursor';
 import { StartupDayHeroFx } from '../components/startup-day/StartupDayHeroFx';
 import { StartupDayWho } from '../components/startup-day/StartupDayWho';
-import { StartupDayQuest } from '../components/startup-day/StartupDayQuest';
 import '../styles/startupDay.css';
 
 function useComingSoonGate() {
@@ -70,7 +69,7 @@ export default function StartupDay() {
         : 'Startup Day by Xplora UCEMA. 11 de septiembre 2026, 15 a 20 hs, Av. Alem 882. Entrada 100% gratuita. Inscripción abierta.';
     }
 
-    const t = comingSoon ? undefined : window.setTimeout(() => setLoaderDone(true), 1300);
+    const t = comingSoon ? undefined : window.setTimeout(() => setLoaderDone(true), 600);
     if (comingSoon) setLoaderDone(true);
 
     return () => {
@@ -105,6 +104,20 @@ export default function StartupDay() {
 }
 
 function StartupDayContent() {
+  const marqueeRef = useRef<HTMLDivElement>(null);
+  const [marqueeOn, setMarqueeOn] = useState(false);
+
+  useEffect(() => {
+    const el = marqueeRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setMarqueeOn(entry.isIntersecting),
+      { rootMargin: '120px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   const rows = [
     SD_STARTUPS.filter((_, i) => i % 3 === 0),
     SD_STARTUPS.filter((_, i) => i % 3 === 1),
@@ -179,7 +192,11 @@ function StartupDayContent() {
           <h2 className="sd-h2">Startups en el piso</h2>
         </SdReveal>
 
-        <div className="sd-marquee-stack" aria-label="Startups confirmadas">
+        <div
+          ref={marqueeRef}
+          className={`sd-marquee-stack${marqueeOn ? ' is-on' : ''}`}
+          aria-label="Startups confirmadas"
+        >
           {rows.map((row, rowIndex) => {
             const dir = rowIndex % 2 === 0 ? 'left' : 'right';
             const duration = `${42 + rowIndex * 10}s`;
@@ -199,15 +216,27 @@ function StartupDayContent() {
                       {row.map((co) => {
                         const href = co.website || co.linkedin || co.instagram;
                         const inner = co.logoUrl ? (
-                          <img src={co.logoUrl} alt={dup === 0 ? co.name : ''} loading="lazy" />
+                          <img
+                            src={co.logoUrl}
+                            alt={dup === 0 ? co.name : ''}
+                            loading="lazy"
+                            decoding="async"
+                            height={72}
+                          />
                         ) : (
                           <span className="sd-logo-tile__name">{co.name}</span>
                         );
+                        const className = [
+                          'sd-logo-tile',
+                          co.logoTone === 'dark' ? 'sd-logo-tile--invert' : '',
+                        ]
+                          .filter(Boolean)
+                          .join(' ');
                         if (href) {
                           return (
                             <a
                               key={`${dup}-${co.id}`}
-                              className="sd-logo-tile"
+                              className={className}
                               href={href}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -221,7 +250,7 @@ function StartupDayContent() {
                         return (
                           <div
                             key={`${dup}-${co.id}`}
-                            className="sd-logo-tile"
+                            className={className}
                             title={co.name}
                           >
                             {inner}
@@ -235,8 +264,6 @@ function StartupDayContent() {
             );
           })}
         </div>
-
-        <StartupDayQuest />
       </section>
 
       <section id="que-pasa" className="sd-band sd-band--purple-wash sd-pulse">
@@ -267,11 +294,17 @@ function StartupDayContent() {
             {SD_EDITION_SPONSORS.map((sp) => {
               const href = sp.website || sp.linkedin || sp.instagram;
               const img = sp.logoUrl ? (
-                <img src={sp.logoUrl} alt={sp.name} loading="lazy" />
+                <img src={sp.logoUrl} alt={sp.name} loading="lazy" decoding="async" />
               ) : (
                 <span className="sd-spn__brand">{sp.name}</span>
               );
-              const className = 'sd-spn__logo';
+              const className = [
+                'sd-spn__logo',
+                sp.logoIcon ? 'sd-spn__logo--icon' : '',
+                sp.logoTone === 'light' ? 'sd-spn__logo--invert' : '',
+              ]
+                .filter(Boolean)
+                .join(' ');
               return href ? (
                 <a
                   key={sp.id}

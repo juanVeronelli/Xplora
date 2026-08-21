@@ -5,6 +5,8 @@ export type StartupDayCompany = {
   name: string;
   /** Si falta, la pasarela muestra el nombre hasta que suban el logo. */
   logoUrl?: string;
+  /** `light` = blanco (se invierte en banda crema). `dark` = negro (se invierte en tinta). */
+  logoTone?: 'light' | 'dark';
   /** Texto corto para destacadas; opcional en el carrusel. */
   blurb?: string;
   featured?: boolean;
@@ -19,12 +21,16 @@ export type StartupDayPartner = {
   role: string;
   blurb: string;
   logoUrl?: string;
+  logoTone?: 'light' | 'dark';
+  /** Isotipo cuadrado (no wordmark). */
+  logoIcon?: boolean;
   website?: string;
   linkedin?: string;
   instagram?: string;
 };
 
-const LOGO = (file: string) => `/logos/startup-day/${file}?v=11`;
+const LOGO = (file: string) => `/logos/startup-day/${file}?v=12`;
+const PARTNER = (file: string) => `/logos/partners/${file}?v=2`;
 
 export const SD_LUMA_URL = 'https://luma.com/1ubys1uc';
 
@@ -38,7 +44,7 @@ export const SD_EVENT = {
 } as const;
 
 /**
- * Pantalla “en construcción”. Volver a `true` antes de publicar.
+ * Pantalla “en construcción”. Poné `true` para volver al gate.
  * Bypass temporal: `?preview=1` en la URL.
  */
 export const SD_COMING_SOON = false;
@@ -66,33 +72,6 @@ export const SD_DAY_STORY = {
     {
       tag: 'Networking',
       text: 'Conectá con founders, inversores y aceleradoras. Conversaciones directas, en un mismo lugar y horario.',
-    },
-  ],
-} as const;
-
-/** Xplora Quest — juego de QR en stands + sorteo (marketing; escaneo real en fase 2). */
-export const SD_QUEST = {
-  kicker: 'Xplora Quest',
-  title: 'Quest',
-  lead:
-    'En el evento, escaneá el QR de cada stand. Cada check-in te suma una chance al sorteo de Xplora. Un stand, una vez.',
-  note: 'Sin sesión iniciada en Xplora, el escaneo no cuenta.',
-  ctaLabel: 'Iniciar sesión',
-  steps: [
-    {
-      n: '01',
-      tag: 'Cuenta',
-      text: 'Creá tu cuenta o iniciá sesión en Xplora antes o durante el evento.',
-    },
-    {
-      n: '02',
-      tag: 'Escaneá',
-      text: 'En cada stand, abrí el QR con la cámara del celu.',
-    },
-    {
-      n: '03',
-      tag: 'Sorteo',
-      text: 'Cada stand nuevo suma una chance. Más stands, más chances.',
     },
   ],
 } as const;
@@ -259,8 +238,15 @@ export const SD_FLOOR_INERT_NODES = ['C-sala_estar', '_(Loose Entity)'] as const
 /** Escala aproximada del modelo mipiso.glb, en unidades del archivo. */
 export const SD_FLOOR_BOUNDS = { width: 159, height: 13.4, depth: 108 } as const;
 
-function co(id: string, name: string, logo?: string): StartupDayCompany {
-  return logo ? { id, name, logoUrl: LOGO(logo) } : { id, name };
+function co(
+  id: string,
+  name: string,
+  logo?: string,
+  extra?: Pick<StartupDayCompany, 'logoTone'>,
+): StartupDayCompany {
+  if (!logo) return { id, name, ...extra };
+  const logoUrl = logo.startsWith('/') ? logo : LOGO(logo);
+  return { id, name, logoUrl, ...extra };
 }
 
 /** Startups confirmadas — sin logo se muestra el nombre hasta subir asset. */
@@ -273,63 +259,71 @@ export const SD_STARTUPS: StartupDayCompany[] = [
   co('elcerokm', 'El Cero Km', 'elcerokm.webp'),
   co('nomenclator', 'Nomenclator', 'nomenclator.webp'),
   co('talentum', 'Talentum', 'talentum.webp'),
-  co('fardo', 'Fardo'),
-  co('cobrandoapp', 'Cobrandoapp'),
-  co('plaude', 'Plaude'),
-  co('kaizer', 'Kaizer'),
-  co('piggy-wallet', 'Piggy Wallet'),
-  co('bata-edu', 'Bata Edu'),
+  co('fardo', 'Fardo', PARTNER('fardo.webp'), { logoTone: 'dark' }),
+  co('cobrandoapp', 'Cobrandoapp', PARTNER('cobrandoapp.webp')),
+  co('plaude', 'Plaude', PARTNER('plaude-logo.webp')),
+  co('kaizer', 'Kaizer', PARTNER('kaizer.webp')),
+  co('piggy-wallet', 'Piggy Wallet', PARTNER('piggywallet.webp')),
+  co('bata-edu', 'Bata Edu', PARTNER('bataedu_logo.webp')),
   co('compassguard', 'CompassGuard'),
-  co('squads-ventures', 'Squads Ventures'),
-  co('paisanos', 'Paisanos'),
-  co('gasti', 'Gasti'),
-  co('yafu', 'YAFU'),
+  co('squads-ventures', 'Squads Ventures', PARTNER('squadventures.webp')),
+  co('paisanos', 'Paisanos', PARTNER('paisanos.webp')),
+  co('gasti', 'Gasti', PARTNER('gasti-logo.webp')),
+  co('yafu', 'YAFU', PARTNER('yafu-logo-white-web.webp'), { logoTone: 'light' }),
   co('berry', 'Berry'),
-  co('certenza', 'Certenza'),
-  co('tuni', 'Tuni', 'tuni.png'),
-  co('coworkeando', 'Coworkeando'),
-  co('zettios', 'Zettios'),
-  co('cresium', 'Cresium'),
-  co('cooper', 'Cooper'),
+  co('certenza', 'Certenza', PARTNER('certenza-logo-blue.webp')),
+  co('tuni', 'Tuni', 'tuni.webp'),
+  co('coworkeando', 'Coworkeando', PARTNER('coworkeando.webp')),
+  co('zettios', 'Zettios', PARTNER('zettios-logo.webp'), { logoTone: 'dark' }),
+  co('cresium', 'Cresium', PARTNER('cresium_primary.webp')),
+  co('cooper', 'Cooper', PARTNER('cooper-logo.webp'), { logoTone: 'light' }),
   co('resender', 'Resender'),
   co('wip-club', 'Wip club'),
   co('startups-argentina', 'Startups Argentina'),
-  co('comet', 'Comet'),
-  co('fluxis', 'fluxis'),
-  co('di-venuo', 'Di Venuo'),
+  co('comet', 'Comet', PARTNER('comet-logo-dark.webp'), { logoTone: 'dark' }),
+  co('fluxis', 'fluxis', PARTNER('fluxis.webp')),
+  co('di-venuo', 'Di Venuo', PARTNER('divenuo-wordmark-dark-v1.webp')),
   co('uin', 'UIN'),
-  co('prestagro', 'Prestagro'),
+  co('prestagro', 'Prestagro', PARTNER('nb3u8jqh_logo-prestagro.webp'), { logoTone: 'light' }),
 ];
 
 export const SD_EDITION_SPONSORS: StartupDayPartner[] = [
   {
     id: 'coworkeando',
     name: 'Coworkeando',
+    logoUrl: PARTNER('coworkeando.webp'),
+    logoIcon: true,
     role: 'Sponsor',
     blurb: '',
   },
   {
     id: 'yafu',
     name: 'YAFU',
+    logoUrl: PARTNER('yafu-logo-white-web.webp'),
+    logoTone: 'light',
     role: 'Sponsor',
     blurb: '',
   },
   {
     id: 'zettios',
     name: 'Zettios',
+    logoUrl: PARTNER('zettios-logo.webp'),
+    logoTone: 'dark',
     role: 'Sponsor',
     blurb: '',
   },
   {
     id: 'cobrandoapp',
     name: 'cobrando.app',
+    logoUrl: PARTNER('cobrandoapp.webp'),
+    logoIcon: true,
     role: 'Sponsor',
     blurb: '',
   },
   {
     id: 'endeavor',
     name: 'Endeavor',
-    logoUrl: LOGO('endeavor.png'),
+    logoUrl: LOGO('endeavor.webp'),
     role: 'Sponsor',
     blurb: '',
     website: 'https://www.endeavor.org.ar/',
@@ -346,14 +340,14 @@ export const SD_XPLORA_PARTNERS: StartupDayPartner[] = [
   {
     id: 'tuni',
     name: 'TUNI',
-    logoUrl: LOGO('tuni.png'),
+    logoUrl: LOGO('tuni.webp'),
     role: '',
     blurb: '',
   },
   {
     id: 'ucemax',
     name: 'UCEMA X',
-    logoUrl: LOGO('ucemax.png'),
+    logoUrl: LOGO('ucemax.webp'),
     role: '',
     blurb: '',
     website: 'https://ucema.edu.ar/educacion-ejecutiva/programas-ejecutivos',
@@ -361,7 +355,7 @@ export const SD_XPLORA_PARTNERS: StartupDayPartner[] = [
   {
     id: 'humming',
     name: 'HUMMING AIRWAYS',
-    logoUrl: LOGO('humming.png'),
+    logoUrl: LOGO('humming.webp'),
     role: '',
     blurb: '',
     website: 'https://www.hummingairways.com/',

@@ -89,6 +89,23 @@ import {
   createMemberPatchMeHandler,
 } from '../controllers/member-profile.controller.js';
 import { createMemberJobsListHandler } from '../controllers/member-jobs.controller.js';
+import {
+  createMemberProposalCreateHandler,
+  createMemberProposalListHandler,
+} from '../controllers/member-proposals.controller.js';
+import {
+  memberConfirmLimiter,
+  memberGlobalLimiter,
+  memberJsonGuard,
+  memberLoginRequestLimiter,
+  memberLoginVerifyLimiter,
+  memberNoStoreHeaders,
+  memberProposalLimiter,
+  memberReadLimiter,
+  memberRegisterLimiter,
+  memberUploadLimiter,
+  memberWriteLimiter,
+} from '../middleware/member-security.middleware.js';
 
 export interface ApiRoutesDeps {
   config: AppConfig;
@@ -140,33 +157,62 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
   app.get('/api/public/site-media', createPublicSiteMediaHandler(deps.config));
 
   // ── Miembros (cuenta comunidad: registro / código / JWT propio) ─────────
-  const memberLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 40,
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
   const requireMember = createRequireMemberAuthMiddleware(deps.config);
 
-  app.post('/api/member/register', memberLimiter, createMemberRegisterHandler(deps.config));
-  app.post('/api/member/confirm', memberLimiter, createMemberConfirmHandler(deps.config));
-  app.post('/api/member/login/request', memberLimiter, createMemberLoginRequestHandler(deps.config));
-  app.post('/api/member/login/verify', memberLimiter, createMemberLoginVerifyHandler(deps.config));
-  app.get('/api/member/me', requireMember, createMemberMeHandler(deps.config));
-  app.patch('/api/member/me', requireMember, createMemberPatchMeHandler(deps.config));
+  app.use('/api/member', memberGlobalLimiter, memberNoStoreHeaders, memberJsonGuard);
+
+  app.post('/api/member/register', memberRegisterLimiter, createMemberRegisterHandler(deps.config));
+  app.post('/api/member/confirm', memberConfirmLimiter, createMemberConfirmHandler(deps.config));
+  app.post(
+    '/api/member/login/request',
+    memberLoginRequestLimiter,
+    createMemberLoginRequestHandler(deps.config),
+  );
+  app.post(
+    '/api/member/login/verify',
+    memberLoginVerifyLimiter,
+    createMemberLoginVerifyHandler(deps.config),
+  );
+  app.get('/api/member/me', memberReadLimiter, requireMember, createMemberMeHandler(deps.config));
+  app.patch(
+    '/api/member/me',
+    memberWriteLimiter,
+    requireMember,
+    createMemberPatchMeHandler(deps.config),
+  );
   app.post(
     '/api/member/me/avatar',
+    memberUploadLimiter,
     requireMember,
     uploadSingleImage,
     createMemberAvatarUploadHandler(deps.config),
   );
   app.post(
     '/api/member/me/cv',
+    memberUploadLimiter,
     requireMember,
     uploadSingleCv,
     createMemberCvUploadHandler(deps.config),
   );
-  app.get('/api/member/jobs', requireMember, createMemberJobsListHandler(deps.config));
+  app.get(
+    '/api/member/jobs',
+    memberReadLimiter,
+    requireMember,
+    createMemberJobsListHandler(deps.config),
+  );
+  app.get(
+    '/api/member/proposals',
+    memberReadLimiter,
+    requireMember,
+    createMemberProposalListHandler(deps.config),
+  );
+  app.post(
+    '/api/member/proposals',
+    memberWriteLimiter,
+    memberProposalLimiter,
+    requireMember,
+    createMemberProposalCreateHandler(deps.config),
+  );
 
   // ── Auth CRM (login sin Bearer; logout valida sesión) ───────────────────
   app.post('/api/auth/login', loginLimiter, createLoginHandler(deps.config));

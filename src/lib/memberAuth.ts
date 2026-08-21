@@ -13,7 +13,14 @@ export type MemberProfile = {
   phone: string;
   avatarUrl: string;
   studies: { institution: string; degree: string; year?: string }[];
-  jobs: { company: string; role: string; from?: string; to?: string; current?: boolean }[];
+  jobs: {
+    company: string;
+    role: string;
+    from?: string;
+    to?: string;
+    current?: boolean;
+    description?: string;
+  }[];
   languages: { name: string; level: string }[];
   skills: string[];
   cvUrl: string;
@@ -23,8 +30,16 @@ export type MemberProfile = {
 
 export type MemberEventItem = {
   id: string;
+  eventoId?: string;
   title: string;
   dateDisplay: string;
+  day?: string;
+  month?: string;
+  location?: string;
+  modality?: string;
+  tagLabel?: string;
+  summary?: string;
+  thumbnailUrl?: string;
   registeredAt: string | null;
   asistio: boolean;
 };

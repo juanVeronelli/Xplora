@@ -6,7 +6,7 @@ import type { CarouselSlide } from '../../types';
 import { useSiteMedia } from '../../context/SiteMediaContext';
 import { DEFAULT_CLUB_MODES } from '../../lib/defaultsMedia';
 import { uploadImageToCloudinary, validateImageFile } from '../../lib/cloudinary';
-import { resolveClubModes, saveSiteMedia } from '../../lib/siteMedia';
+import { resolveClubModes, parseLumaEmbedInput, saveSiteMedia } from '../../lib/siteMedia';
 import { useToast } from '../../context/FeedbackContext';
 import { crm } from './crm/crmTheme';
 
@@ -16,6 +16,7 @@ export default function SiteImagesPanel() {
     heroUrl,
     logoUrl,
     highlightVideoUrl,
+    memberLumaEmbedSrc,
     carousel,
     companies,
     sponsors,
@@ -24,6 +25,7 @@ export default function SiteImagesPanel() {
   } = useSiteMedia();
 
   const [hero, setHero] = useState(heroUrl);
+  const [lumaEmbed, setLumaEmbed] = useState(memberLumaEmbedSrc);
   const [modes, setModes] = useState<CarouselSlide[]>(() =>
     resolveClubModes(ctxModes.length ? ctxModes : carousel),
   );
@@ -35,8 +37,9 @@ export default function SiteImagesPanel() {
 
   useEffect(() => {
     setHero(heroUrl);
+    setLumaEmbed(memberLumaEmbedSrc);
     setModes(resolveClubModes(ctxModes.length ? ctxModes : carousel));
-  }, [heroUrl, carousel, ctxModes]);
+  }, [heroUrl, memberLumaEmbedSrc, carousel, ctxModes]);
 
   const uploadHero = useCallback(
     async (file: File) => {
@@ -90,6 +93,7 @@ export default function SiteImagesPanel() {
       heroUrl: hero,
       logoUrl,
       highlightVideoUrl,
+      memberLumaEmbedSrc: parseLumaEmbedInput(lumaEmbed),
       carousel: clubModes,
       clubModes,
       companies,
@@ -184,8 +188,39 @@ export default function SiteImagesPanel() {
         </article>
       </div>
 
+      <article style={{ ...card, marginTop: 16 }}>
+        <p style={kicker}>Cuenta miembros</p>
+        <h2 style={cardTitle}>Anotate al próximo evento</h2>
+        <p style={cardDesc}>
+          Pegá la URL del embed de Luma o el HTML completo del iframe. Se muestra en el overview de
+          /cuenta, debajo de los atajos. Dejá vacío para ocultar el bloque.
+        </p>
+        <label style={fieldLabel}>
+          Embed Luma
+          <textarea
+            value={lumaEmbed}
+            onChange={(e) => setLumaEmbed(e.target.value)}
+            rows={4}
+            placeholder="https://luma.com/embed/event/…/simple"
+            style={textarea}
+            spellCheck={false}
+          />
+        </label>
+        {parseLumaEmbedInput(lumaEmbed) ? (
+          <p style={previewUrl}>
+            Se publicará: <code>{parseLumaEmbedInput(lumaEmbed)}</code>
+          </p>
+        ) : lumaEmbed.trim() ? (
+          <p style={warnHint}>No reconocimos un embed válido de luma.com / lu.ma.</p>
+        ) : (
+          <p style={previewUrl}>Vacío = el bloque no se muestra en la cuenta.</p>
+        )}
+      </article>
+
       <div style={bar}>
-        <p style={barHint}>Solo se publican hero y las 4 fotos del club. El resto de la web se gestiona en Data.</p>
+        <p style={barHint}>
+          Publicá hero, fotos del club y el embed Luma de la cuenta. El resto se gestiona en Data.
+        </p>
         <button
           type="button"
           className="xplora-admin-primary"
@@ -314,4 +349,44 @@ const barHint: CSSProperties = {
   fontSize: 13,
   color: 'var(--ink-muted)',
   lineHeight: 1.4,
+};
+
+const fieldLabel: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 8,
+  fontSize: 12,
+  fontWeight: 700,
+  letterSpacing: '0.04em',
+  textTransform: 'uppercase',
+  color: 'var(--ink-muted)',
+};
+
+const textarea: CSSProperties = {
+  width: '100%',
+  boxSizing: 'border-box',
+  padding: '12px 14px',
+  borderRadius: 10,
+  border: '1px solid rgba(26,16,40,0.14)',
+  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+  fontSize: 13,
+  lineHeight: 1.45,
+  color: 'var(--ink)',
+  background: '#fff',
+  resize: 'vertical',
+};
+
+const previewUrl: CSSProperties = {
+  margin: '12px 0 0',
+  fontSize: 13,
+  lineHeight: 1.45,
+  color: 'var(--ink-muted)',
+  wordBreak: 'break-all',
+};
+
+const warnHint: CSSProperties = {
+  margin: '12px 0 0',
+  fontSize: 13,
+  lineHeight: 1.45,
+  color: '#b45309',
 };

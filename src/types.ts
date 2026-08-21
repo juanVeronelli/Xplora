@@ -22,6 +22,9 @@ export type Page =
   | 'admin'
   | 'cuenta'
   | 'cuenta-confirm'
+  | 'cuenta-perfil'
+  | 'cuenta-eventos'
+  | 'cuenta-propuestas'
   | 'empleo';
 
 export interface Evento {
@@ -148,6 +151,8 @@ export interface DbSiteMedia {
   logo_url: string | null;
   /** Video sección “charlas / momentos” en la Home. */
   highlight_video_url?: string | null;
+  /** Embed Luma en overview de cuenta miembro (src del iframe). */
+  member_luma_embed_src?: string | null;
   carousel: CarouselSlide[] | null;
   company_logos?: unknown;
   sponsor_logos?: unknown;

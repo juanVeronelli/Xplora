@@ -31,6 +31,9 @@ export function pathToPage(pathname: string): Page {
   // El Archivo vive dentro de /eventos (tab «Archivo» / hash #archivo).
   if (p === '/charlas') return 'eventos';
   if (p === '/cuenta/confirmar') return 'cuenta-confirm';
+  if (p === '/cuenta/perfil') return 'cuenta-perfil';
+  if (p === '/cuenta/eventos') return 'cuenta-eventos';
+  if (p === '/cuenta/propuestas') return 'cuenta-propuestas';
   if (p === '/cuenta') return 'cuenta';
   if (p === '/empleo' || p === '/bolsa') return 'empleo';
   return 'home';
@@ -60,6 +63,12 @@ export function pageToPath(page: Page): string {
       return '/cuenta';
     case 'cuenta-confirm':
       return '/cuenta/confirmar';
+    case 'cuenta-perfil':
+      return '/cuenta/perfil';
+    case 'cuenta-eventos':
+      return '/cuenta/eventos';
+    case 'cuenta-propuestas':
+      return '/cuenta/propuestas';
     case 'empleo':
       return '/empleo';
     default:

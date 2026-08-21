@@ -28,8 +28,14 @@ export function createRequireMemberAuthMiddleware(config: AppConfig): RequestHan
     if (!secret) {
       throw new InternalError('MEMBER_JWT_SECRET no está configurado en el servidor.');
     }
+    if (config.nodeEnv === 'production' && secret.length < 32) {
+      throw new InternalError('MEMBER_JWT_SECRET demasiado débil en producción.');
+    }
+
     const token = bearerFromAuthorization(req.header('authorization') ?? undefined);
-    if (!token) throw new UnauthorizedError('Iniciá sesión para continuar.');
+    if (!token || token.length > 4096) {
+      throw new UnauthorizedError('Iniciá sesión para continuar.');
+    }
 
     let payload;
     try {
@@ -46,7 +52,12 @@ export function createRequireMemberAuthMiddleware(config: AppConfig): RequestHan
       throw new UnauthorizedError('Cuenta no confirmada o inexistente.');
     }
 
-    req.memberAuth = { accountId: account.id, email: account.email };
+    const accountEmail = account.email.trim().toLowerCase();
+    if (accountEmail !== payload.email) {
+      throw new UnauthorizedError('Sesión inválida. Volvé a iniciar sesión.');
+    }
+
+    req.memberAuth = { accountId: account.id, email: accountEmail };
     next();
   });
 }

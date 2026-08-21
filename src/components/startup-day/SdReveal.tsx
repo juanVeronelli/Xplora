@@ -7,12 +7,14 @@ export function SdReveal({
   delay = 0,
   as: Tag = 'div',
   style,
+  id,
 }: {
   children: ReactNode;
   className?: string;
   delay?: 0 | 1 | 2 | 3;
   as?: 'div' | 'section' | 'article' | 'li' | 'figure';
   style?: CSSProperties;
+  id?: string;
 }) {
   const ref = useRef<HTMLElement>(null);
   const [inView, setInView] = useState(false);
@@ -37,6 +39,7 @@ export function SdReveal({
   return (
     <Tag
       ref={ref as never}
+      id={id}
       className={`sd-reveal${inView ? ' is-in' : ''}${delayClass} ${className}`.trim()}
       style={style}
     >

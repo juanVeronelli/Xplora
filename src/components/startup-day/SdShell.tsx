@@ -1,10 +1,7 @@
 import { useEffect, useState, type MouseEvent, type ReactNode } from 'react';
 import { useSiteMedia } from '../../context/SiteMediaContext';
 import { DEFAULT_LOGO_URL } from '../../lib/defaultsMedia';
-import {
-  mainSiteUrl,
-  startupDayUrl,
-} from '../../lib/startupDayHost';
+import { mainSiteUrl, startupDayUrl } from '../../lib/startupDayHost';
 import {
   SD_EDITION_SPONSORS,
   SD_XPLORA_PARTNERS,
@@ -14,6 +11,9 @@ import { StartupDayCursor } from './StartupDayCursor';
 import { StartupDayLoader } from './StartupDayLoader';
 import { StartupDayFooterNewsletter } from './StartupDayFooterNewsletter';
 import '../../styles/startupDay.css';
+
+/** CTA de cuenta en nav — apagado hasta abrir el funnel de miembros. */
+const SHOW_MEMBER_LOGIN_CTA = false;
 
 export type SdShellSite = 'startupday' | 'xplora' | 'sponsors';
 
@@ -54,7 +54,6 @@ export function SdShell({
 
   const sdHref = startupDayUrl();
   const xpHref = mainSiteUrl();
-  const joinHref = `${xpHref.replace(/\/$/, '')}/cuenta`;
 
   useEffect(() => {
     document.documentElement.classList.add('sd-mode');
@@ -132,9 +131,11 @@ export function SdShell({
             </nav>
 
             <div className="sd-top__actions">
-              <a className="sd-top__cta" href={joinHref}>
-                Iniciar sesión
-              </a>
+              {SHOW_MEMBER_LOGIN_CTA ? (
+                <a className="sd-top__cta" href={`${xpHref.replace(/\/$/, '')}/cuenta`}>
+                  Iniciar sesión
+                </a>
+              ) : null}
               {cta ? (
                 cta.href ? (
                   <a
@@ -195,8 +196,14 @@ export function SdShell({
                   <a href="/#que-es">El club</a>
                   <a href="/#empresas">Empresas</a>
                   <a href="/sponsors">Sponsors</a>
-                  <a href="/cuenta">Mi cuenta</a>
-                  <a href="/empleo">Bolsa de empleo</a>
+                  {SHOW_MEMBER_LOGIN_CTA ? (
+                    <>
+                      <a href="/cuenta">Mi cuenta</a>
+                      <a href="/cuenta/perfil">Mi perfil</a>
+                      <a href="/empleo">Bolsa de empleo</a>
+                      <a href="/cuenta/eventos">Eventos</a>
+                    </>
+                  ) : null}
                   <a href="/#newsletter">Newsletter</a>
                   <a href={sdHref}>Startup Day</a>
                 </div>

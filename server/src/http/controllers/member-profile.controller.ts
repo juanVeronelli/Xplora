@@ -4,6 +4,7 @@ import { createServiceSupabase } from '../../infra/supabase-clients.js';
 import {
   fetchMemberEventHistory,
   findMemberById,
+  linkOrCreateUsuario,
   toPublicProfile,
   type MemberJob,
   type MemberLanguage,
@@ -47,6 +48,7 @@ function parseJobs(v: unknown): MemberJob[] {
         from: cleanStr(o.from, 32) || undefined,
         to: cleanStr(o.to, 32) || undefined,
         current: Boolean(o.current),
+        description: cleanStr(o.description, 800) || undefined,
       };
     })
     .filter((j) => j.company || j.role)
@@ -83,10 +85,16 @@ export function createMemberMeHandler(config: AppConfig): RequestHandler {
     const sb = createServiceSupabase(config);
     if (!sb) throw new InternalError('Base de datos no configurada.');
 
-    const account = await findMemberById(sb, auth.accountId);
+    let account = await findMemberById(sb, auth.accountId);
     if (!account) throw new UnauthorizedError('Cuenta no encontrada.');
 
-    const events = await fetchMemberEventHistory(sb, account.usuario_id);
+    // Cruza con `usuarios` / inscripciones por email (historial de eventos previos)
+    const usuarioId = await linkOrCreateUsuario(sb, account);
+    if (usuarioId && account.usuario_id !== usuarioId) {
+      account = (await findMemberById(sb, auth.accountId)) ?? account;
+    }
+
+    const events = await fetchMemberEventHistory(sb, usuarioId ?? account.usuario_id);
     res.json({ account: toPublicProfile(account), events });
   });
 }

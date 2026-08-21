@@ -1,32 +1,25 @@
 /**
- * Cuenta Xplora: registro (confirmación por mail), login con código, perfil.
+ * Cuenta Xplora: login/registro + área interna (overview / perfil / eventos).
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useMemberAuth } from '../context/MemberAuthContext';
 import { useSiteMedia } from '../context/SiteMediaContext';
+import { MemberEventsPanel } from '../components/member/MemberEventsPanel';
+import { MemberOverview } from '../components/member/MemberOverview';
+import { MemberProfileForm } from '../components/member/MemberProfileForm';
+import { MemberProposalsPanel } from '../components/member/MemberProposalsPanel';
+import { MemberShell } from '../components/member/MemberShell';
 import { DEFAULT_LOGO_URL } from '../lib/defaultsMedia';
 import {
-  memberFetch,
   memberLoginRequest,
   memberLoginVerify,
   memberRegister,
-  type MemberProfile,
 } from '../lib/memberAuth';
+import { normalizePath } from '../lib/routes';
 import '../styles/memberAccount.css';
 
-type Mode = 'login' | 'register' | 'code' | 'profile';
-
-function Avatar({ account }: { account: MemberProfile }) {
-  if (account.avatarUrl) {
-    return <img className="ma-avatar" src={account.avatarUrl} alt="" />;
-  }
-  const letter = (account.displayName || account.email || '?').slice(0, 1).toUpperCase();
-  return (
-    <div className="ma-avatar ma-avatar--ph" aria-hidden>
-      {letter}
-    </div>
-  );
-}
+type AuthMode = 'login' | 'register' | 'code';
+export type MemberSection = 'overview' | 'perfil' | 'eventos' | 'propuestas';
 
 function MaBackdrop() {
   return (
@@ -38,17 +31,11 @@ function MaBackdrop() {
   );
 }
 
-export default function MemberAccount({
-  initialMode = 'login',
-  onGoEmpleo,
-}: {
-  initialMode?: Mode;
-  onGoEmpleo?: () => void;
-}) {
+export default function MemberAccount({ section = 'overview' }: { section?: MemberSection }) {
   const { logoUrl } = useSiteMedia();
   const brandLogo = logoUrl || DEFAULT_LOGO_URL;
-  const { account, events, loading, refresh, signInWithToken, signOut } = useMemberAuth();
-  const [mode, setMode] = useState<Mode>(account ? 'profile' : initialMode);
+  const { account, loading, refresh, signInWithToken } = useMemberAuth();
+  const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [msg, setMsg] = useState('');
@@ -56,28 +43,13 @@ export default function MemberAccount({
   const [busy, setBusy] = useState(false);
   const [resendLeftSec, setResendLeftSec] = useState(0);
 
-  const [displayName, setDisplayName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [skills, setSkills] = useState('');
-  const [studiesText, setStudiesText] = useState('');
-  const [jobsText, setJobsText] = useState('');
-  const [langsText, setLangsText] = useState('');
-
   useEffect(() => {
-    if (account) {
-      setMode('profile');
-      setDisplayName(account.displayName);
-      setPhone(account.phone);
-      setSkills(account.skills.join(', '));
-      setStudiesText(
-        account.studies.map((s) => [s.degree, s.institution, s.year].filter(Boolean).join(' · ')).join('\n'),
-      );
-      setJobsText(
-        account.jobs.map((j) => [j.role, j.company, j.current ? 'actual' : j.to || ''].filter(Boolean).join(' · ')).join('\n'),
-      );
-      setLangsText(account.languages.map((l) => `${l.name}${l.level ? ` (${l.level})` : ''}`).join(', '));
-    }
-  }, [account]);
+    if (loading || account) return;
+    if (section === 'overview') return;
+    if (normalizePath(window.location.pathname) === '/cuenta') return;
+    window.history.replaceState({}, '', '/cuenta');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  }, [loading, account, section]);
 
   useEffect(() => {
     if (resendLeftSec <= 0) return;
@@ -85,7 +57,7 @@ export default function MemberAccount({
     return () => window.clearTimeout(t);
   }, [resendLeftSec]);
 
-  const onRegister = async (e: React.FormEvent) => {
+  const onRegister = async (e: FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setErr('');
@@ -112,7 +84,7 @@ export default function MemberAccount({
     return true;
   };
 
-  const onRequestCode = async (e: React.FormEvent) => {
+  const onRequestCode = async (e: FormEvent) => {
     e.preventDefault();
     const ok = await requestLoginCode();
     if (ok) setMode('code');
@@ -123,7 +95,7 @@ export default function MemberAccount({
     await requestLoginCode();
   };
 
-  const onVerifyCode = async (e: React.FormEvent) => {
+  const onVerifyCode = async (e: FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setErr('');
@@ -132,104 +104,13 @@ export default function MemberAccount({
     if ('error' in r) setErr(r.error);
     else {
       signInWithToken(r.accessToken, r.account);
-      setMode('profile');
       await refresh();
     }
   };
 
-  const onSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    setErr('');
-    setMsg('');
-    const studies = studiesText
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map((line) => {
-        const [degree = '', institution = '', year = ''] = line.split('·').map((x) => x.trim());
-        return { degree, institution, year: year || undefined };
-      });
-    const jobs = jobsText
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map((line) => {
-        const parts = line.split('·').map((x) => x.trim());
-        return {
-          role: parts[0] || '',
-          company: parts[1] || '',
-          current: (parts[2] || '').toLowerCase().includes('actual'),
-          to: (parts[2] || '').toLowerCase().includes('actual') ? undefined : parts[2] || undefined,
-        };
-      });
-    const languages = langsText
-      .split(',')
-      .map((x) => x.trim())
-      .filter(Boolean)
-      .map((chunk) => {
-        const m = /^(.+?)\s*\((.+)\)$/.exec(chunk);
-        return m ? { name: m[1]!.trim(), level: m[2]!.trim() } : { name: chunk, level: '' };
-      });
-
-    const res = await memberFetch('/api/member/me', {
-      method: 'PATCH',
-      body: JSON.stringify({
-        displayName,
-        phone,
-        skills: skills
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean),
-        studies,
-        jobs,
-        languages,
-      }),
-    });
-    setBusy(false);
-    if (!res.ok) {
-      const j = (await res.json().catch(() => ({}))) as { error?: string };
-      setErr(j.error || 'No se pudo guardar');
-      return;
-    }
-    setMsg('Perfil guardado');
-    await refresh();
-  };
-
-  const onAvatar = async (file: File | null) => {
-    if (!file) return;
-    setBusy(true);
-    const fd = new FormData();
-    fd.append('file', file);
-    const res = await memberFetch('/api/member/me/avatar', { method: 'POST', body: fd });
-    setBusy(false);
-    if (!res.ok) {
-      setErr('No se pudo subir la foto');
-      return;
-    }
-    await refresh();
-  };
-
-  const onCv = async (file: File | null) => {
-    if (!file) return;
-    setBusy(true);
-    const fd = new FormData();
-    fd.append('cv', file);
-    const res = await memberFetch('/api/member/me/cv', { method: 'POST', body: fd });
-    setBusy(false);
-    if (!res.ok) {
-      setErr('No se pudo subir el CV');
-      return;
-    }
-    setMsg('CV actualizado');
-    await refresh();
-  };
-
-  const isAuthGate = !account && mode !== 'profile';
-
   if (loading) {
     return (
-      <div className="ma-page">
+      <div className="ma-page ma-page--gate">
         <MaBackdrop />
         <div className="ma-loading">
           <img className="ma-brand__logo ma-brand__logo--pulse" src={brandLogo} alt="" />
@@ -239,8 +120,27 @@ export default function MemberAccount({
     );
   }
 
+  if (account) {
+    const active =
+      section === 'perfil'
+        ? 'perfil'
+        : section === 'eventos'
+          ? 'eventos'
+          : section === 'propuestas'
+            ? 'propuestas'
+            : 'overview';
+    return (
+      <MemberShell active={active}>
+        {section === 'perfil' ? <MemberProfileForm /> : null}
+        {section === 'eventos' ? <MemberEventsPanel /> : null}
+        {section === 'propuestas' ? <MemberProposalsPanel /> : null}
+        {section === 'overview' ? <MemberOverview /> : null}
+      </MemberShell>
+    );
+  }
+
   return (
-    <div className={`ma-page${isAuthGate ? ' ma-page--gate' : ''}`}>
+    <div className="ma-page ma-page--gate">
       <MaBackdrop />
 
       <header className="ma-top">
@@ -254,227 +154,117 @@ export default function MemberAccount({
             }}
           />
         </a>
-        {account ? (
-          <button type="button" className="ma-linkbtn ma-top__out" onClick={signOut}>
-            Salir
-          </button>
-        ) : null}
       </header>
 
-      <main className={`ma-main${isAuthGate ? ' ma-main--gate' : ''}`}>
-        {isAuthGate ? (
-          <div className="ma-gate">
-            <section className="ma-card ma-card--gate">
-              <h1 className="ma-h1">
-                {mode === 'register' ? 'Crear cuenta' : mode === 'code' ? 'Tu código' : 'Entrar'}
-              </h1>
-              <p className="ma-lead">
-                {mode === 'register'
-                  ? 'Solo con tu email. Te mandamos un botón para confirmar.'
-                  : mode === 'code'
-                    ? 'Ingresá el código que te llegó al mail.'
-                    : 'Poné tu email y te mandamos un código de acceso.'}
-              </p>
+      <main className="ma-main ma-main--gate">
+        <div className="ma-gate">
+          <section className="ma-card ma-card--gate">
+            <h1 className="ma-h1">
+              {mode === 'register' ? 'Crear cuenta' : mode === 'code' ? 'Tu código' : 'Entrar'}
+            </h1>
+            <p className="ma-lead">
+              {mode === 'register'
+                ? 'Solo con tu email. Te mandamos un botón para confirmar.'
+                : mode === 'code'
+                  ? 'Ingresá el código de 5 dígitos que te llegó al mail.'
+                  : 'Poné tu email y te mandamos un código de acceso.'}
+            </p>
 
-              {mode === 'register' ? (
-                <form className="ma-form" onSubmit={onRegister}>
-                  <label>
-                    Email
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      autoComplete="email"
-                      placeholder="vos@email.com"
-                    />
-                  </label>
-                  <button className="ma-btn" type="submit" disabled={busy}>
-                    {busy ? 'Enviando…' : 'Enviar confirmación'}
-                  </button>
-                  <button type="button" className="ma-linkbtn" onClick={() => setMode('login')}>
-                    Ya tengo cuenta
-                  </button>
-                </form>
-              ) : null}
-
-              {mode === 'login' ? (
-                <form className="ma-form" onSubmit={onRequestCode}>
-                  <label>
-                    Email
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      autoComplete="email"
-                      placeholder="vos@email.com"
-                    />
-                  </label>
-                  <button className="ma-btn" type="submit" disabled={busy}>
-                    {busy ? 'Enviando…' : 'Enviar código'}
-                  </button>
-                  <button type="button" className="ma-linkbtn" onClick={() => setMode('register')}>
-                    Crear cuenta
-                  </button>
-                </form>
-              ) : null}
-
-              {mode === 'code' ? (
-                <form className="ma-form" onSubmit={onVerifyCode}>
-                  <label>
-                    Código de 5 dígitos
-                    <input
-                      className="ma-code"
-                      inputMode="numeric"
-                      pattern="[0-9]{5}"
-                      maxLength={5}
-                      required
-                      value={code}
-                      onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 5))}
-                      autoComplete="one-time-code"
-                      placeholder="•••••"
-                    />
-                  </label>
-                  <button className="ma-btn" type="submit" disabled={busy || code.length !== 5}>
-                    {busy ? 'Verificando…' : 'Entrar'}
-                  </button>
-                  <button
-                    type="button"
-                    className="ma-linkbtn"
-                    disabled={busy || resendLeftSec > 0}
-                    onClick={() => void onResendCode()}
-                  >
-                    {resendLeftSec > 0
-                      ? `Reenviar en ${Math.floor(resendLeftSec / 60)}:${String(resendLeftSec % 60).padStart(2, '0')}`
-                      : 'Reenviar código'}
-                  </button>
-                  <button
-                    type="button"
-                    className="ma-linkbtn"
-                    onClick={() => {
-                      setMode('login');
-                      setCode('');
-                      setMsg('');
-                      setErr('');
-                    }}
-                  >
-                    Volver
-                  </button>
-                </form>
-              ) : null}
-
-              {err ? <p className="ma-err">{err}</p> : null}
-              {msg ? <p className="ma-ok">{msg}</p> : null}
-            </section>
-            <a className="ma-home-link" href="/">
-              ← Inicio
-            </a>
-          </div>
-        ) : null}
-
-        {account ? (
-          <section className="ma-profile">
-            <div className="ma-profile__head">
-              <Avatar account={account} />
-              <div>
-                <h1 className="ma-h1">{account.displayName || 'Tu perfil'}</h1>
-                <p className="ma-muted">{account.email}</p>
-                <label className="ma-file">
-                  Cambiar foto
+            {mode === 'register' ? (
+              <form className="ma-form" onSubmit={onRegister}>
+                <label>
+                  Email
                   <input
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    onChange={(e) => void onAvatar(e.target.files?.[0] ?? null)}
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                    placeholder="vos@email.com"
                   />
                 </label>
-              </div>
-              {onGoEmpleo ? (
-                <button type="button" className="ma-btn" onClick={onGoEmpleo}>
-                  Ir a la bolsa
+                <button className="ma-btn" type="submit" disabled={busy}>
+                  {busy ? 'Enviando…' : 'Enviar confirmación'}
                 </button>
-              ) : (
-                <a className="ma-btn" href="/empleo">
-                  Ir a la bolsa
-                </a>
-              )}
-            </div>
+                <button type="button" className="ma-linkbtn" onClick={() => setMode('login')}>
+                  Ya tengo cuenta
+                </button>
+              </form>
+            ) : null}
 
-            <form className="ma-form ma-form--grid" onSubmit={onSaveProfile}>
-              <label>
-                Nombre
-                <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-              </label>
-              <label>
-                Teléfono
-                <input value={phone} onChange={(e) => setPhone(e.target.value)} />
-              </label>
-              <label className="ma-span2">
-                Skills (separadas por coma)
-                <input value={skills} onChange={(e) => setSkills(e.target.value)} />
-              </label>
-              <label className="ma-span2">
-                Estudios (una línea por ítem: carrera · institución · año)
-                <textarea rows={3} value={studiesText} onChange={(e) => setStudiesText(e.target.value)} />
-              </label>
-              <label className="ma-span2">
-                Empleos (una línea: rol · empresa · actual o hasta)
-                <textarea rows={3} value={jobsText} onChange={(e) => setJobsText(e.target.value)} />
-              </label>
-              <label className="ma-span2">
-                Idiomas (ej. Español (nativo), English (B2))
-                <input value={langsText} onChange={(e) => setLangsText(e.target.value)} />
-              </label>
-              <div className="ma-span2 ma-cv">
-                <p className="ma-muted">
-                  CV:{' '}
-                  {account.cvUrl ? (
-                    <a href={account.cvUrl} target="_blank" rel="noopener noreferrer">
-                      Ver archivo
-                    </a>
-                  ) : (
-                    'sin cargar'
-                  )}
-                </p>
-                <label className="ma-file">
-                  Subir CV (PDF/Word)
+            {mode === 'login' ? (
+              <form className="ma-form" onSubmit={onRequestCode}>
+                <label>
+                  Email
                   <input
-                    type="file"
-                    accept=".pdf,.doc,.docx,application/pdf"
-                    hidden
-                    onChange={(e) => void onCv(e.target.files?.[0] ?? null)}
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                    placeholder="vos@email.com"
                   />
                 </label>
-              </div>
-              <button className="ma-btn ma-span2" type="submit" disabled={busy}>
-                {busy ? 'Guardando…' : 'Guardar perfil'}
-              </button>
-            </form>
+                <button className="ma-btn" type="submit" disabled={busy}>
+                  {busy ? 'Enviando…' : 'Enviar código'}
+                </button>
+                <button type="button" className="ma-linkbtn" onClick={() => setMode('register')}>
+                  Crear cuenta
+                </button>
+              </form>
+            ) : null}
+
+            {mode === 'code' ? (
+              <form className="ma-form" onSubmit={onVerifyCode}>
+                <label>
+                  Código de 5 dígitos
+                  <input
+                    className="ma-code"
+                    inputMode="numeric"
+                    pattern="[0-9]{5}"
+                    maxLength={5}
+                    required
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                    autoComplete="one-time-code"
+                    placeholder="•••••"
+                  />
+                </label>
+                <button className="ma-btn" type="submit" disabled={busy || code.length !== 5}>
+                  {busy ? 'Verificando…' : 'Entrar'}
+                </button>
+                <button
+                  type="button"
+                  className="ma-linkbtn"
+                  disabled={busy || resendLeftSec > 0}
+                  onClick={() => void onResendCode()}
+                >
+                  {resendLeftSec > 0
+                    ? `Reenviar en ${Math.floor(resendLeftSec / 60)}:${String(resendLeftSec % 60).padStart(2, '0')}`
+                    : 'Reenviar código'}
+                </button>
+                <button
+                  type="button"
+                  className="ma-linkbtn"
+                  onClick={() => {
+                    setMode('login');
+                    setCode('');
+                    setMsg('');
+                    setErr('');
+                  }}
+                >
+                  Volver
+                </button>
+              </form>
+            ) : null}
 
             {err ? <p className="ma-err">{err}</p> : null}
             {msg ? <p className="ma-ok">{msg}</p> : null}
-
-            <section className="ma-history">
-              <h2 className="ma-h2">Eventos</h2>
-              {events.length === 0 ? (
-                <p className="ma-muted">Todavía no hay eventos vinculados a tu email.</p>
-              ) : (
-                <ul className="ma-history__list">
-                  {events.map((ev) => (
-                    <li key={ev.id}>
-                      <strong>{ev.title}</strong>
-                      <span>
-                        {ev.dateDisplay}
-                        {ev.asistio ? ' · asististe' : ''}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
           </section>
-        ) : null}
+          <a className="ma-home-link" href="/">
+            ← Inicio
+          </a>
+        </div>
       </main>
     </div>
   );

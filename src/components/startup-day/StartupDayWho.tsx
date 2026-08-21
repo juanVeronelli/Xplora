@@ -18,6 +18,7 @@ const CAST = [
 
 const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ••••■■';
 const STEPS = CAST.length;
+const MOBILE_MQ = '(max-width: 719px)';
 
 function scrambleToward(target: string, progress: number): string {
   return target
@@ -42,12 +43,28 @@ export function StartupDayWho() {
   const bandRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef(0);
 
+  const [mobile, setMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(MOBILE_MQ).matches : false,
+  );
   const [mode, setMode] = useState<PinMode>('before');
   const [active, setActive] = useState(0);
   const [display, setDisplay] = useState<string>(CAST[0].word);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
+    const mq = window.matchMedia(MOBILE_MQ);
+    const sync = () => setMobile(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+
+  useEffect(() => {
+    if (mobile) {
+      setMode('before');
+      return;
+    }
+
     const pin = pinRef.current;
     if (!pin) return;
 
@@ -108,7 +125,7 @@ export function StartupDayWho() {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
     };
-  }, []);
+  }, [mobile]);
 
   useEffect(() => {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -130,6 +147,12 @@ export function StartupDayWho() {
   }, [active]);
 
   const jumpTo = (index: number) => {
+    if (mobile) {
+      activeRef.current = index;
+      setActive(index);
+      setProgress((index + 1) / STEPS);
+      return;
+    }
     const pin = pinRef.current;
     if (!pin) return;
     const vh = window.innerHeight;
@@ -146,7 +169,7 @@ export function StartupDayWho() {
     <section
       id="para-quien"
       ref={pinRef}
-      className="sd-who-pin"
+      className={`sd-who-pin${mobile ? ' is-tap' : ''}`}
       style={{ ['--who-steps' as string]: STEPS }}
       aria-label="Para quién"
     >

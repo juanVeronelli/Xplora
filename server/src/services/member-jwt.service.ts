@@ -2,7 +2,8 @@ import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { SignJWT, jwtVerify } from 'jose';
 
 const MEMBER_JWT_TYP = 'member' as const;
-const ACCESS_TTL = '30d';
+const MEMBER_JWT_ISS = 'xplora-member';
+const ACCESS_TTL = '14d';
 
 export type MemberJwtPayload = {
   sub: string;
@@ -29,8 +30,10 @@ export async function signMemberAccessToken(
   account: { id: string; email: string },
 ): Promise<string> {
   const key = new TextEncoder().encode(secret);
-  return new SignJWT({ email: account.email, typ: MEMBER_JWT_TYP })
+  return new SignJWT({ email: account.email.toLowerCase(), typ: MEMBER_JWT_TYP })
     .setProtectedHeader({ alg: 'HS256' })
+    .setIssuer(MEMBER_JWT_ISS)
+    .setAudience(MEMBER_JWT_ISS)
     .setSubject(account.id)
     .setIssuedAt()
     .setExpirationTime(ACCESS_TTL)
@@ -42,7 +45,11 @@ export async function verifyMemberAccessToken(
   token: string,
 ): Promise<MemberJwtPayload> {
   const key = new TextEncoder().encode(secret);
-  const { payload } = await jwtVerify(token, key, { algorithms: ['HS256'] });
+  const { payload } = await jwtVerify(token, key, {
+    algorithms: ['HS256'],
+    issuer: MEMBER_JWT_ISS,
+    audience: MEMBER_JWT_ISS,
+  });
   const sub = typeof payload.sub === 'string' ? payload.sub : '';
   const email = typeof payload.email === 'string' ? payload.email.toLowerCase() : '';
   const typ = payload.typ;

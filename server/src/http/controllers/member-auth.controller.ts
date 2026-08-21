@@ -51,8 +51,13 @@ export function createMemberRegisterHandler(config: AppConfig): RequestHandler {
 
     const email = normalizeEmail((req.body as { email?: unknown }).email);
     const existing = await findMemberByEmail(sb, email);
+    // Anti-enumeración: misma respuesta si ya está confirmada
     if (existing?.email_confirmed_at) {
-      throw new BadRequestError('Ese email ya tiene cuenta. Pedí un código para entrar.');
+      res.json({
+        ok: true,
+        message: 'Si el email es válido, te enviamos un mensaje para continuar.',
+      });
+      return;
     }
 
     if (!existing) {
@@ -66,6 +71,10 @@ export function createMemberRegisterHandler(config: AppConfig): RequestHandler {
         throw new BadRequestError(error.message);
       }
     }
+
+    // Cruza ya con usuarios/inscripciones del mismo email (historial de eventos)
+    const accountRow = await findMemberByEmail(sb, email);
+    if (accountRow) await linkOrCreateUsuario(sb, accountRow);
 
     const token = createConfirmToken();
     const expiresAt = new Date(Date.now() + REGISTER_TTL_MS).toISOString();
@@ -84,7 +93,10 @@ export function createMemberRegisterHandler(config: AppConfig): RequestHandler {
       throw new InternalError('No pudimos enviar el email de confirmación. Probá de nuevo.');
     }
 
-    res.json({ ok: true, message: 'Te enviamos un email para confirmar tu cuenta.' });
+    res.json({
+      ok: true,
+      message: 'Si el email es válido, te enviamos un mensaje para continuar.',
+    });
   });
 }
 
@@ -98,7 +110,9 @@ export function createMemberConfirmHandler(config: AppConfig): RequestHandler {
     const token = typeof (req.body as { token?: unknown }).token === 'string'
       ? (req.body as { token: string }).token.trim()
       : '';
-    if (!token) throw new BadRequestError('Falta el token de confirmación.');
+    if (!token || token.length < 20 || token.length > 200) {
+      throw new BadRequestError('Link inválido o ya usado.');
+    }
 
     const tokenHash = hashSecret(token);
     const { data: challenge, error } = await sb
@@ -160,13 +174,16 @@ export function createMemberLoginRequestHandler(config: AppConfig): RequestHandl
 
     const email = normalizeEmail((req.body as { email?: unknown }).email);
     const account = await findMemberByEmail(sb, email);
-    if (!account) {
-      throw new BadRequestError('No hay una cuenta con ese email. Creá una primero.');
-    }
-    if (!account.email_confirmed_at) {
-      throw new BadRequestError(
-        'Ese email todavía no está confirmado. Revisá tu correo o registrate de nuevo.',
-      );
+    const genericOk = {
+      ok: true as const,
+      message: 'Si hay una cuenta confirmada con ese email, te enviamos un código.',
+      resendAfterSec: Math.floor(LOGIN_RESEND_COOLDOWN_MS / 1000),
+    };
+
+    // Anti-enumeración: misma respuesta si no existe / no confirmada
+    if (!account?.email_confirmed_at) {
+      res.json(genericOk);
+      return;
     }
 
     const { data: recent } = await sb
@@ -201,11 +218,7 @@ export function createMemberLoginRequestHandler(config: AppConfig): RequestHandl
       throw new InternalError('No pudimos enviar el código. Probá de nuevo.');
     }
 
-    res.json({
-      ok: true,
-      message: 'Te enviamos un código a tu email.',
-      resendAfterSec: Math.floor(LOGIN_RESEND_COOLDOWN_MS / 1000),
-    });
+    res.json(genericOk);
   });
 }
 
@@ -241,7 +254,12 @@ export function createMemberLoginVerifyHandler(config: AppConfig): RequestHandle
     if (!account?.email_confirmed_at) throw new UnauthorizedError('Cuenta no confirmada.');
 
     const now = new Date().toISOString();
-    await sb.from('member_auth_challenges').update({ consumed_at: now }).eq('id', challenge.id);
+    await sb
+      .from('member_auth_challenges')
+      .update({ consumed_at: now })
+      .eq('email', email)
+      .eq('purpose', 'login_code')
+      .is('consumed_at', null);
     await linkOrCreateUsuario(sb, account);
 
     const fresh = (await findMemberByEmail(sb, email)) ?? account;

@@ -17,6 +17,14 @@ app.listen(config.port, () => {
       ? 'API + sitio estático (dist/)'
       : 'solo API (en dev Vite usa otro puerto; /api se proxifica)';
   console.log(`[server] http://localhost:${config.port} — ${mode}`);
+  if (config.nodeEnv === 'production') {
+    const secret = config.memberJwtSecret || '';
+    if (!secret || secret.length < 32 || secret.includes('dev-member')) {
+      console.warn(
+        '[server] MEMBER_JWT_SECRET débil o ausente en producción. Definí un secreto largo y aleatorio.',
+      );
+    }
+  }
   if (config.resend) {
     console.log(
       `[server] Resend: campañas de email habilitadas (from=${config.resend.from}).`,
