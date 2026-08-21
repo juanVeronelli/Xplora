@@ -150,8 +150,7 @@ export default function Admin({ signOut, goToSite }: Props) {
           <SectionIntro
             kicker="Web pública"
             title="Sitio y cuenta"
-            subtitle="Hero, fotos del club y embed Luma del overview de miembros."
-            subtitle="Solo el hero del inicio y las cuatro fotos de El club. Publicás al pie."
+            subtitle="Hero, fotos del club y embed Luma del overview de miembros. Publicás al pie."
           />
           <SiteImagesPanel />
         </>
