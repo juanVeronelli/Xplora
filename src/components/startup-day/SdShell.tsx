@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { useSiteMedia } from '../../context/SiteMediaContext';
 import { DEFAULT_LOGO_URL } from '../../lib/defaultsMedia';
 import {
@@ -12,6 +12,7 @@ import {
 } from '../../data/startupDay';
 import { StartupDayCursor } from './StartupDayCursor';
 import { StartupDayLoader } from './StartupDayLoader';
+import { SdPixelWave } from './SdPixelWave';
 import { StartupDayFooterNewsletter } from './StartupDayFooterNewsletter';
 import '../../styles/startupDay.css';
 
@@ -51,6 +52,8 @@ export function SdShell({
   const { logoUrl } = useSiteMedia();
   const brandLogo = logoUrl || DEFAULT_LOGO_URL;
   const [island, setIsland] = useState(false);
+  /** El nodo que barre `SdPixelWave` al terminar la carga. */
+  const loaderRef = useRef<HTMLDivElement>(null);
 
   const sdHref = startupDayUrl();
   const xpHref = mainSiteUrl();
@@ -89,7 +92,13 @@ export function SdShell({
   return (
     <div className={`sd-root${loaderDone ? ' is-loaded' : ''}`}>
       {showCursor ? <StartupDayCursor /> : null}
-      {showLoader ? <StartupDayLoader done={loaderDone} logoUrl={brandLogo} /> : null}
+      {showLoader ? (
+        <>
+          <StartupDayLoader ref={loaderRef} done={loaderDone} logoUrl={brandLogo} />
+          {/* Hermano del loader, nunca hijo: como hijo lo recortaría el mismo clip-path. */}
+          <SdPixelWave play={loaderDone} coverRef={loaderRef} />
+        </>
+      ) : null}
 
       <div className="sd-stage">
         <div className={`sd-nav-shell${island ? ' is-island' : ''}`}>
@@ -179,7 +188,9 @@ export function SdShell({
                   <a href="#sponsors">Sponsors</a>
                   <a href="#confirmadas">Confirmadas</a>
                   <a href="#que-pasa">Qué pasa</a>
-                  <a href="#reservar">Lista de asistencia</a>
+                  <a href="#piso">El lugar</a>
+                  <a href="#startupmate">StartupMate</a>
+                  <a href="#reservar">Inscripción</a>
                 </div>
               ) : (
                 <div className="sd-footer__col">

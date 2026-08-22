@@ -72,7 +72,7 @@ export default function XploraSite() {
         'Xplora — organización estudiantil de UCEMA. Comunidad, eventos, empleo y Startup Day.';
     }
 
-    const t = window.setTimeout(() => setLoaderDone(true), 1300);
+    const t = window.setTimeout(() => setLoaderDone(true), 900);
     return () => {
       window.clearTimeout(t);
       document.title = prevTitle;

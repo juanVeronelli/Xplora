@@ -1,5 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { SD_EVENT, SD_SCHEDULE, SD_STANDS, type SdScheduleBeat } from '../../data/startupDay';
+import {
+  SD_AGENDA_LOCKED,
+  SD_EVENT,
+  SD_SCHEDULE,
+  SD_STANDS,
+  sdLumaUrl,
+  type SdScheduleBeat,
+} from '../../data/startupDay';
 import { SdReveal } from './SdReveal';
 
 function speakerOf(beat: SdScheduleBeat): string | undefined {
@@ -15,7 +22,66 @@ function titleOf(beat: SdScheduleBeat): string {
   return 'Workshop';
 }
 
-export function StartupDayAgenda() {
+/** Encabezado común a las dos vistas de la sección. */
+function AgendaHead() {
+  return (
+    <SdReveal className="sd-agenda__head">
+      <p className="sd-kicker">Agenda</p>
+      <p className="sd-agenda__when">
+        <span>9 de septiembre</span>
+        <span aria-hidden className="sd-agenda__dot" />
+        <span>{SD_EVENT.timeLabel}</span>
+      </p>
+    </SdReveal>
+  );
+}
+
+/**
+ * Vista bloqueada: mientras las charlas no estén confirmadas no publicamos horarios ni
+ * oradores. Solo se muestra el dato que sí está cerrado (stands) y el CTA a la lista.
+ */
+function AgendaLocked() {
+  return (
+    <section id="agenda" className="sd-band sd-band--ink">
+      <AgendaHead />
+
+      <SdReveal delay={1} className="sd-agenda-locked">
+        <span className="sd-agenda-locked__icon" aria-hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+            <rect x="4.5" y="10.5" width="15" height="10" rx="2.2" />
+            <path d="M8 10.5V7.6a4 4 0 0 1 8 0v2.9" strokeLinecap="round" />
+          </svg>
+        </span>
+
+        <h2 className="sd-agenda-locked__title">Agenda próximamente</h2>
+
+        <p className="sd-agenda-locked__copy">
+          Estamos cerrando las charlas y los workshops del día. Publicamos la grilla completa
+          apenas estén confirmados.
+        </p>
+
+        <p className="sd-agenda-locked__fact">
+          <span className="sd-agenda-locked__fact-k">Ya confirmado</span>
+          <span className="sd-agenda-locked__fact-v">
+            {SD_STANDS.label} abiertos de {SD_STANDS.from}:00 a {SD_STANDS.to}:00
+          </span>
+        </p>
+
+        <a
+          className="sd-btn sd-btn--primary"
+          href={sdLumaUrl('agenda')}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Inscribirme
+        </a>
+      </SdReveal>
+    </section>
+  );
+}
+
+/** Línea de tiempo interactiva. Se publica cuando `SD_AGENDA_LOCKED` pasa a `false`. */
+function AgendaTimeline() {
   const rootRef = useRef<HTMLElement>(null);
   const lineRef = useRef<HTMLOListElement>(null);
   const rowRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -95,14 +161,7 @@ export function StartupDayAgenda() {
 
   return (
     <section id="agenda" className="sd-band sd-band--ink" ref={rootRef}>
-      <SdReveal className="sd-agenda__head">
-        <p className="sd-kicker">Agenda</p>
-        <p className="sd-agenda__when">
-          <span>9 de septiembre</span>
-          <span aria-hidden className="sd-agenda__dot" />
-          <span>{SD_EVENT.timeLabel}</span>
-        </p>
-      </SdReveal>
+      <AgendaHead />
 
       <SdReveal className="sd-agenda">
         <p className="sd-agenda__stands">
@@ -176,4 +235,13 @@ export function StartupDayAgenda() {
       </SdReveal>
     </section>
   );
+}
+
+/**
+ * Elige la vista según el flag. Son dos componentes y no un early-return para que la
+ * timeline no monte sus timers ni su observer mientras la agenda está bloqueada.
+ */
+export function StartupDayAgenda() {
+  if (SD_AGENDA_LOCKED) return <AgendaLocked />;
+  return <AgendaTimeline />;
 }
