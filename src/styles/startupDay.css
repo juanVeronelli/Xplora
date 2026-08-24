@@ -12,8 +12,14 @@
   --sd-warm: #ede8e0;
   --sd-white: #ffffff;
   --sd-line: rgba(26, 16, 40, 0.08);
+  /* Cruz de registro: el motivo del key art del evento, donde se cruzan las líneas de la grilla.
+     Se dibuja en SVG para que quede a 1px exacto en cualquier densidad de pantalla. */
+  --sd-cross: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11'%3E%3Cpath d='M5.5 0v11M0 5.5h11' stroke='%231a1028' stroke-opacity='.34' stroke-width='1'/%3E%3C/svg%3E");
+  --sd-cross-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11'%3E%3Cpath d='M5.5 0v11M0 5.5h11' stroke='%23faf8f5' stroke-opacity='.38' stroke-width='1'/%3E%3C/svg%3E");
   --sd-font-display: 'Syne', sans-serif;
   --sd-font-body: 'Instrument Sans', sans-serif;
+  /* Display del key art: pesada, condensada e itálica. Sólo para los titulares de afiche. */
+  --sd-font-poster: 'Archivo', 'Syne', sans-serif;
   --sd-radius: 10px; /* unificado: nada circular / pill */
   margin: 0;
   padding: 0;
@@ -1147,95 +1153,128 @@ html.sd-coming-soon body {
 }
 
 /* ── Para quién ── */
-.sd-who__head {
-  margin-bottom: clamp(1.75rem, 4vw, 2.5rem);
+/* ── Para quién es — afiche ──
+   Dejó de ser una banda de contenido: ocupa la pantalla, el disco ASCII va de fondo y el peso lo
+   lleva la tipografía. El `#0b0712` es más profundo que el `--sd-ink` de la banda siguiente, así
+   que las dos oscuras no se leen como una sola masa. */
+.sd-poster {
+  position: relative;
+  isolation: isolate;
+  min-height: 100svh;
+  display: grid;
+  align-content: center;
+  padding: clamp(72px, 10vh, 120px) clamp(20px, 5vw, 64px);
+  background: #0b0712;
+  color: var(--sd-cream);
+  overflow: hidden;
 }
 
-.sd-who__head .sd-lead {
+.sd-poster__disc {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+/* El viñeteado circular propio del componente se apaga: acá lo reemplaza un scrim elíptico que
+   cubre todo el ancho, para que el titular tenga fondo parejo de lado a lado. */
+.sd-poster__disc::after {
+  display: none;
+}
+
+/* El texto vive a la izquierda, así que el scrim va lateral y no radial: un radial que oscurece
+   los bordes deja justo el centro brillante, que es donde cae el titular. */
+.sd-poster::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    rgba(11, 7, 18, 0.94) 0%,
+    rgba(11, 7, 18, 0.82) 34%,
+    rgba(11, 7, 18, 0.42) 62%,
+    rgba(11, 7, 18, 0.62) 100%
+  );
+}
+
+.sd-poster__inner {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(26px, 4vw, 46px);
+}
+
+.sd-poster__kicker {
   margin: 0;
-  max-width: 42rem;
-}
-
-.sd-who {
-  display: grid;
-  gap: 0;
-  border-top: 1px solid var(--sd-line);
-}
-
-@media (min-width: 800px) {
-  .sd-who {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-.sd-who__item {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.9rem;
-  align-items: start;
-  padding: 1.35rem 0;
-  border-bottom: 1px solid var(--sd-line);
-}
-
-@media (min-width: 800px) {
-  .sd-who__item {
-    padding: 1.5rem 1.5rem;
-    border-bottom: none;
-    border-right: 1px solid var(--sd-line);
-  }
-
-  .sd-who__item:first-child {
-    padding-left: 0;
-  }
-
-  .sd-who__item:last-child {
-    border-right: none;
-    padding-right: 0;
-  }
-}
-
-.sd-who__n {
-  padding-top: 0.35rem;
-  font-family: var(--sd-font-display);
   font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  color: var(--sd-purple);
-  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #b8a4ff;
 }
 
-.sd-who__body {
-  min-width: 0;
-}
-
-.sd-who__title {
-  margin: 0 0 0.45rem;
-  font-family: var(--sd-font-display);
-  font-size: 1.35rem;
-  font-weight: 700;
-  line-height: 1.15;
-  color: var(--sd-ink);
-}
-
-.sd-who__text {
+/* La negación va enorme y el contrapunto chico: ese salto de escala es lo que sostiene la pieza.
+   Sin él es sólo un título grande. */
+.sd-poster__deny {
   margin: 0;
-  font-size: 0.95rem;
-  line-height: 1.55;
-  color: var(--sd-ink-soft);
+  font-family: var(--sd-font-poster);
+  font-weight: 900;
+  font-stretch: 68%;
+  font-variation-settings: 'wdth' 68, 'wght' 900;
+  font-style: italic;
+  font-size: clamp(2.6rem, 8.2vw, 6.4rem);
+  line-height: 0.86;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
+  color: var(--sd-cream);
+  text-wrap: balance;
 }
 
-.sd-who__formats {
+.sd-poster__yes {
+  display: block;
+  margin-top: 0.55em;
+  font-family: var(--sd-font-body);
+  font-variation-settings: normal;
+  font-style: normal;
+  font-weight: 500;
+  font-size: clamp(1.05rem, 2.2vw, 1.55rem);
+  line-height: 1.25;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #b8a4ff;
+}
+
+/* Sin numerar: son alternativas, no una secuencia. Numerarlas afirmaría un orden que no existe. */
+.sd-poster__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem 1.35rem;
-  margin-top: clamp(1.5rem, 3vw, 2rem);
-  padding-top: 1.15rem;
-  border-top: 1px solid var(--sd-line);
-  font-size: 0.72rem;
+  gap: 10px 0;
+  max-width: 60ch;
+  font-size: clamp(0.92rem, 1.5vw, 1.02rem);
+  color: rgba(250, 248, 245, 0.74);
+}
+
+.sd-poster__list li:not(:last-child)::after {
+  content: '·';
+  margin: 0 0.7em;
+  color: var(--sd-purple);
   font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--sd-muted);
+}
+
+.sd-poster__foot {
+  margin: 0;
+  max-width: 54ch;
+  font-size: 0.86rem;
+  line-height: 1.55;
+  color: rgba(250, 248, 245, 0.56);
 }
 
 .sd-agenda__head {

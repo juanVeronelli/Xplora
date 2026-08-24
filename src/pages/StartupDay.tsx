@@ -173,53 +173,30 @@ function StartupDayContent() {
         </a>
       </section>
 
-      <section id="para-quien" className="sd-band sd-band--cream">
-        <SdReveal className="sd-who__head">
-          <p className="sd-kicker">Para quién es</p>
-          <h2 className="sd-h2 sd-h2--wide">Si estás construyendo — o querés empezar</h2>
-          <p className="sd-lead">
-            Para estudiantes, founders y startups. Un espacio para mostrar producto, hacer preguntas
-            y conectar con inversores y pares del ecosistema.
+      {/* Afiche, no banda de contenido: el disco va de fondo y el peso lo lleva la tipografía.
+          Los cuatro títulos son las cuatro líneas — los párrafos se eliminaron enteros. */}
+      <section id="para-quien" className="sd-poster">
+        <SdAsciiDisc className="sd-poster__disc" opacity={0.5} />
+
+        <SdReveal className="sd-poster__inner">
+          <p className="sd-poster__kicker">Para quién es</p>
+
+          <h2 className="sd-poster__deny">
+            No hace falta tener una startup
+            <span className="sd-poster__yes">Hace falta tener ganas.</span>
+          </h2>
+
+          <ul className="sd-poster__list">
+            <li>Tenés una idea dando vueltas</li>
+            <li>Querés hablar con alguien que ya levantó capital</li>
+            <li>Ya estás construyendo algo</li>
+            <li>Todavía no tenés nada</li>
+          </ul>
+
+          <p className="sd-poster__foot">
+            Del otro lado pasa lo mismo: los equipos que exponen se llevan gente nueva que entiende
+            lo que están construyendo.
           </p>
-        </SdReveal>
-
-        <div className="sd-who">
-          {[
-            {
-              n: '01',
-              title: 'Estudiantes',
-              text: 'Con una idea, un equipo en formación o interés real en el ecosistema emprendedor.',
-            },
-            {
-              n: '02',
-              title: 'Founders',
-              text: 'Ya estás en marcha. Venís a contrastar aprendizajes y sumar contactos relevantes.',
-            },
-            {
-              n: '03',
-              title: 'Startups',
-              text: 'Producto en escena. Stands, pitch e inversores en un mismo día.',
-            },
-          ].map((item, i) => (
-            <SdReveal key={item.n} delay={(i % 3) as 0 | 1 | 2} className="sd-who__item">
-              <span className="sd-who__n" aria-hidden>
-                {item.n}
-              </span>
-              <div className="sd-who__body">
-                <h3 className="sd-who__title">{item.title}</h3>
-                <p className="sd-who__text">{item.text}</p>
-              </div>
-            </SdReveal>
-          ))}
-        </div>
-
-        <SdReveal delay={1} className="sd-who__formats">
-          <span>Stands</span>
-          <span>Workshops</span>
-          <span>Pitch</span>
-          <span>Inversores</span>
-          <span>Aceleradoras</span>
-          <span>UCEMA</span>
         </SdReveal>
       </section>
 
