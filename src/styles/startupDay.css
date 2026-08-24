@@ -1152,11 +1152,10 @@ html.sd-coming-soon body {
   background: transparent;
 }
 
-/* ── Para quién ── */
 /* ── Para quién es — afiche ──
-   Dejó de ser una banda de contenido: ocupa la pantalla, el disco ASCII va de fondo y el peso lo
-   lleva la tipografía. El `#0b0712` es más profundo que el `--sd-ink` de la banda siguiente, así
-   que las dos oscuras no se leen como una sola masa. */
+   Dejó de ser una banda de contenido: ocupa la pantalla y el peso lo lleva la tipografía. El
+   `#0b0712` es más profundo que el `--sd-ink` de la banda siguiente, así que las dos oscuras no se
+   leen como una sola masa. */
 .sd-poster {
   position: relative;
   isolation: isolate;
@@ -1169,32 +1168,20 @@ html.sd-coming-soon body {
   overflow: hidden;
 }
 
-.sd-poster__disc {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-}
-
-/* El viñeteado circular propio del componente se apaga: acá lo reemplaza un scrim elíptico que
-   cubre todo el ancho, para que el titular tenga fondo parejo de lado a lado. */
-.sd-poster__disc::after {
-  display: none;
-}
-
-/* El texto vive a la izquierda, así que el scrim va lateral y no radial: un radial que oscurece
-   los bordes deja justo el centro brillante, que es donde cae el titular. */
+/* El titular vive a la izquierda, así que el halo va corrido hacia ahí y no centrado. Los violetas
+   son los de la rampa del disco (`TINTS` en `SdAsciiDisc`), para que la sección siga en la misma
+   familia de color aunque ya no lleve ASCII. */
 .sd-poster::after {
   content: '';
   position: absolute;
   inset: 0;
-  z-index: 1;
+  z-index: 0;
   pointer-events: none;
-  background: linear-gradient(
-    100deg,
-    rgba(11, 7, 18, 0.94) 0%,
-    rgba(11, 7, 18, 0.82) 34%,
-    rgba(11, 7, 18, 0.42) 62%,
-    rgba(11, 7, 18, 0.62) 100%
+  background: radial-gradient(
+    62% 58% at 34% 46%,
+    rgba(107, 83, 216, 0.26) 0%,
+    rgba(73, 54, 164, 0.13) 44%,
+    transparent 72%
   );
 }
 

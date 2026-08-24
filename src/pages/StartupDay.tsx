@@ -173,11 +173,9 @@ function StartupDayContent() {
         </a>
       </section>
 
-      {/* Afiche, no banda de contenido: el disco va de fondo y el peso lo lleva la tipografía.
+      {/* Afiche, no banda de contenido: el fondo queda vacío y el peso lo lleva la tipografía.
           Los cuatro títulos son las cuatro líneas — los párrafos se eliminaron enteros. */}
       <section id="para-quien" className="sd-poster">
-        <SdAsciiDisc className="sd-poster__disc" opacity={0.5} />
-
         <SdReveal className="sd-poster__inner">
           <p className="sd-poster__kicker">Para quién es</p>
 
