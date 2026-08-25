@@ -28,7 +28,7 @@ function AgendaHead() {
     <SdReveal className="sd-agenda__head">
       <p className="sd-kicker">Agenda</p>
       <p className="sd-agenda__when">
-        <span>9 de septiembre</span>
+        <span>11 de septiembre</span>
         <span aria-hidden className="sd-agenda__dot" />
         <span>{SD_EVENT.timeLabel}</span>
       </p>
@@ -42,7 +42,7 @@ function AgendaHead() {
  */
 function AgendaLocked() {
   return (
-    <section id="agenda" className="sd-band sd-band--ink">
+    <div id="agenda" className="sd-piso__agenda">
       <AgendaHead />
 
       <SdReveal delay={1} className="sd-agenda-locked">
@@ -76,13 +76,13 @@ function AgendaLocked() {
           Inscribirme
         </a>
       </SdReveal>
-    </section>
+    </div>
   );
 }
 
 /** Línea de tiempo interactiva. Se publica cuando `SD_AGENDA_LOCKED` pasa a `false`. */
 function AgendaTimeline() {
-  const rootRef = useRef<HTMLElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const lineRef = useRef<HTMLOListElement>(null);
   const rowRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [active, setActive] = useState(0);
@@ -160,7 +160,7 @@ function AgendaTimeline() {
   }, [active]);
 
   return (
-    <section id="agenda" className="sd-band sd-band--ink" ref={rootRef}>
+    <div id="agenda" className="sd-piso__agenda" ref={rootRef}>
       <AgendaHead />
 
       <SdReveal className="sd-agenda">
@@ -233,7 +233,7 @@ function AgendaTimeline() {
           })}
         </ol>
       </SdReveal>
-    </section>
+    </div>
   );
 }
 

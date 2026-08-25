@@ -1,5 +1,24 @@
 /* Startup Day — identidad Xplora (ink / purple / cream). Sin flúor, sin badges. */
 
+/* Auto-hosteada: no está en Google Fonts. Sólo trae Regular/Bold (sin itálica), a diferencia de
+   Archivo/Syne que reemplaza — ver `.sd-poster__deny` más abajo, que dependía de ejes variables
+   ('wdth'/'wght') e itálica que esta familia no tiene. */
+@font-face {
+  font-family: 'Glacial Indifference';
+  src: url('/fonts/glacial-indifference/GlacialIndifference-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Glacial Indifference';
+  src: url('/fonts/glacial-indifference/GlacialIndifference-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 .sd-root {
   --sd-ink: #1a1028;
   --sd-ink-soft: #3d3060;
@@ -16,10 +35,15 @@
      Se dibuja en SVG para que quede a 1px exacto en cualquier densidad de pantalla. */
   --sd-cross: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11'%3E%3Cpath d='M5.5 0v11M0 5.5h11' stroke='%231a1028' stroke-opacity='.34' stroke-width='1'/%3E%3C/svg%3E");
   --sd-cross-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11'%3E%3Cpath d='M5.5 0v11M0 5.5h11' stroke='%23faf8f5' stroke-opacity='.38' stroke-width='1'/%3E%3C/svg%3E");
-  --sd-font-display: 'Syne', sans-serif;
-  --sd-font-body: 'Instrument Sans', sans-serif;
-  /* Display del key art: pesada, condensada e itálica. Sólo para los titulares de afiche. */
-  --sd-font-poster: 'Archivo', 'Syne', sans-serif;
+  --sd-font-display: 'Glacial Indifference', sans-serif;
+  --sd-font-body: 'Poppins', sans-serif;
+  /* Sólo para microcopy técnico (índices, labels) — mismo stack de sistema que ya usaba
+     `SdAsciiDisc.tsx` inline para el canvas, promovido acá para no sumar una fuente nueva. */
+  --sd-font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', 'Segoe UI Mono', Menlo, Consolas,
+    'DejaVu Sans Mono', monospace;
+  /* Mismo tipo que `--sd-font-display`: sigue siendo un título, sólo que del afiche. Variable
+     aparte por si el afiche necesita divergir más adelante. */
+  --sd-font-poster: 'Glacial Indifference', sans-serif;
   --sd-radius: 10px; /* unificado: nada circular / pill */
   margin: 0;
   padding: 0;
@@ -222,6 +246,25 @@ html.sd-cursor-on * {
   padding: clamp(28px, 6vw, 56px);
 }
 
+/* Wash diagonal del banner de difusión — violeta quemando desde dos esquinas opuestas, negro en
+   las otras dos. Va en un `::before` propio, pintado con `mix-blend-mode: screen` por ENCIMA del
+   disco ASCII y de su máscara de borde (`.sd-ascii::after`), en vez de vivir en el `background`
+   de la sección (que queda por debajo de todo). Puesto en el fondo se comía casi todo el glow en
+   cuanto la máscara del disco o el layout de la grilla le tapaban ese cuarto de pantalla — pintado
+   arriba y en `screen`, suma luz sin que nada de abajo lo pueda tapar. */
+.sd-hero::before,
+.sd-soon::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(80% 75% at 100% 0%, rgba(133, 101, 255, 0.7) 0%, transparent 62%),
+    radial-gradient(85% 80% at 0% 100%, rgba(96, 62, 249, 0.65) 0%, transparent 64%);
+}
+
 /* En el gate el disco va a sangre, de fondo detrás del contenido centrado. */
 .sd-soon__disc {
   position: absolute;
@@ -278,24 +321,17 @@ html.sd-cursor-on * {
   animation: sd-fade-up 0.9s 0.08s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Wordmark del key art como imagen — ya viene con su propia itálica, no hace falta el `skewX`
+   que sí necesitaba la versión en texto. */
 .sd-soon__title {
   margin: 0 0 1.25rem;
-  font-family: var(--sd-font-display);
-  font-size: clamp(3.4rem, 14vw, 6.5rem);
-  font-weight: 800;
-  line-height: 0.88;
-  letter-spacing: -0.055em;
-  text-transform: uppercase;
-  color: #fff;
   animation: sd-fade-up 0.95s 0.14s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.sd-soon__title-line {
+.sd-soon__title-img {
   display: block;
-}
-
-.sd-soon__title-line--day {
-  color: #b8a4ff;
+  width: clamp(260px, 46vw, 520px);
+  height: auto;
 }
 
 .sd-soon__lede {
@@ -834,10 +870,12 @@ html.sd-coming-soon body {
 }
 
 /* ── Hero ── */
+/* Exactamente una pantalla: los sponsors ya no viven adentro, así que nada empuja la sección
+   más allá de `100dvh`. Ver `.sd-sponsor-band` para lo que sigue debajo. */
 .sd-hero {
   position: relative;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -876,7 +914,7 @@ html.sd-coming-soon body {
   position: relative;
   width: 100%;
   aspect-ratio: 1;
-  max-width: min(58vh, 620px);
+  max-width: min(72vh, 760px);
   justify-self: end;
 }
 
@@ -897,18 +935,97 @@ html.sd-coming-soon body {
   pointer-events: none;
 }
 
-/* Funde el borde cuadrado del canvas con el fondo del hero. */
+/* Funde el borde del círculo dibujado en canvas con lo que sea que haya detrás — antes era un
+   color plano (`#0b0712`) hardcodeado, que tapaba el glow violeta del fondo entero en el cuarto
+   donde vive el disco. Transparente: el canvas ya desvanece su propio trazo cerca del borde
+   (`smoothstep` en `SdAsciiDisc`), así que esto sólo necesita afinar esa transición, no pintar
+   encima de lo que hay atrás. */
 .sd-ascii::after {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(circle at 50% 50%, transparent 56%, #0b0712 92%);
+  background: radial-gradient(circle at 50% 50%, transparent 62%, rgba(11, 7, 18, 0.3) 88%, transparent 100%);
 }
 
 .sd-hero__content .sd-btn,
 .sd-hero__content a {
   pointer-events: auto;
+}
+
+/* ── Marcas que apoyan — debajo del hero y del gate de coming soon ──
+   Gris parejo y sin tile: `grayscale` nivela el azul de Cobrando con los wordmarks blancos que
+   ya vienen preparados para banda oscura, y el `brightness` los sube a la misma altura de gris. */
+.sd-sponsor-strip {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.sd-sponsor-strip__label {
+  margin: 0;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(250, 248, 245, 0.38);
+}
+
+.sd-sponsor-strip__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(18px, 4vw, 40px);
+}
+
+.sd-sponsor-strip__logo {
+  display: flex;
+  align-items: center;
+  pointer-events: auto;
+  /* Cascada de entrada: cada logo pisa al anterior con el delay inline (`i * 70ms`) que pone
+     el componente. `is-in` lo prende `SdReveal` cuando el bloque entra en viewport. */
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+
+.sd-sponsor-strip.is-in .sd-sponsor-strip__logo {
+  opacity: 1;
+  transform: none;
+}
+
+.sd-sponsor-strip__logo img {
+  display: block;
+  height: 20px;
+  width: auto;
+  object-fit: contain;
+  filter: grayscale(1) brightness(1.7) opacity(0.55);
+  transition: filter 0.25s ease, transform 0.25s ease;
+}
+
+/* En reposo quedan apagados (gris, `opacity(0.55)`); al pasar el mouse el logo se enciende a
+   blanco pleno y se levanta un poco, como respuesta a la interacción. */
+.sd-sponsor-strip__logo:hover img {
+  filter: grayscale(1) brightness(2) opacity(1);
+  transform: translateY(-3px) scale(1.06);
+}
+
+/* Banda propia entre el hero y "Para quién es": mismo `#0b0712` que ambos, así no se nota la
+   costura. Vive fuera del hero a propósito — el hero mide justo `100dvh`. */
+.sd-sponsor-band {
+  position: relative;
+  background: #0b0712;
+  padding: clamp(32px, 6vw, 52px) clamp(20px, 5vw, 56px) clamp(48px, 8vw, 72px);
+}
+
+.sd-soon__sponsors {
+  margin-top: clamp(24px, 5vw, 40px);
+  width: max(100%, 30rem);
 }
 
 .sd-hero__eyebrow {
@@ -921,23 +1038,19 @@ html.sd-coming-soon body {
   opacity: 0;
 }
 
+/* `font-style: italic` no sintetiza acá: `Glacial Indifference` sólo registra caras 'normal' en
+   sus dos @font-face (Regular/Bold) y el navegador no la fuerza. `skewX` la reemplaza con control
+   total sobre el ángulo, igual al tratamiento del banner. */
+/* Wordmark del key art como imagen, no texto seteado en CSS — ver `startup-day-wordmark.png`. */
 .sd-hero__title {
   margin: 0 0 1.5rem;
-  font-family: var(--sd-font-display);
-  font-size: clamp(3.4rem, 7.6vw, 6.6rem);
-  font-weight: 800;
-  line-height: 0.86;
-  letter-spacing: -0.055em;
-  text-transform: uppercase;
-  color: #fff;
+  opacity: 0;
 }
 
-.sd-hero__line {
+.sd-hero__title-img {
   display: block;
-}
-
-.sd-hero__line--day {
-  color: #b8a4ff;
+  width: clamp(300px, 32vw, 620px);
+  height: auto;
 }
 
 .sd-hero__lede {
@@ -949,20 +1062,15 @@ html.sd-coming-soon body {
   opacity: 0;
 }
 
+/* Sólo fecha y ciudad — el resto (horario, dirección completa, entrada) vive en el CTA, en la
+   agenda y en el pie de página, no hace falta repetirlo acá. */
 .sd-hero__facts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  max-width: 560px;
+  max-width: 300px;
   margin-bottom: 1.75rem;
   opacity: 0;
-}
-
-@media (min-width: 640px) {
-  .sd-hero__facts {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    max-width: 640px;
-  }
 }
 
 .sd-hero__facts > div {
@@ -1022,14 +1130,16 @@ html.sd-coming-soon body {
 /* ── Entrada del hero ──
    Todo cuelga de `.sd-root.is-loaded`, que `SdShell` prende recién cuando termina el barrido:
    así las letras no animan debajo del loader. La clase existía sin ninguna regla que la usara. */
-.sd-hero__title .sd-char {
+/* `splitChars` agrupa por palabra: sin esto, dos `.sd-char` inline-block contiguos son un punto
+   de corte válido para el navegador aunque no haya espacio real entre ellos, y una palabra larga
+   puede partirse a la mitad al final de renglón. */
+.sd-word {
   display: inline-block;
-  opacity: 0;
-  transform: translateY(0.55em);
+  white-space: nowrap;
 }
 
-.sd-root.is-loaded .sd-hero__title .sd-char {
-  animation: sd-letter 0.62s cubic-bezier(0.16, 1, 0.3, 1) both;
+.sd-root.is-loaded .sd-hero__title {
+  animation: sd-fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .sd-root.is-loaded .sd-hero__eyebrow {
@@ -1066,7 +1176,6 @@ html.sd-coming-soon body {
 
 @media (prefers-reduced-motion: reduce) {
   .sd-hero__title,
-  .sd-hero__title .sd-char,
   .sd-hero__eyebrow,
   .sd-hero__lede,
   .sd-hero__facts,
@@ -1079,7 +1188,7 @@ html.sd-coming-soon body {
     animation: none !important;
   }
   /* Sin este reset el hero queda invisible para quien pide menos movimiento. */
-  .sd-hero__title .sd-char,
+  .sd-hero__title,
   .sd-hero__eyebrow,
   .sd-hero__lede,
   .sd-hero__facts,
@@ -1087,6 +1196,7 @@ html.sd-coming-soon body {
   .sd-hero__scroll {
     opacity: 1;
     transform: none;
+    transition: none !important;
   }
   .sd-loader {
     transition: none !important;
@@ -1152,116 +1262,216 @@ html.sd-coming-soon body {
   background: transparent;
 }
 
-/* ── Para quién es — afiche ──
-   Dejó de ser una banda de contenido: ocupa la pantalla y el peso lo lleva la tipografía. El
-   `#0b0712` es más profundo que el `--sd-ink` de la banda siguiente, así que las dos oscuras no se
-   leen como una sola masa. */
-.sd-poster {
+/* ── Para quién es — poster editorial ──
+   Cuarta dirección de arte para esta sección (1: tipografía cinética con ScrollTrigger; 2:
+   sistema modular de bit-patterns; 3: mapa de coordenadas de 7 nodos, cada uno con label +
+   coordenada — descartada por sobrecargada: demasiados elementos chicos, ninguno con
+   protagonismo, se leía como dashboard técnico en vez de pieza editorial. Ver historial de git
+   sobre este bloque). El titular es el protagonista absoluto y el sistema de coordenadas queda
+   reducido a 3 nodos, 3 rutas y 1 destino, sin labels ni coordenadas de texto.
+
+   El fondo pasó por una quinta iteración: una grilla `--sd-cross-light` cubriendo toda la
+   pantalla (motivo de key art del evento) se sentía como dashboard/HUD y competía con la
+   tipografía. Se reemplazó por atmósfera pura — negro casi total + un degradado radial violeta
+   muy sutil, sin patrón repetido — para que rutas y tipografía queden como único sistema
+   gráfico. Ver el mapeo conceptual en `SdManifesto.tsx`: fondo = atmósfera, tipografía =
+   mensaje, rutas = concepto, puntos = personas, destino = futuro.
+
+   Un solo árbol JSX en reposo: el motion (`SdManifesto.tsx`) sólo anima opacity/transform/
+   stroke-dashoffset sobre elementos que ya están en su posición final, así que sin JS — mobile,
+   `prefers-reduced-motion`, o el primer frame antes de que dispare el timeline — la composición
+   ya está completa. Nada de ScrollTrigger/pin/scrub: dispara una única vez con
+   IntersectionObserver.
+
+   Sin variante mobile aparte: al ser un titular + una atmósfera de fondo (no una grilla de datos
+   por rol), el mismo árbol escala con `clamp()` y el SVG de fondo cubre vía
+   `preserveAspectRatio="xMidYMid slice"` en cualquier aspect ratio. */
+.sd-manifesto {
   position: relative;
   isolation: isolate;
-  min-height: 100svh;
-  display: grid;
-  align-content: center;
-  padding: clamp(72px, 10vh, 120px) clamp(20px, 5vw, 64px);
+  overflow: hidden;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
   background: #0b0712;
   color: var(--sd-cream);
-  overflow: hidden;
 }
 
-/* El titular vive a la izquierda, así que el halo va corrido hacia ahí y no centrado. Los violetas
-   son los de la rampa del disco (`TINTS` en `SdAsciiDisc`), para que la sección siga en la misma
-   familia de color aunque ya no lleve ASCII. */
-.sd-poster::after {
-  content: '';
+/* Atmósfera, no patrón: dos glows radiales muy suaves — uno tras el destino (futuro), uno tenue
+   tras el cluster de nodos (personas) — sobre negro casi total. Nada se repite ni cubre la
+   pantalla, así que no compite con rutas ni tipografía. */
+.sd-manifesto__bg {
   position: absolute;
   inset: 0;
   z-index: 0;
+  background:
+    radial-gradient(ellipse 60% 55% at 74% 46%, rgba(96, 62, 249, 0.22), transparent 68%),
+    radial-gradient(ellipse 55% 45% at 8% 82%, rgba(67, 42, 163, 0.12), transparent 74%);
   pointer-events: none;
-  background: radial-gradient(
-    62% 58% at 34% 46%,
-    rgba(107, 83, 216, 0.26) 0%,
-    rgba(73, 54, 164, 0.13) 44%,
-    transparent 72%
-  );
 }
 
-.sd-poster__inner {
-  position: relative;
-  z-index: 2;
+/* Sistema gráfico principal de la sección — rutas y nodos, siempre detrás del titular
+   (z-index 0 vs. 1). Con la grilla fuera, este es el único elemento gráfico que queda, así que
+   lleva algo más de peso que antes. */
+.sd-manifesto__system {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
   width: 100%;
-  max-width: 1180px;
-  margin: 0 auto;
+  height: 100%;
+  pointer-events: none;
+}
+
+.sd-manifesto__route {
+  fill: none;
+  stroke: rgba(196, 181, 255, 0.3);
+  stroke-width: 2;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.sd-manifesto__node {
+  fill: rgba(196, 181, 255, 0.38);
+}
+
+.sd-manifesto__dest-ring {
+  fill: none;
+  stroke: var(--sd-purple);
+  stroke-width: 2;
+  opacity: 0.5;
+}
+
+.sd-manifesto__dest-dot {
+  fill: var(--sd-purple);
+  opacity: 0.7;
+}
+
+.sd-manifesto__inner {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  gap: clamp(26px, 4vw, 46px);
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: clamp(40px, 7vw, 88px) clamp(24px, 6vw, 88px) clamp(48px, 7vw, 88px);
 }
 
-.sd-poster__kicker {
-  margin: 0;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: #b8a4ff;
+.sd-manifesto__topbar {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: clamp(32px, 6vw, 64px);
 }
 
-/* La negación va enorme y el contrapunto chico: ese salto de escala es lo que sostiene la pieza.
-   Sin él es sólo un título grande. */
-.sd-poster__deny {
-  margin: 0;
-  font-family: var(--sd-font-poster);
-  font-weight: 900;
-  font-stretch: 68%;
-  font-variation-settings: 'wdth' 68, 'wght' 900;
-  font-style: italic;
-  font-size: clamp(2.6rem, 8.2vw, 6.4rem);
-  line-height: 0.86;
-  letter-spacing: -0.025em;
+.sd-manifesto .sd-kicker {
+  color: #c4b5ff;
+  margin-bottom: 0;
+}
+
+.sd-manifesto__index {
+  font-family: var(--sd-font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--sd-cream);
+  font-variant-numeric: tabular-nums;
+  color: rgba(250, 248, 245, 0.5);
+  white-space: nowrap;
+}
+
+.sd-manifesto__stage {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+}
+
+.sd-manifesto__headline {
+  margin: 0;
+}
+
+.sd-manifesto__line {
+  display: block;
+  font-family: var(--sd-font-display);
+  text-transform: uppercase;
+  line-height: 0.94;
+  letter-spacing: -0.01em;
   text-wrap: balance;
 }
 
-.sd-poster__yes {
-  display: block;
-  margin-top: 0.55em;
-  font-family: var(--sd-font-body);
-  font-variation-settings: normal;
-  font-style: normal;
-  font-weight: 500;
-  font-size: clamp(1.05rem, 2.2vw, 1.55rem);
-  line-height: 1.25;
-  letter-spacing: 0;
-  text-transform: none;
-  color: #b8a4ff;
+.sd-manifesto__line--soft {
+  font-weight: 400;
+  font-size: clamp(2.2rem, 6vw, 4.75rem);
+  color: rgba(250, 248, 245, 0.68);
 }
 
-/* Sin numerar: son alternativas, no una secuencia. Numerarlas afirmaría un orden que no existe. */
-.sd-poster__list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 0;
-  max-width: 60ch;
-  font-size: clamp(0.92rem, 1.5vw, 1.02rem);
-  color: rgba(250, 248, 245, 0.74);
+.sd-manifesto__line--bold {
+  font-weight: 800;
+  font-size: clamp(3.2rem, 11vw, 9rem);
+  margin-top: 0.1em;
+  color: var(--sd-cream);
+  letter-spacing: -0.02em;
 }
 
-.sd-poster__list li:not(:last-child)::after {
-  content: '·';
-  margin: 0 0.7em;
+.sd-manifesto__accent-word {
   color: var(--sd-purple);
-  font-weight: 700;
 }
 
-.sd-poster__foot {
-  margin: 0;
-  max-width: 54ch;
-  font-size: 0.86rem;
-  line-height: 1.55;
-  color: rgba(250, 248, 245, 0.56);
+.sd-manifesto__module-punct {
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  margin-left: 0.28em;
+  transform: translateY(-0.08em);
+  background: var(--sd-purple);
+  border-radius: 1px;
+  vertical-align: middle;
+}
+
+/* ── Teaser hacia "Startups confirmadas" — transición mínima al pie ── */
+.sd-manifesto__teaser {
+  flex: 0 0 auto;
+  padding-top: clamp(32px, 5vw, 48px);
+}
+
+.sd-manifesto__teaser-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  font-family: var(--sd-font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(250, 248, 245, 0.6);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(250, 248, 245, 0.24);
+  padding-bottom: 2px;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.sd-manifesto__teaser-link span {
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.sd-manifesto__teaser-link:hover {
+  color: #c4b5ff;
+  border-color: #c4b5ff;
+}
+
+.sd-manifesto__teaser-link:hover span {
+  transform: translateX(3px);
+}
+
+@media (max-width: 520px) {
+  .sd-manifesto__topbar {
+    flex-wrap: wrap;
+  }
 }
 
 .sd-agenda__head {
@@ -1762,14 +1972,6 @@ html.sd-coming-soon body {
   padding: clamp(56px, 9vw, 100px) clamp(20px, 5vw, 56px);
 }
 
-/* Agenda → Confirmadas: mismo ink, menos aire entre medias */
-#agenda.sd-band {
-  padding-bottom: clamp(28px, 4vw, 48px);
-}
-
-#confirmadas.sd-band {
-  padding-top: clamp(28px, 4vw, 48px);
-}
 
 .sd-band--ink {
   background: var(--sd-ink);
@@ -2224,6 +2426,56 @@ a.sd-spn__logo:hover {
   border-bottom-color: var(--sd-purple);
 }
 
+/* ── Confirmadas: destacadas ──
+   `SD_STARTUPS` ya traía `featured`/`blurb` en la data pero nada los renderizaba — hoy las 4
+   destacadas (Pasito, TQe, Satellites on Fire, Marz) tienen su propia fila editorial arriba del
+   marquee, que se queda con el resto. Clases nuevas (no `.sd-featured*`, que ya usan Sponsors/
+   XploraSite sobre banda clara — reusarlo acá sobre banda ink habría chocado de color). */
+.sd-confirmed__featured {
+  display: grid;
+  margin-top: clamp(24px, 4vw, 40px);
+}
+
+.sd-confirmed__featured-item {
+  display: grid;
+  gap: 6px 32px;
+  padding: clamp(20px, 3vw, 28px) 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-decoration: none;
+  color: inherit;
+}
+
+.sd-confirmed__featured:has(.sd-confirmed__featured-item:last-child) .sd-confirmed__featured-item:last-child {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@media (min-width: 720px) {
+  .sd-confirmed__featured-item {
+    grid-template-columns: minmax(160px, 0.4fr) 1fr;
+    align-items: baseline;
+    gap: 12px 32px;
+  }
+}
+
+.sd-confirmed__featured-name {
+  margin: 0;
+  font-family: var(--sd-font-display);
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+  color: var(--sd-cream);
+  transition: color 0.2s ease;
+}
+
+.sd-confirmed__featured-item:hover .sd-confirmed__featured-name {
+  color: #b8a4ff;
+}
+
+.sd-confirmed__featured-blurb {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.55;
+  color: rgba(250, 248, 245, 0.62);
+}
+
 /* ── Marquee logos ── */
 .sd-marquee {
   overflow: hidden;
@@ -2488,55 +2740,60 @@ a.sd-partner__name:hover {
   color: rgba(250, 248, 245, 0.72);
 }
 
+/* Antes: grid parejo de 4 cards. Ahora: cada concepto es una fila que ocupa buena parte del
+   ancho, con el nombre gigante como protagonista tipográfico en vez de encerrado en una card —
+   y cada uno entra con su propio delay de `SdReveal` a medida que el usuario scrollea, en vez
+   de aparecer todos juntos. */
 .sd-pulse__pillars {
   position: relative;
   z-index: 1;
-  display: grid;
-  gap: clamp(1.75rem, 4vw, 2.5rem);
+  display: flex;
+  flex-direction: column;
   width: 100%;
   max-width: 100%;
   min-width: 0;
 }
 
-@media (min-width: 760px) {
-  .sd-pulse__pillars {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: clamp(2rem, 5vw, 3.5rem);
-    row-gap: clamp(2rem, 4vw, 3rem);
-  }
-}
-
-@media (min-width: 1100px) {
-  .sd-pulse__pillars {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
 .sd-pulse__pillar {
-  margin: 0;
-  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
   min-width: 0;
   max-width: 100%;
+  padding: clamp(22px, 4vw, 40px) 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   background: none;
-  border: 0;
+}
+
+.sd-pulse__pillar:last-child {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@media (min-width: 760px) {
+  .sd-pulse__pillar {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    align-items: baseline;
+    gap: clamp(24px, 5vw, 56px);
+  }
 }
 
 .sd-pulse__tag {
-  margin: 0 0 0.65rem;
+  margin: 0;
   font-family: var(--sd-font-display);
-  font-size: clamp(1.2rem, 2.4vw, 1.55rem);
+  font-size: clamp(2.1rem, 7vw, 4.6rem);
   font-weight: 800;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
   text-transform: uppercase;
   color: #fff;
-  line-height: 1.15;
+  line-height: 0.94;
   overflow-wrap: anywhere;
 }
 
 .sd-pulse__copy {
   margin: 0;
-  font-size: 0.98rem;
-  line-height: 1.55;
+  max-width: 42ch;
+  font-size: 1.02rem;
+  line-height: 1.6;
   color: rgba(250, 248, 245, 0.58);
 }
 
@@ -2683,6 +2940,16 @@ a.sd-partner__name:hover {
   color: rgba(250, 248, 245, 0.6);
 }
 
+/* "El lugar" ya no termina en el plano 3D: la agenda vive adentro de la misma sección/banda,
+   como continuación directa ("así va a suceder") en vez de una sección aparte con su propio
+   fondo. `StartupDayAgenda` ya no pinta su propia `<section>` — esto es lo que la separa
+   visualmente del piso sin cortar la banda. */
+.sd-piso__agenda {
+  margin-top: clamp(56px, 9vw, 96px);
+  padding-top: clamp(36px, 6vw, 64px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 /* ── Inscripción (Luma) ── */
 .sd-signup {
   display: grid;
@@ -2704,31 +2971,106 @@ a.sd-partner__name:hover {
   color: rgba(250, 248, 245, 0.55);
 }
 
-/* ── StartupMate (teaser) ── */
+/* ── StartupMate ──
+   Pasa de teaser de texto a algo con más peso de "lanzamiento de producto": el headline usa la
+   misma escala/lenguaje tipográfico del manifiesto de "Para quién es", y unos tags flotantes
+   (rol/interés/etapa — ilustrativos, no una UI inventada) sugieren matching sin fabricar
+   funcionalidad que no existe. */
+.sd-smate {
+  position: relative;
+  overflow: hidden;
+}
+
 .sd-smate__inner {
+  position: relative;
+  z-index: 1;
   display: grid;
   justify-items: start;
-  gap: 0.85rem;
+  gap: 1rem;
   max-width: 44rem;
+}
+
+.sd-smate__headline {
+  margin: 0.25rem 0 0.5rem;
+  font-family: var(--sd-font-display);
+  text-transform: uppercase;
+  line-height: 0.9;
+}
+
+.sd-smate__headline span {
+  display: block;
+  font-size: clamp(2.8rem, 9vw, 6.4rem);
+  font-weight: 800;
+  color: var(--sd-cream);
+}
+
+.sd-smate__headline-accent {
+  color: #b8a4ff;
 }
 
 .sd-smate__name {
   margin: 0;
   font-family: var(--sd-font-display);
-  font-size: clamp(2.4rem, 7vw, 4.5rem);
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.02em;
+  font-size: clamp(1.1rem, 2.2vw, 1.3rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
   color: var(--sd-cream);
 }
 
 .sd-smate__tagline {
-  margin: 0;
-  font-family: var(--sd-font-display);
-  font-size: clamp(1.1rem, 2.6vw, 1.5rem);
+  margin: -0.5rem 0 0;
+  font-family: var(--sd-font-body);
+  font-size: clamp(0.95rem, 2vw, 1.1rem);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: #c4b5ff;
+}
+
+/* Tags flotantes, decorativos — sugieren "matching" por rol/etapa sin inventar una UI real. */
+.sd-smate__tags {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.sd-smate__tag {
+  position: absolute;
+  left: calc(var(--x) * 1%);
+  top: calc(var(--y) * 1%);
+  padding: 6px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  font-family: var(--sd-font-body);
+  font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: #c4b5ff;
+  color: rgba(250, 248, 245, 0.45);
+  white-space: nowrap;
+  animation: sd-smate-float 7s ease-in-out infinite;
+  animation-delay: calc(var(--d) * 1s);
+}
+
+@keyframes sd-smate-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@media (max-width: 899px) {
+  .sd-smate__tags {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sd-smate__tag {
+    animation: none;
+  }
 }
 
 .sd-smate__note {
@@ -3285,10 +3627,8 @@ a.sd-partner__name:hover {
 }
 
 @media (max-width: 899px) {
-  .sd-hero__title {
-    font-size: clamp(3.4rem, 14vw, 5.5rem);
-    line-height: 0.9;
-    letter-spacing: -0.05em;
+  .sd-hero__title-img {
+    width: clamp(240px, 62vw, 460px);
   }
 
   /* Apilado: el disco deja de ser columna y pasa a ser fondo detrás del texto. */
@@ -3406,6 +3746,32 @@ a.sd-partner__name:hover {
   pointer-events: none;
 }
 
+/* Módulo compartido: la misma unidad gráfica (cuadrado lleno/vacío) que arma los bit-patterns
+   de "Para quién es" (`SdManifesto.tsx`) y se repite acá como eco estático para que "Confirmadas"
+   no se sienta como una sección aparte. Sin motion — es sólo el glifo. */
+.sd-module-strip {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.sd-module-strip__bit {
+  width: 7px;
+  height: 7px;
+  border-radius: 1px;
+  border: 1px solid rgba(250, 248, 245, 0.22);
+  background: transparent;
+}
+
+.sd-module-strip__bit.is-on {
+  background: var(--sd-purple);
+  border-color: var(--sd-purple);
+}
+
+.sd-confirmed__strip {
+  margin-bottom: 12px;
+}
+
 .sd-timeline {
   list-style: none;
   margin: 2.5rem 0 0;
@@ -3494,6 +3860,12 @@ a.sd-partner__name:hover {
   .sd-marquee__track,
   .sd-pulse-dot {
     animation: none !important;
+  }
+  /* Entrada con `transition` (no `animation`) que quedaba sin cobertura. */
+  .sd-sponsor-strip__logo {
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 

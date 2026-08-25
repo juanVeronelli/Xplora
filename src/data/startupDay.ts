@@ -31,8 +31,8 @@ const LOGO = (file: string) => `/logos/startup-day/${file}?v=12`;
 
 export const SD_EVENT = {
   title: 'Startup Day',
-  dateLabel: '9 de septiembre de 2026',
-  timeLabel: '15 a 19 hs',
+  dateLabel: '11 de septiembre de 2026',
+  timeLabel: '15 a 20 hs',
   address: 'Av. Alem 882',
   addressFull: 'Av. Alem 882, Ciudad de Buenos Aires · UCEMA',
   priceLabel: '100% gratuito',
@@ -81,13 +81,13 @@ export const SD_AGENDA_LOCKED = true;
 export const SD_DAY_STORY = {
   kicker: 'Qué pasa ese día',
   title: 'La experiencia',
-  meta: '15 — 19 hs · UCEMA · 100% gratuito',
+  meta: '15 — 20 hs · UCEMA · 100% gratuito',
   lead:
     'Stands abiertos durante todo el evento, workshops con empresas líderes, charlas y espacio para conversar con quienes están construyendo startups.',
   pillars: [
     {
       tag: 'Stands',
-      text: 'El espacio permanece activo de 15 a 19 hs. Recorré los stands, conversá con los equipos y volvé cuando quieras.',
+      text: 'El espacio permanece activo de 15 a 20 hs. Recorré los stands, conversá con los equipos y volvé cuando quieras.',
     },
     {
       tag: 'Startups',
@@ -114,7 +114,7 @@ export type SdScheduleBeat = {
 
 export const SD_STANDS = {
   from: '15',
-  to: '19',
+  to: '20',
   label: 'Stands',
   note: 'Abiertos todo el horario',
 } as const;
@@ -168,6 +168,11 @@ export const SD_SCHEDULE: readonly SdScheduleBeat[] = [
   },
   {
     time: '19:00',
+    kind: 'stands',
+    label: 'Stands abiertos',
+  },
+  {
+    time: '19:30',
     kind: 'stands',
     label: 'Stands abiertos',
   },

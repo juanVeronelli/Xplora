@@ -8,7 +8,6 @@ import { MAIN_SITE_URL, STARTUP_DAY_CANONICAL } from '../lib/startupDayHost';
 import {
   SD_COMING_SOON,
   SD_DAY_STORY,
-  SD_EDITION_SPONSORS,
   SD_EVENT,
   SD_STARTUPMATE,
   SD_STARTUPS,
@@ -16,14 +15,24 @@ import {
 } from '../data/startupDay';
 import { SdReveal } from '../components/startup-day/SdReveal';
 import { SdShell } from '../components/startup-day/SdShell';
+import { SdManifesto } from '../components/startup-day/SdManifesto';
+import { SdModuleStrip } from '../components/startup-day/SdModuleStrip';
 import { StartupDayAgenda } from '../components/startup-day/StartupDayAgenda';
 import { StartupDayComingSoon } from '../components/startup-day/StartupDayComingSoon';
-import { StartupDaySponsorCta } from '../components/startup-day/StartupDaySponsorForm';
 import { StartupDayCursor } from '../components/startup-day/StartupDayCursor';
 import { SdAsciiDisc } from '../components/startup-day/SdAsciiDisc';
-import { splitChars } from '../components/startup-day/splitChars';
+import { SdSponsorStrip } from '../components/startup-day/SdSponsorStrip';
 import { StartupDayFloor } from '../components/startup-day/floor/StartupDayFloor';
 import '../styles/startupDay.css';
+
+/** Tags decorativos de la sección StartupMate — ilustran ejes de matching, no una UI real. */
+const SD_STARTUPMATE_TAGS: readonly { label: string; x: number; y: number; d: number }[] = [
+  { label: 'Founder', x: 6, y: 18, d: 0 },
+  { label: 'Technical', x: 78, y: 12, d: 0.6 },
+  { label: 'Idea temprana', x: 14, y: 68, d: 1.2 },
+  { label: 'Busca equipo', x: 70, y: 74, d: 0.3 },
+  { label: 'Producto en marcha', x: 42, y: 8, d: 0.9 },
+];
 
 function useComingSoonGate() {
   const [gated, setGated] = useState(SD_COMING_SOON);
@@ -66,8 +75,8 @@ export default function StartupDay() {
     const prevDesc = metaDesc?.content ?? '';
     if (metaDesc) {
       metaDesc.content = comingSoon
-        ? 'Startup Day by Xplora UCEMA. Lo estamos construyendo — pronto disponible. 9 de septiembre 2026. Entrada 100% gratuita.'
-        : 'Startup Day by Xplora UCEMA. 9 de septiembre 2026, Av. Alem 882. Entrada 100% gratuita. Startups, workshops, pitch e inversores.';
+        ? 'Startup Day by Xplora UCEMA. Lo estamos construyendo — pronto disponible. 11 de septiembre 2026. Entrada 100% gratuita.'
+        : 'Startup Day by Xplora UCEMA. 11 de septiembre 2026, Av. Alem 882. Entrada 100% gratuita. Startups, workshops, pitch e inversores.';
     }
 
     const t = comingSoon ? undefined : window.setTimeout(() => setLoaderDone(true), 900);
@@ -105,47 +114,38 @@ export default function StartupDay() {
 }
 
 function StartupDayContent() {
-  const marquee = [...SD_STARTUPS, ...SD_STARTUPS];
+  const featured = SD_STARTUPS.filter((s) => s.featured);
+  const rest = SD_STARTUPS.filter((s) => !s.featured);
+  const marquee = [...rest, ...rest];
 
   return (
     <>
       <section className="sd-hero">
         <div className="sd-hero__grid">
           <div className="sd-hero__content">
-            <p className="sd-hero__eyebrow">Xplora · UCEMA · 1ª edición</p>
-
-            {/* aria-label en el h1 + aria-hidden en los spans: si no, un lector de pantalla deletrea
-                los caracteres sueltos de `splitChars` uno por uno. */}
-            <h1 className="sd-hero__title" aria-label="Startup Day">
-              <span className="sd-hero__line" aria-hidden>
-                {splitChars('Startup', 0)}
-              </span>
-              <span className="sd-hero__line sd-hero__line--day" aria-hidden>
-                {splitChars('Day', 0.34)}
-              </span>
+            {/* Logo de key art en vez de texto seteado en CSS: después de varias vueltas afinando
+                itálica/tracking/glow a mano para igualar el banner, se usa directamente el
+                wordmark que ya viene diseñado así. */}
+            <h1 className="sd-hero__title">
+              <img
+                className="sd-hero__title-img"
+                src="/logos/startup-day/startup-day-wordmark.png?v=1"
+                alt="Startup Day"
+              />
             </h1>
 
             <p className="sd-hero__lede">
-              Un día con startups argentinas en UCEMA: stands, workshops, pitch e inversores. Primera
-              edición de Xplora. Entrada 100% gratuita.
+              El mayor evento para startups y builders del año.
             </p>
 
             <div className="sd-hero__facts">
               <div>
                 <span className="sd-hero__fact-k">Fecha</span>
-                <strong>09.09.26</strong>
-              </div>
-              <div>
-                <span className="sd-hero__fact-k">Horario</span>
-                <strong>{SD_EVENT.timeLabel.replace(' a ', ' — ')}</strong>
+                <strong>11.09</strong>
               </div>
               <div>
                 <span className="sd-hero__fact-k">Lugar</span>
-                <strong>Av. Alem 882</strong>
-              </div>
-              <div>
-                <span className="sd-hero__fact-k">Entrada</span>
-                <strong>{SD_EVENT.priceLabel}</strong>
+                <strong>Buenos Aires</strong>
               </div>
             </div>
 
@@ -173,44 +173,53 @@ function StartupDayContent() {
         </a>
       </section>
 
-      {/* Afiche, no banda de contenido: el fondo queda vacío y el peso lo lleva la tipografía.
-          Los cuatro títulos son las cuatro líneas — los párrafos se eliminaron enteros. */}
-      <section id="para-quien" className="sd-poster">
-        <SdReveal className="sd-poster__inner">
-          <p className="sd-poster__kicker">Para quién es</p>
+      <div id="sponsors" className="sd-sponsor-band">
+        <SdSponsorStrip />
+      </div>
 
-          <h2 className="sd-poster__deny">
-            No hace falta tener una startup
-            <span className="sd-poster__yes">Hace falta tener ganas.</span>
-          </h2>
-
-          <ul className="sd-poster__list">
-            <li>Tenés una idea dando vueltas</li>
-            <li>Querés hablar con alguien que ya levantó capital</li>
-            <li>Ya estás construyendo algo</li>
-            <li>Todavía no tenés nada</li>
-          </ul>
-
-          <p className="sd-poster__foot">
-            Del otro lado pasa lo mismo: los equipos que exponen se llevan gente nueva que entiende
-            lo que están construyendo.
-          </p>
-        </SdReveal>
-      </section>
-
-      <StartupDayAgenda />
+      <SdManifesto />
 
       <section id="confirmadas" className="sd-band sd-band--ink">
         <SdReveal>
+          <SdModuleStrip className="sd-confirmed__strip" />
           <p className="sd-kicker">Confirmadas</p>
           <h2 className="sd-h2">Startups en el piso</h2>
         </SdReveal>
+
+        {/* Las 4 con `featured: true` en la data (ya existía, no se usaba en ningún lado) pasan
+            a una fila editorial con su blurb visible; el resto sigue en el marquee de abajo. */}
+        <div className="sd-confirmed__featured">
+          {featured.map((co, i) => {
+            const href = co.website || co.linkedin || co.instagram;
+            return (
+              <SdReveal
+                key={co.id}
+                as="article"
+                delay={(i % 3) as 0 | 1 | 2}
+                className="sd-confirmed__featured-item"
+              >
+                <a
+                  href={href || '#'}
+                  target={href ? '_blank' : undefined}
+                  rel="noopener noreferrer"
+                  style={{ display: 'contents', color: 'inherit', textDecoration: 'none' }}
+                  onClick={(e) => {
+                    if (!href) e.preventDefault();
+                  }}
+                >
+                  <p className="sd-confirmed__featured-name">{co.name}</p>
+                  <p className="sd-confirmed__featured-blurb">{co.blurb}</p>
+                </a>
+              </SdReveal>
+            );
+          })}
+        </div>
 
         <div className="sd-marquee" aria-label="Startups confirmadas">
           <div
             className="sd-marquee__track"
             /* La duración escala con la cantidad de logos para que la velocidad no cambie. */
-            style={{ ['--sd-marquee-dur' as string]: `${SD_STARTUPS.length * 4.75}s` }}
+            style={{ ['--sd-marquee-dur' as string]: `${rest.length * 4.75}s` }}
           >
             <div className="sd-marquee__group">
               {marquee.map((co, i) => {
@@ -260,6 +269,9 @@ function StartupDayContent() {
         </div>
       </section>
 
+      {/* "El lugar" + Agenda fusionados: la agenda ya no es una sección aparte con su propio
+          fondo — es la continuación directa del piso ("así va a suceder"), ver
+          `.sd-piso__agenda` y el comentario en `StartupDayAgenda.tsx`. */}
       <section id="piso" className="sd-band sd-band--ink sd-piso">
         <SdReveal className="sd-piso__head">
           <p className="sd-kicker">El lugar</p>
@@ -271,12 +283,30 @@ function StartupDayContent() {
         </SdReveal>
 
         <StartupDayFloor />
+
+        <StartupDayAgenda />
       </section>
 
       <section id="startupmate" className="sd-band sd-band--purple-wash sd-smate">
+        <div className="sd-smate__tags" aria-hidden>
+          {SD_STARTUPMATE_TAGS.map((t) => (
+            <span
+              key={t.label}
+              className="sd-smate__tag"
+              style={{ ['--x' as string]: t.x, ['--y' as string]: t.y, ['--d' as string]: t.d }}
+            >
+              {t.label}
+            </span>
+          ))}
+        </div>
+
         <SdReveal className="sd-smate__inner">
           <p className="sd-kicker">{SD_STARTUPMATE.kicker}</p>
-          <h2 className="sd-smate__name">{SD_STARTUPMATE.name}</h2>
+          <h2 className="sd-smate__headline">
+            <span>Encontrá</span>
+            <span className="sd-smate__headline-accent">a tu cofounder</span>
+          </h2>
+          <p className="sd-smate__name">{SD_STARTUPMATE.name}</p>
           <p className="sd-smate__tagline">{SD_STARTUPMATE.tagline}</p>
           <p className="sd-lead">{SD_STARTUPMATE.lead}</p>
           <p className="sd-smate__note">
@@ -286,54 +316,10 @@ function StartupDayContent() {
         </SdReveal>
       </section>
 
-      <section id="sponsors" className="sd-band sd-band--cream sd-spn">
-        <SdReveal className="sd-spn__inner">
-          <p className="sd-spn__label">Sponsors · Primera edición</p>
-
-          {SD_EDITION_SPONSORS.length ? (
-            <div className="sd-spn__logos" aria-label="Sponsors Startup Day">
-              {SD_EDITION_SPONSORS.map((sp) => {
-                const href = sp.website || sp.linkedin || sp.instagram;
-                const img = sp.logoUrl ? (
-                  <img src={sp.logoUrl} alt={sp.name} loading="lazy" />
-                ) : (
-                  <span className="sd-spn__brand">{sp.name}</span>
-                );
-                const className = `sd-spn__logo${sp.logoVariant === 'icon' ? ' sd-spn__logo--icon' : ''}`;
-                return href ? (
-                  <a
-                    key={sp.id}
-                    className={className}
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {img}
-                  </a>
-                ) : (
-                  <div key={sp.id} className={className}>
-                    {img}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="sd-spn__soon">
-              Estamos cerrando los sponsors de la primera edición. Si tu marca quiere estar, es
-              el momento.
-            </p>
-          )}
-
-          <div className="sd-spn__foot">
-            <StartupDaySponsorCta className="sd-spn__cta" />
-          </div>
-        </SdReveal>
-      </section>
-
       <section id="reservar" className="sd-band sd-band--ink">
         <SdReveal className="sd-signup">
           <p className="sd-kicker">Inscripción</p>
-          <h2 className="sd-h2">Asegurá tu lugar</h2>
+          <h2 className="sd-h2">¿Venís?</h2>
           <p className="sd-lead">
             Entrada {SD_EVENT.priceLabel} y cupos limitados. La inscripción se hace en Luma:
             reservás en un minuto y te llega la confirmación por mail.
