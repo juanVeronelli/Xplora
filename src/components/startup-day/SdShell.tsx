@@ -89,8 +89,11 @@ export function SdShell({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  /* El modificador por sitio permite acotar estilos a una sola de las tres landings que comparten
+     este shell — hoy lo usan los botones, que en Startup Day van con el tratamiento violeta del
+     key art y en Xplora/Sponsors siguen siendo el pill blanco. */
   return (
-    <div className={`sd-root${loaderDone ? ' is-loaded' : ''}`}>
+    <div className={`sd-root sd-root--${active}${loaderDone ? ' is-loaded' : ''}`}>
       {showCursor ? <StartupDayCursor /> : null}
       {showLoader ? (
         <>

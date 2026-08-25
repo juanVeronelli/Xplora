@@ -26,6 +26,42 @@
   --sd-faint: #b8b0cc;
   --sd-purple: #603ef9;
   --sd-purple-soft: rgba(96, 62, 249, 0.12);
+
+  /* Wash violeta de la esquina inferior izquierda. Vive en variables porque el hero y
+     `.sd-sponsor-band` pintan LA MISMA elipse, con el centro a `86dvh` del tope de la página: el
+     hero lo escribe como `86%` (mide exactamente `100dvh`) y la banda, que empieza en `100dvh`,
+     como `-14dvh`. Misma función evaluada a los dos lados del borde ⇒ el valor coincide en la
+     costura y no queda línea. El centro va ARRIBA del borde a propósito: si cayera justo encima,
+     ahí quedaría el pico de la elipse y la pendiente se invertiría de golpe — una cúspide que se
+     lee como arruga. Corrido al 86%, el violeta ya viene bajando cuando cruza. Las paradas son una
+     caída larga y convexa en vez de la rampa lineal de antes, así el color se apaga suave hacia
+     abajo y hacia los lados. */
+  --sd-wash-bl:
+    rgba(96, 62, 249, 0.7) 0%,
+    rgba(96, 62, 249, 0.47) 22%,
+    rgba(96, 62, 249, 0.24) 42%,
+    rgba(96, 62, 249, 0.09) 60%,
+    rgba(96, 62, 249, 0) 78%;
+
+  /* La atenuación vertical es UNA sola rampa partida en dos tramos: el hero llega al borde con
+     0.58 y la banda arranca en 0.58 y muere en 0 justo donde termina. Los tramos están calculados
+     para que la pendiente combinada (color × máscara) sea la misma a los dos lados de la costura
+     —0.002213 vs 0.002207 de alfa por px— así que no hay ni salto ni quiebre. */
+  --sd-wash-fade-hero: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 55%,
+    rgba(0, 0, 0, 0.95) 72%,
+    rgba(0, 0, 0, 0.8) 86%,
+    rgba(0, 0, 0, 0.58) 100%
+  );
+  --sd-wash-fade-tail: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.58) 0%,
+    rgba(0, 0, 0, 0.42) 38%,
+    rgba(0, 0, 0, 0.2) 78%,
+    rgba(0, 0, 0, 0) 100%
+  );
   --sd-cream: #faf8f5;
   --sd-cream-dark: #f2eee8;
   --sd-warm: #ede8e0;
@@ -263,6 +299,25 @@ html.sd-cursor-on * {
   background:
     radial-gradient(80% 75% at 100% 0%, rgba(133, 101, 255, 0.7) 0%, transparent 62%),
     radial-gradient(85% 80% at 0% 100%, rgba(96, 62, 249, 0.65) 0%, transparent 64%);
+}
+
+/* El wash de arriba lo comparten hero y gate; sólo el hero necesita continuar más abajo, porque
+   es el único que tiene otra sección pegada debajo (el gate ya lleva los sponsors adentro).
+   Antes la elipse inferior llegaba a su punto más brillante justo sobre el borde de `.sd-hero`,
+   que con `overflow: hidden` y `height: 100dvh` la cortaba al ras: de ahí la línea horizontal
+   violeta/negro. Ahora la capa se apaga con `mask-image` mientras baja y `.sd-sponsor-band::before`
+   retoma la misma elipse exactamente donde ésta queda. */
+.sd-hero::before {
+  /* `vh` primero como reserva: si el navegador no entiende `dvh` se queda con este, que en el hero
+     resuelve al mismo alto — y la banda usa el mismo par, así que siguen empalmando igual. */
+  background:
+    radial-gradient(80% 75% at 100% 0%, rgba(133, 101, 255, 0.7) 0%, transparent 62%),
+    radial-gradient(85% 80vh at 0% 86%, var(--sd-wash-bl));
+  background:
+    radial-gradient(80% 75% at 100% 0%, rgba(133, 101, 255, 0.7) 0%, transparent 62%),
+    radial-gradient(85% 80dvh at 0% 86%, var(--sd-wash-bl));
+  -webkit-mask-image: var(--sd-wash-fade-hero);
+  mask-image: var(--sd-wash-fade-hero);
 }
 
 /* En el gate el disco va a sangre, de fondo detrás del contenido centrado. */
@@ -1019,8 +1074,29 @@ html.sd-coming-soon body {
    costura. Vive fuera del hero a propósito — el hero mide justo `100dvh`. */
 .sd-sponsor-band {
   position: relative;
+  /* Contiene el `screen` del `::before` a esta caja: mezcla contra su propio `#0b0712`, que es el
+     mismo fondo que tiene el hero debajo del wash. Sin esto la mezcla dependería de qué apilado
+     haya más arriba y los dos lados de la costura podrían no dar el mismo color. */
+  isolation: isolate;
   background: #0b0712;
   padding: clamp(32px, 6vw, 52px) clamp(20px, 5vw, 56px) clamp(48px, 8vw, 72px);
+}
+
+/* Cola del wash del hero, no un degradado nuevo: misma elipse, mismo `screen`, mismas paradas. El
+   centro queda 14dvh POR ENCIMA de esta caja (allá arriba, dentro del hero), que es exactamente
+   donde el hero lo tiene: por eso las dos mitades son la misma curva y empalman solas.
+   Va en z-index 0, debajo de `.sd-sponsor-strip` (z-index 3), así que no toca a los logos. */
+.sd-sponsor-band::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background: radial-gradient(85% 80vh at 0% -14vh, var(--sd-wash-bl));
+  background: radial-gradient(85% 80dvh at 0% -14dvh, var(--sd-wash-bl));
+  -webkit-mask-image: var(--sd-wash-fade-tail);
+  mask-image: var(--sd-wash-fade-tail);
 }
 
 .sd-soon__sponsors {
@@ -1262,31 +1338,48 @@ html.sd-coming-soon body {
   background: transparent;
 }
 
-/* ── Para quién es — poster editorial ──
-   Cuarta dirección de arte para esta sección (1: tipografía cinética con ScrollTrigger; 2:
-   sistema modular de bit-patterns; 3: mapa de coordenadas de 7 nodos, cada uno con label +
-   coordenada — descartada por sobrecargada: demasiados elementos chicos, ninguno con
-   protagonismo, se leía como dashboard técnico en vez de pieza editorial. Ver historial de git
-   sobre este bloque). El titular es el protagonista absoluto y el sistema de coordenadas queda
-   reducido a 3 nodos, 3 rutas y 1 destino, sin labels ni coordenadas de texto.
+/* ── Para quién es — lámina técnica (Figma `Zettios` 368:83) ──
+   Quinta dirección de arte para esta sección (ver el historial de git de este bloque: tipografía
+   cinética, bit-patterns, mapa de 7 coordenadas y poster editorial con rutas/nodos). Ésta baja de
+   un diseño cerrado, así que la composición no se discute: titular a la izquierda, copy de apoyo
+   + CTAs a la derecha, banda de logos al pie, todo dentro de un marco de hairlines con marcas de
+   esquina sobre negro casi total.
 
-   El fondo pasó por una quinta iteración: una grilla `--sd-cross-light` cubriendo toda la
-   pantalla (motivo de key art del evento) se sentía como dashboard/HUD y competía con la
-   tipografía. Se reemplazó por atmósfera pura — negro casi total + un degradado radial violeta
-   muy sutil, sin patrón repetido — para que rutas y tipografía queden como único sistema
-   gráfico. Ver el mapeo conceptual en `SdManifesto.tsx`: fondo = atmósfera, tipografía =
-   mensaje, rutas = concepto, puntos = personas, destino = futuro.
+   El diseño viene de una lámina fija de 1920×1262, así que todo acá está expresado en función de
+   esa caja: los `clamp()` tienen como tope el valor exacto del Figma y los `vw`/`vh` son la
+   proporción original (p. ej. el titular es 64,844px = 3,38vw a 1920). A 1920×1262 la sección
+   reproduce el diseño 1:1; por debajo comprime sin romper el ritmo.
 
-   Un solo árbol JSX en reposo: el motion (`SdManifesto.tsx`) sólo anima opacity/transform/
-   stroke-dashoffset sobre elementos que ya están en su posición final, así que sin JS — mobile,
-   `prefers-reduced-motion`, o el primer frame antes de que dispare el timeline — la composición
-   ya está completa. Nada de ScrollTrigger/pin/scrub: dispara una única vez con
-   IntersectionObserver.
+   Igual que en las direcciones anteriores: el árbol JSX ya está en su composición final y el
+   timeline de `SdManifesto.tsx` sólo toca opacity/transform. Sin JS —mobile,
+   `prefers-reduced-motion`, o el primer frame— la lámina se ve completa. */
+.sd-quien {
+  /* Geometría del marco, en las proporciones del Figma:
+     · x      → verticales en x=208 / x=1724 de 1920  (10,8%)
+     · top    → regla superior en y=146 de 1262       (11,6%)
+     · bottom → borde inferior del marco en y=1080    (182px desde abajo → 14,4%)
+     · k      → escala de la banda de logos: a 1920 vale 1px, o sea la caja nativa del diseño. */
+  --sd-quien-x: clamp(20px, 10.8vw, 208px);
+  --sd-quien-top: clamp(48px, 11.6vh, 146px);
+  --sd-quien-bottom: clamp(36px, 14.4vh, 182px);
+  --sd-quien-k: clamp(0.3px, 0.052vw, 0.8px);
+  --sd-quien-hair: rgba(107, 107, 107, 0.29);
+  /* Cuánto tardan las capas de atmósfera en entrar y salir en los bordes de la sección. Ver
+     `--sd-quien-edge-fade`. */
+  --sd-quien-edge: clamp(120px, 16vh, 210px);
+  /* La lámina del Figma es una diapositiva suelta, así que ahí los glows pueden morir cortados
+     contra el borde. Acá abajo y arriba hay otras secciones: sin esto el `overflow: hidden` los
+     taja al ras y deja la misma línea horizontal que ya se corrigió entre el hero y sponsors.
+     El fondo de la sección ya arranca y termina en el color del vecino; esto hace lo propio con
+     las capas que van encima. */
+  --sd-quien-edge-fade: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--sd-quien-edge),
+    #000 calc(100% - var(--sd-quien-edge)),
+    transparent 100%
+  );
 
-   Sin variante mobile aparte: al ser un titular + una atmósfera de fondo (no una grilla de datos
-   por rol), el mismo árbol escala con `clamp()` y el SVG de fondo cubre vía
-   `preserveAspectRatio="xMidYMid slice"` en cualquier aspect ratio. */
-.sd-manifesto {
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -1294,183 +1387,335 @@ html.sd-coming-soon body {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: #0b0712;
-  color: var(--sd-cream);
+  /* El diseño pide un negro más profundo (`#020202`) que el `#0b0712` del resto de la landing, y
+     eso deja un escalón contra las secciones vecinas. Se resuelve en el mismo `background`: la
+     sección arranca exactamente en el `#0b0712` con el que termina `.sd-sponsor-band` y cierra en
+     el `--sd-ink` (#1a1028) con el que abre "Confirmadas", con el negro del diseño ocupando todo
+     el medio. Los bordes quedan sin costura sin resignar el color de la lámina. */
+  background: linear-gradient(
+    to bottom,
+    #0b0712 0,
+    #020202 clamp(90px, 12vh, 160px),
+    #020202 calc(100% - clamp(90px, 12vh, 160px)),
+    #1a1028 100%
+  );
+  color: #fff;
+  /* Debajo de la banda el diseño deja aire hasta el borde del marco (y=833 → 1080) y de ahí al
+     pie de la lámina (1080 → 1262). Se conserva esa respiración, comprimible en pantallas bajas. */
+  padding-bottom: calc(var(--sd-quien-bottom) + clamp(32px, 19.6vh, 247px));
 }
 
-/* Atmósfera, no patrón: dos glows radiales muy suaves — uno tras el destino (futuro), uno tenue
-   tras el cluster de nodos (personas) — sobre negro casi total. Nada se repite ni cubre la
-   pantalla, así que no compite con rutas ni tipografía. */
-.sd-manifesto__bg {
+/* El compás de Xplora tramado en ASCII, al 20% sobre negro. La caja del Figma (−15,1% a los lados,
+   −56,26% arriba, alto 198,1%) da exactamente un cuadrado de 2500px sobre la lámina de 1920×1262:
+   por eso alcanza con fijar el alto en 198,1% y dejar el ancho en `auto`, que al ser un asset
+   cuadrado mantiene el disco redondo en cualquier aspect ratio. El centro cae en 50% / 42,8%. */
+.sd-quien__ascii {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background:
-    radial-gradient(ellipse 60% 55% at 74% 46%, rgba(96, 62, 249, 0.22), transparent 68%),
-    radial-gradient(ellipse 55% 45% at 8% 82%, rgba(67, 42, 163, 0.12), transparent 74%);
   pointer-events: none;
+  background: url('/logos/startup-day/quien/bg-ascii.webp?v=1') no-repeat 50% 42.8% / auto 198.1%;
+  opacity: 0.2;
+  -webkit-mask-image: var(--sd-quien-edge-fade);
+  mask-image: var(--sd-quien-edge-fade);
 }
 
-/* Sistema gráfico principal de la sección — rutas y nodos, siempre detrás del titular
-   (z-index 0 vs. 1). Con la grilla fuera, este es el único elemento gráfico que queda, así que
-   lleva algo más de peso que antes. */
-.sd-manifesto__system {
+/* Los tres focos violeta del diseño. En el Figma son cuadrados con `filter: blur()` (240px los
+   grandes, 81px el chico); acá van como radiales, que dan el mismo resultado óptico sin el costo
+   de compositar un blur enorme en cada frame. Los radios están en % de la caja, que a 1920×1262
+   los deja circulares: 30% de 1920 = 576px ≈ 45% de 1262. */
+.sd-quien__glow {
   position: absolute;
   inset: 0;
   z-index: 0;
-  width: 100%;
-  height: 100%;
   pointer-events: none;
+  -webkit-mask-image: var(--sd-quien-edge-fade);
+  mask-image: var(--sd-quien-edge-fade);
 }
 
-.sd-manifesto__route {
-  fill: none;
-  stroke: rgba(196, 181, 255, 0.3);
-  stroke-width: 2;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 0;
+.sd-quien__glow--tr {
+  background: radial-gradient(
+    ellipse 34% 52% at 94% 7%,
+    rgba(83, 40, 216, 0.78),
+    rgba(44, 21, 114, 0.42) 42%,
+    transparent 74%
+  );
 }
 
-.sd-manifesto__node {
-  fill: rgba(196, 181, 255, 0.38);
+.sd-quien__glow--bl {
+  background: radial-gradient(
+    ellipse 34% 52% at 6% 76%,
+    rgba(83, 40, 216, 0.72),
+    rgba(44, 21, 114, 0.4) 42%,
+    transparent 74%
+  );
 }
 
-.sd-manifesto__dest-ring {
-  fill: none;
-  stroke: var(--sd-purple);
-  stroke-width: 2;
-  opacity: 0.5;
+/* El foco chico detrás de los botones — es el que los despega del negro. */
+.sd-quien__glow--cta {
+  background: radial-gradient(
+    ellipse 10% 15% at 69% 46%,
+    rgba(83, 40, 216, 0.42),
+    transparent 70%
+  );
 }
 
-.sd-manifesto__dest-dot {
-  fill: var(--sd-purple);
-  opacity: 0.7;
-}
-
-.sd-manifesto__inner {
-  position: relative;
+/* Placa gris exterior (1706×934 en el diseño): un rectángulo por fuera de las verticales del
+   marco. No se anima — es el borde del "papel", no una hairline del sistema. */
+.sd-quien__plate {
+  position: absolute;
+  inset: var(--sd-quien-top) clamp(10px, 5.57vw, 107px) var(--sd-quien-bottom);
   z-index: 1;
+  pointer-events: none;
+  border: 1px solid rgba(107, 107, 107, 0.9);
+}
+
+.sd-quien__frame {
+  position: absolute;
+  inset: var(--sd-quien-top) 0 var(--sd-quien-bottom);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Las hairlines se dibujan con `scale` desde su origen. Cada una declara su `transform-origin`
+   acá y el timeline sólo interpola: así el reposo (sin JS) ya es la línea entera. */
+.sd-quien__rule {
+  position: absolute;
+  background: var(--sd-quien-hair);
+}
+
+/* La regla superior va a sangre —en el diseño cruza los 1920 de punta a punta—, a diferencia de
+   las verticales, que sí respetan el inset del marco. */
+.sd-quien__rule--top {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  transform-origin: 50% 50%;
+}
+
+.sd-quien__rule--left,
+.sd-quien__rule--right {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  transform-origin: 50% 0;
+}
+
+.sd-quien__rule--left {
+  left: var(--sd-quien-x);
+}
+
+.sd-quien__rule--right {
+  right: var(--sd-quien-x);
+}
+
+/* Marcas de esquina: dos líneas blancas de 1,5px en una caja de 15px, tal cual el Figma. Se
+   centran con margen negativo y no con `translate` porque el timeline les anima `scale` y GSAP
+   reescribe el `transform` entero. */
+.sd-quien__mark {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  background:
+    linear-gradient(#fff, #fff) no-repeat 50% 0 / 1.5px 100%,
+    linear-gradient(#fff, #fff) no-repeat 0 50% / 100% 1.5px;
+}
+
+.sd-quien__mark--tl,
+.sd-quien__mark--tr {
+  top: 0;
+  margin-top: -7.5px;
+}
+
+.sd-quien__mark--bl,
+.sd-quien__mark--br {
+  bottom: 0;
+  margin-bottom: -7.5px;
+}
+
+.sd-quien__mark--tl,
+.sd-quien__mark--bl {
+  left: var(--sd-quien-x);
+  margin-left: -7px;
+}
+
+.sd-quien__mark--tr,
+.sd-quien__mark--br {
+  right: var(--sd-quien-x);
+  margin-right: -7px;
+}
+
+/* ── Contenido ── */
+/* Las dos columnas guardan la proporción del diseño (601 y 541 de un total de 1297) y el `fr` las
+   deja repartirse cualquier ancho manteniéndola. `align-items: end` es el `items-end` del Figma:
+   el copy de apoyo apoya su base contra la del titular. */
+.sd-quien__body {
+  position: relative;
+  z-index: 2;
   flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
+  box-sizing: border-box;
   width: 100%;
-  max-width: 1440px;
+  max-width: calc(1297px + 2 * 208px);
   margin: 0 auto;
-  padding: clamp(40px, 7vw, 88px) clamp(24px, 6vw, 88px) clamp(48px, 7vw, 88px);
+  padding: calc(var(--sd-quien-top) + clamp(28px, 8vh, 102px)) var(--sd-quien-x)
+    clamp(28px, 6vh, 72px);
+  display: grid;
+  grid-template-columns: minmax(0, 601fr) minmax(0, 541fr);
+  align-items: end;
+  align-content: center;
+  gap: clamp(28px, 8vw, 155px);
 }
 
-.sd-manifesto__topbar {
-  flex: 0 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 16px;
-  margin-bottom: clamp(32px, 6vw, 64px);
-}
-
-.sd-manifesto .sd-kicker {
-  color: #c4b5ff;
-  margin-bottom: 0;
-}
-
-.sd-manifesto__index {
-  font-family: var(--sd-font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-variant-numeric: tabular-nums;
-  color: rgba(250, 248, 245, 0.5);
-  white-space: nowrap;
-}
-
-.sd-manifesto__stage {
-  flex: 1 1 auto;
-  display: flex;
-  align-items: center;
-}
-
-.sd-manifesto__headline {
+/* 64,844px / 71,811px de interlínea en la lámina de 1920 → 3,38vw y 1,108. Peso 700: es la única
+   cara bold que registran los `@font-face` de Glacial Indifference, y la que usa el diseño. */
+.sd-quien__headline {
   margin: 0;
-}
-
-.sd-manifesto__line {
-  display: block;
   font-family: var(--sd-font-display);
+  font-weight: 700;
+  font-size: clamp(1.9rem, 3.38vw, 4.053rem);
+  line-height: 1.108;
+  letter-spacing: -0.005em;
   text-transform: uppercase;
-  line-height: 0.94;
-  letter-spacing: -0.01em;
+  color: #e2e2e2;
   text-wrap: balance;
 }
 
-.sd-manifesto__line--soft {
-  font-weight: 400;
-  font-size: clamp(2.2rem, 6vw, 4.75rem);
-  color: rgba(250, 248, 245, 0.68);
+.sd-quien__aside {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(20px, 2.6vh, 33px);
 }
 
-.sd-manifesto__line--bold {
-  font-weight: 800;
-  font-size: clamp(3.2rem, 11vw, 9rem);
-  margin-top: 0.1em;
-  color: var(--sd-cream);
-  letter-spacing: -0.02em;
+.sd-quien__lede {
+  margin: 0;
+  font-family: var(--sd-font-body);
+  font-weight: 300;
+  font-size: clamp(0.95rem, 1.04vw, 1.25rem);
+  line-height: 1.5;
+  color: #fff;
 }
 
-.sd-manifesto__accent-word {
-  color: var(--sd-purple);
+.sd-quien__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
 }
 
-.sd-manifesto__module-punct {
-  display: inline-block;
-  width: 0.5em;
-  height: 0.5em;
-  margin-left: 0.28em;
-  transform: translateY(-0.08em);
-  background: var(--sd-purple);
-  border-radius: 1px;
-  vertical-align: middle;
-}
-
-/* ── Teaser hacia "Startups confirmadas" — transición mínima al pie ── */
-.sd-manifesto__teaser {
+/* ── Banda de logos ── */
+.sd-quien__logos {
+  position: relative;
+  z-index: 2;
   flex: 0 0 auto;
-  padding-top: clamp(32px, 5vw, 48px);
 }
 
-.sd-manifesto__teaser-link {
-  display: inline-flex;
+.sd-quien__rule--band-top,
+.sd-quien__rule--band-bottom {
+  left: 0;
+  right: 0;
+  height: 1px;
+  transform-origin: 50% 50%;
+}
+
+.sd-quien__rule--band-top {
+  top: 0;
+}
+
+.sd-quien__rule--band-bottom {
+  bottom: 0;
+}
+
+/* En el Figma la fila es un flex con 33px entre TODOS los elementos, separadores incluidos. Acá
+   ese 33 aparece dos veces —el `gap` de la fila y el de cada celda— y da justo el mismo ritmo:
+   logo ·33· separador ·33· logo. */
+.sd-quien__logo-row {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.5em;
-  font-family: var(--sd-font-mono);
-  font-size: 0.8rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(250, 248, 245, 0.6);
-  text-decoration: none;
-  border-bottom: 1px solid rgba(250, 248, 245, 0.24);
-  padding-bottom: 2px;
-  transition:
-    color 0.2s ease,
-    border-color 0.2s ease;
+  justify-content: center;
+  gap: calc(33 * var(--sd-quien-k));
+  min-height: calc(137 * var(--sd-quien-k));
 }
 
-.sd-manifesto__teaser-link span {
-  display: inline-block;
-  transition: transform 0.2s ease;
+.sd-quien__logo-cell {
+  display: flex;
+  align-items: center;
+  gap: calc(33 * var(--sd-quien-k));
 }
 
-.sd-manifesto__teaser-link:hover {
-  color: #c4b5ff;
-  border-color: #c4b5ff;
+.sd-quien__logo-sep {
+  flex: 0 0 auto;
+  width: 1px;
+  /* Alto de la banda entera, no el del logo vecino: en el diseño los separadores cortan de
+     hairline a hairline. */
+  height: calc(137 * var(--sd-quien-k));
+  background: rgba(107, 107, 107, 0.62);
 }
 
-.sd-manifesto__teaser-link:hover span {
-  transform: translateX(3px);
+.sd-quien__logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Cada logo conserva SU caja del diseño (`--w`/`--h`, que pone el componente) y todas comparten
+   un único factor de escala. Nada de un alto común: las cajas del Figma son deliberadamente
+   distintas —de 29,94px de alto el wordmark de Paisanos a 97px el de Firmaway— y es eso lo que
+   equilibra ópticamente la fila. */
+.sd-quien__logo img {
+  display: block;
+  width: calc(var(--w) * var(--sd-quien-k));
+  height: calc(var(--h) * var(--sd-quien-k));
+  object-fit: contain;
+}
+
+.sd-quien__logo--whiten img {
+  filter: brightness(0) invert(1);
+}
+
+/* ── Angosto ──
+   El marco y la banda son el sistema gráfico, no una grilla de datos, así que abajo de 900px
+   basta con apilar las dos columnas y dejar que la fila de logos envuelva. Los separadores se van:
+   entre líneas envueltas cortarían en falso. Es el mismo ancho al que `SdManifesto.tsx` decide no
+   montar el timeline, así que acá la lámina siempre se ve completa y quieta. */
+@media (max-width: 900px) {
+  .sd-quien {
+    /* Un piso más alto para `k`: atado sólo a `vw`, a 480px daría 0,25px y los logos quedarían
+       ilegibles —entran los 7 en una línea justamente porque son minúsculos—. Con 0,55px pasan a
+       medir lo suficiente como para no entrar todos, que es lo que los hace envolver. */
+    --sd-quien-k: 0.55px;
+    /* El marco tiene que cerrar POR DEBAJO de la banda: con el valor de escritorio (14,4vh) el
+       borde inferior le caía encima. */
+    --sd-quien-bottom: clamp(20px, 5vh, 44px);
+    padding-bottom: clamp(32px, 10vh, 96px);
+  }
+
+  .sd-quien__body {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .sd-quien__logo-sep {
+    display: none;
+  }
+
+  .sd-quien__logo-row {
+    padding: clamp(20px, 5vw, 32px) var(--sd-quien-x);
+    row-gap: clamp(18px, 4vw, 28px);
+  }
 }
 
 @media (max-width: 520px) {
-  .sd-manifesto__topbar {
-    flex-wrap: wrap;
+  .sd-quien__actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sd-quien__actions .sd-btn {
+    width: 100%;
   }
 }
 
@@ -1965,6 +2210,58 @@ html.sd-coming-soon body {
 
 .sd-btn--block {
   width: 100%;
+}
+
+/* ── Botones — sólo Startup Day ──
+   El diseño de la lámina "Para quién es" (Figma `Zettios` 368:83) define el botón de esta landing:
+   a canto vivo, violeta translúcido y Poppins Regular, en lugar del pill blanco (`--primary`) y
+   del contorno (`--ghost`) que trae el sistema. Aplica a la página entera y no sólo a esa sección,
+   así que vive acá, con el resto del sistema de botones, y no en `.sd-quien`.
+
+   Va acotado a `.sd-root--startupday` porque `.sd-btn` lo comparten las tres landings del mismo
+   shell: Xplora y Sponsors siguen con el botón blanco. Todas las bandas de Startup Day son
+   oscuras (`--ink`, `--purple-wash`, hero y `.sd-quien`), así que el blanco sobre violeta
+   translúcido lee en todas — no hace falta la excepción que `--primary` tiene para `--cream`. */
+.sd-root--startupday .sd-btn {
+  padding: clamp(12px, 1.27vh, 16px) clamp(18px, 1.25vw, 24px);
+  border: 1px solid transparent;
+  border-radius: 0;
+  font-family: var(--sd-font-body);
+  font-weight: 400;
+  font-size: clamp(0.9rem, 1.04vw, 1.25rem);
+  line-height: 1.2;
+  color: #fff;
+}
+
+.sd-root--startupday .sd-btn--primary {
+  background: rgba(113, 82, 206, 0.72);
+  border-color: #2b117b;
+  color: #fff;
+}
+
+.sd-root--startupday .sd-btn--primary:hover:not(:disabled):not(.is-disabled) {
+  background: rgba(113, 82, 206, 0.92);
+  border-color: #4a2ab8;
+  color: #fff;
+}
+
+.sd-root--startupday .sd-btn--ghost {
+  background: rgba(113, 82, 206, 0.33);
+  border-color: transparent;
+  color: #fff;
+}
+
+.sd-root--startupday .sd-btn--ghost:hover {
+  background: rgba(113, 82, 206, 0.52);
+  border-color: transparent;
+}
+
+/* El CTA de cierre conserva su escala propia: es el último llamado de la página y estaba pensado
+   más grande que el resto. Se re-escribe acotado porque si no la regla de arriba —más específica—
+   le pisaría el tamaño. */
+.sd-root--startupday .sd-signup__cta {
+  padding: clamp(14px, 1.5vh, 18px) clamp(24px, 1.9vw, 34px);
+  font-size: clamp(1rem, 1.15vw, 1.35rem);
 }
 
 /* ── Band / sections (sin HR: flujo continuo) ── */
