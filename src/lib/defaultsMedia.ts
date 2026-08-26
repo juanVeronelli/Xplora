@@ -53,23 +53,23 @@ export const DEFAULT_CLUB_MODES: readonly CarouselSlide[] = [
 ] as const;
 
 /** Logos locales PNG (transparentes / sin fondo blanco). No Cloudinary. */
-const PARTNER_PNG = (file: string) => `/logos/partners-png/${file}?v=3`;
+const PARTNER_PNG = (file: string) => `/logos/partners-png/${file}?v=4`;
 
 /**
  * Empresas en marquee — solo PNG locales curados.
  * (Sin placeholders de texto ni assets con fondo blanco.)
  */
 export const DEFAULT_COMPANY_BRANDS: LogoBrand[] = [
-  { id: 'co-ml', name: 'Mercado Libre', logoUrl: PARTNER_PNG('mercadolibre.png') },
-  { id: 'co-mp', name: 'Mercado Pago', logoUrl: PARTNER_PNG('mercadopago.png') },
-  { id: 'co-globant', name: 'Globant', logoUrl: PARTNER_PNG('globant.png') },
-  { id: 'co-ypf', name: 'YPF', logoUrl: PARTNER_PNG('ypf.png') },
-  { id: 'co-google', name: 'Google', logoUrl: PARTNER_PNG('google.png') },
-  { id: 'co-aws', name: 'AWS', logoUrl: PARTNER_PNG('aws.png') },
-  { id: 'co-olx', name: 'OLX', logoUrl: PARTNER_PNG('olx.png') },
-  { id: 'co-tn', name: 'Tiendanube', logoUrl: PARTNER_PNG('tiendanube.png') },
-  { id: 'co-despegar', name: 'Despegar', logoUrl: PARTNER_PNG('despegar.png') },
-  { id: 'co-oracle', name: 'Oracle', logoUrl: PARTNER_PNG('oracle.png') },
+  { id: 'co-ml', name: 'Mercado Libre', logoUrl: PARTNER_PNG('mercadolibre.webp') },
+  { id: 'co-mp', name: 'Mercado Pago', logoUrl: PARTNER_PNG('mercadopago.webp') },
+  { id: 'co-globant', name: 'Globant', logoUrl: PARTNER_PNG('globant.webp') },
+  { id: 'co-ypf', name: 'YPF', logoUrl: PARTNER_PNG('ypf.webp') },
+  { id: 'co-google', name: 'Google', logoUrl: PARTNER_PNG('google.webp') },
+  { id: 'co-aws', name: 'AWS', logoUrl: PARTNER_PNG('aws.webp') },
+  { id: 'co-olx', name: 'OLX', logoUrl: PARTNER_PNG('olx.webp') },
+  { id: 'co-tn', name: 'Tiendanube', logoUrl: PARTNER_PNG('tiendanube.webp') },
+  { id: 'co-despegar', name: 'Despegar', logoUrl: PARTNER_PNG('despegar.webp') },
+  { id: 'co-oracle', name: 'Oracle', logoUrl: PARTNER_PNG('oracle.webp') },
 ];
 
 export const DEFAULT_SPONSOR_BRANDS: LogoBrand[] = [

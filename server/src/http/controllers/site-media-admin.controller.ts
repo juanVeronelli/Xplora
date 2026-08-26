@@ -31,6 +31,28 @@ export function createSiteMediaUpsertHandler(config: AppConfig): RequestHandler 
     const logo = req.body?.logo_url;
     const highlightRaw = req.body?.highlight_video_url;
     const highlight_video_url = typeof highlightRaw === 'string' ? highlightRaw : '';
+    const lumaRaw = req.body?.member_luma_embed_src;
+    const member_luma_embed_src = typeof lumaRaw === 'string' ? lumaRaw.trim() : '';
+    if (member_luma_embed_src) {
+      try {
+        const u = new URL(member_luma_embed_src);
+        if (u.protocol !== 'https:') {
+          throw new BadRequestError('El embed de Luma debe ser https.');
+        }
+        const host = u.hostname.toLowerCase();
+        if (
+          host !== 'luma.com' &&
+          !host.endsWith('.luma.com') &&
+          host !== 'lu.ma' &&
+          !host.endsWith('.lu.ma')
+        ) {
+          throw new BadRequestError('Solo se permiten embeds de luma.com / lu.ma.');
+        }
+      } catch (e) {
+        if (e instanceof BadRequestError) throw e;
+        throw new BadRequestError('URL de embed Luma inválida.');
+      }
+    }
     const carousel = req.body?.carousel;
     const company_logos = req.body?.company_logos;
     const sponsor_logos = req.body?.sponsor_logos;
@@ -48,6 +70,7 @@ export function createSiteMediaUpsertHandler(config: AppConfig): RequestHandler 
       hero_url: hero,
       logo_url: logo,
       highlight_video_url,
+      member_luma_embed_src,
       carousel,
       company_logos: normalizeLogoJson(company_logos),
       sponsor_logos: normalizeLogoJson(sponsor_logos),
@@ -56,8 +79,8 @@ export function createSiteMediaUpsertHandler(config: AppConfig): RequestHandler 
     const { error } = await sb.from('site_media').upsert(payload, { onConflict: 'id' });
     if (error) {
       const msg = error.message;
-      const hint = /site_media|schema cache/i.test(msg)
-        ? ' Creá la tabla en tu proyecto: Supabase → SQL → pegá y ejecutá supabase/migrations/20260501120000_site_media.sql'
+      const hint = /site_media|schema cache|member_luma/i.test(msg)
+        ? ' Creá/actualizá la tabla: ejecutá supabase-setup-member-luma-embed.sql en Supabase SQL.'
         : '';
       throw new BadRequestError(msg + hint);
     }

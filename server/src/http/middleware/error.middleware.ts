@@ -15,6 +15,10 @@ export const errorMiddleware: ErrorRequestHandler = (err, _req, res, _next) => {
     res.status(400).json({ error: err.message, code: err.code });
     return;
   }
+  if (err instanceof Error && /formato (de )?(cv|imagen) inválido/i.test(err.message)) {
+    res.status(400).json({ error: err.message, code: 'BAD_REQUEST' });
+    return;
+  }
   console.error('[unhandled]', err);
   res.status(500).json({ error: 'Error interno del servidor.', code: 'INTERNAL' });
 };

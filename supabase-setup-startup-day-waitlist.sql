@@ -25,4 +25,4 @@ CREATE POLICY "No access startup_day_waitlist"
   WITH CHECK (false);
 
 COMMENT ON TABLE public.startup_day_waitlist IS
-  'Reservas de lugar Startup Day (9/9/2026). Exclusiva del funnel startupday.xploraucema.com.';
+  'Reservas de lugar Startup Day (11/9/2026). Exclusiva del funnel startupday.xploraucema.com.';

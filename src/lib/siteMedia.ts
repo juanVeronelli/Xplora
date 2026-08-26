@@ -15,11 +15,49 @@ export interface ResolvedSiteMedia {
   logoUrl: string;
   /** Vacío = mostrar placeholder de video en la Home. */
   highlightVideoUrl: string;
+  /** Vacío = no mostrar bloque Luma en /cuenta. */
+  memberLumaEmbedSrc: string;
   carousel: CarouselSlide[];
   /** Las 4 fotos de El club (derivadas del carousel / defaults). */
   clubModes: CarouselSlide[];
   companies: LogoBrand[];
   sponsors: LogoBrand[];
+}
+
+/** Default del embed Luma en cuenta (override desde Ops → Web). */
+export const DEFAULT_MEMBER_LUMA_EMBED_SRC =
+  'https://luma.com/embed/event/evt-5XRVfMXFHYcRaLt/simple';
+
+/** Acepta URL o HTML de iframe; solo luma.com / lu.ma por https. */
+export function parseLumaEmbedInput(raw: string): string {
+  const t = raw.trim();
+  if (!t) return '';
+  const fromIframe = t.match(/\bsrc\s*=\s*["']([^"']+)["']/i);
+  const candidate = (fromIframe?.[1] || t).trim();
+  return sanitizeLumaEmbedSrc(candidate);
+}
+
+export function sanitizeLumaEmbedSrc(url: string): string {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== 'https:') return '';
+    const host = u.hostname.toLowerCase();
+    if (host !== 'luma.com' && !host.endsWith('.luma.com') && host !== 'lu.ma' && !host.endsWith('.lu.ma')) {
+      return '';
+    }
+    return u.toString();
+  } catch {
+    return '';
+  }
+}
+
+function resolveMemberLumaEmbedSrc(row: DbSiteMedia | null): string {
+  if (!row || row.member_luma_embed_src === undefined || row.member_luma_embed_src === null) {
+    return DEFAULT_MEMBER_LUMA_EMBED_SRC;
+  }
+  const t = typeof row.member_luma_embed_src === 'string' ? row.member_luma_embed_src.trim() : '';
+  if (t === '') return '';
+  return sanitizeLumaEmbedSrc(t) || '';
 }
 
 function ensureSlideIds(slides: unknown): CarouselSlide[] {
@@ -84,6 +122,7 @@ export function mergeSiteMedia(row: DbSiteMedia | null): ResolvedSiteMedia {
     heroUrl: row?.hero_url?.trim() || DEFAULT_HERO_URL,
     logoUrl: row?.logo_url?.trim() || DEFAULT_LOGO_URL,
     highlightVideoUrl: resolveHighlightVideoUrl(row),
+    memberLumaEmbedSrc: resolveMemberLumaEmbedSrc(row),
     carousel,
     clubModes: resolveClubModes(carousel),
     companies: ensureLogoBrands(row?.company_logos, DEFAULT_COMPANY_BRANDS),
@@ -112,6 +151,7 @@ export async function saveSiteMedia(
       hero_url: payload.heroUrl,
       logo_url: payload.logoUrl,
       highlight_video_url: payload.highlightVideoUrl,
+      member_luma_embed_src: payload.memberLumaEmbedSrc,
       carousel: payload.carousel,
       company_logos: payload.companies.map(c => ({
         id: c.id,
@@ -129,7 +169,7 @@ export async function saveSiteMedia(
   if (!res.ok) {
     const j = (await res.json().catch(() => ({}))) as { error?: string };
     let message = typeof j.error === 'string' ? j.error : 'No se pudo guardar.';
-    if (/site_media|schema cache|company_logos|sponsor_logos|column|highlight_video/i.test(message)) {
+    if (/site_media|schema cache|company_logos|sponsor_logos|column|highlight_video|member_luma/i.test(message)) {
       message += ' La base todavía no está actualizada para guardar estos campos.';
     }
     return { error: { message } };

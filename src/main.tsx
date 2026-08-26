@@ -4,13 +4,16 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { SiteMediaProvider } from './context/SiteMediaContext';
 import { FeedbackProvider } from './context/FeedbackContext';
+import { MemberAuthProvider } from './context/MemberAuthContext';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <SiteMediaProvider>
       <FeedbackProvider>
-        <App />
+        <MemberAuthProvider>
+          <App />
+        </MemberAuthProvider>
       </FeedbackProvider>
     </SiteMediaProvider>
   </React.StrictMode>,

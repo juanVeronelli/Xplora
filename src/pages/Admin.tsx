@@ -44,7 +44,7 @@ import { useToast, useConfirm } from '../context/FeedbackContext';
 
 const NAV_ITEMS: AdminNavItem[] = [
   { id: 'inicio', title: 'Inicio', desc: 'Panorama y atajos' },
-  { id: 'sitio', title: 'Web', desc: 'Hero y fotos del club' },
+  { id: 'sitio', title: 'Web', desc: 'Hero, club y Luma de cuenta' },
   { id: 'data', title: 'Data', desc: 'Eventos, comunidad, email, leads…' },
 ];
 
@@ -149,8 +149,8 @@ export default function Admin({ signOut, goToSite }: Props) {
         <>
           <SectionIntro
             kicker="Web pública"
-            title="Fotos del sitio"
-            subtitle="Solo el hero del inicio y las cuatro fotos de El club. Publicás al pie."
+            title="Sitio y cuenta"
+            subtitle="Hero, fotos del club y embed Luma del overview de miembros. Publicás al pie."
           />
           <SiteImagesPanel />
         </>
@@ -502,7 +502,7 @@ function EventosSection() {
             <ThreeCol>
               <Field
                 label="Fecha (texto)"
-                hint="Ej. 9 de septiembre de 2026"
+                hint="Ej. 11 de septiembre de 2026"
                 value={form.date_display}
                 onChange={v => f('date_display', v)}
               />

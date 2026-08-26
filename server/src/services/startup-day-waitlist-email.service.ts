@@ -35,15 +35,16 @@ export function buildStartupDayWaitlistConfirmHtml(opts: {
             <td style="padding:28px;">
               <p style="margin:0 0 12px;font-size:15px;line-height:1.5;">${greeting}</p>
               <p style="margin:0 0 12px;font-size:15px;line-height:1.55;">
-                Ya estás en la lista de <strong>Startup Day</strong>. Hay cupos limitados: esto
-                no garantiza el ingreso, pero sí aumenta tus chances cuando abra la inscripción.
+                Ya estás en la lista de <strong>Startup Day</strong>. Te vamos a avisar novedades
+                del evento a este correo.
               </p>
               <p style="margin:0 0 12px;font-size:15px;line-height:1.55;">
-                9 de septiembre de 2026 · 12 a 17 hs · Av. Alem 882 (UCEMA).
+                11 de septiembre de 2026 · 15 a 20 hs · Av. Alem 882 (UCEMA).
               </p>
               <p style="margin:0 0 12px;font-size:15px;line-height:1.55;">
-                Te vamos a escribir a
-                <strong>${escapeHtml(opts.email)}</strong> cuando la inscripción esté lista.
+                La inscripción ya está abierta:
+                <a href="https://luma.com/1ubys1uc" style="color:#603ef9;">luma.com/1ubys1uc</a>.
+                Te escribimos a <strong>${escapeHtml(opts.email)}</strong> si hay novedades.
               </p>
               <p style="margin:24px 0 0;font-size:13px;line-height:1.5;color:#7A6E92;">
                 Equipo Xplora
