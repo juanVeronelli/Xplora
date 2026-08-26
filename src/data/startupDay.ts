@@ -73,7 +73,7 @@ export const SD_STARTUPMATE = {
  * Pantalla “en construcción”. Pasar a `false` para publicar la landing.
  * Bypass temporal: `?preview=1` en la URL.
  */
-export const SD_COMING_SOON = true;
+export const SD_COMING_SOON = false;
 
 /**
  * Agenda bloqueada. Mientras esté en `true` la sección muestra “Agenda próximamente” en vez de
