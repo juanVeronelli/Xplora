@@ -46,23 +46,21 @@ function Charla({ charla }: { charla: SdCharla }) {
       className={`sd-agenda__card${corta ? ' is-corta' : ''}`}
       style={{ gridRow: `${linea(charla.from)} / ${linea(charla.to)}` }}
     >
-      {/* Caja de tamaño fijo: con logo entra el archivo, sin logo el punto. Así las cuatro
-          charlas que todavía no tienen logo no descolocan la fila. */}
+      {/* El logo es ahora la única identificación de la card, así que va con `alt` real y no
+          vacío. Las charlas sin archivo caen al nombre en texto: un punto solo no diría nada. */}
       <span className="sd-agenda__mark">
         {charla.logo ? (
           <img
             className={charla.logoEnColor ? 'is-color' : undefined}
             src={LOGO(charla.logo)}
-            alt=""
+            alt={charla.name}
             loading="lazy"
             decoding="async"
           />
         ) : (
-          <span className="sd-agenda__dot" aria-hidden />
+          <h3 className="sd-agenda__name">{charla.name}</h3>
         )}
       </span>
-
-      <h3 className="sd-agenda__name">{charla.name}</h3>
 
       {corta ? null : (
         <p className="sd-agenda__when">

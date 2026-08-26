@@ -1920,7 +1920,10 @@ a.sd-quien__logo:focus-visible {
 .sd-agenda {
   --sd-agenda-cols: clamp(3rem, 5vw, 4.25rem) repeat(2, minmax(0, 1fr));
   --sd-agenda-gap: clamp(12px, 2vw, 24px);
-  --sd-agenda-slot: clamp(8px, 1.4vh, 11px); /* alto de 5 minutos */
+  /* Alto de 5 minutos. Subió respecto del diseño original porque ahora la card lleva el logo
+     grande en vez del nombre en texto: con el valor viejo (11px) a una charla de 45 minutos le
+     quedaban 39px para el logo, después de descontar padding, gap y horario. */
+  --sd-agenda-slot: clamp(11px, 1.9vh, 15px);
   --sd-agenda-rule: 1px solid rgb(var(--sd-purple-rgb) / 0.18);
   display: grid;
   gap: clamp(0.75rem, 2vh, 1.15rem);
@@ -2006,13 +2009,12 @@ a.sd-quien__logo:focus-visible {
 }
 
 .sd-agenda__card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-content: start;
-  gap: 2px clamp(8px, 1vw, 12px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(5px, 1vh, 9px);
   /* Separa dos cards pegadas sin robarle alto a la grilla de tiempo. */
   margin-bottom: 4px;
-  padding: clamp(9px, 1.3vw, 15px) clamp(10px, 1.4vw, 16px);
+  padding: clamp(8px, 1vw, 12px) clamp(10px, 1.4vw, 16px);
   overflow: hidden;
   border: 1px solid rgb(var(--sd-purple-rgb) / 0.22);
   border-radius: var(--sd-radius);
@@ -2023,26 +2025,40 @@ a.sd-quien__logo:focus-visible {
   );
 }
 
-/* Alto fijo y ancho libre, como `.sd-sponsor-strip__logo img`: los wordmarks son anchos y en una
-   caja cuadrada quedaban del tamaño de una moneda. El `min-width` sostiene el punto de las
-   charlas sin logo para que no descoloquen la fila; el `max-width` evita que un wordmark muy
-   largo le coma el lugar al nombre. */
+/* El logo se come todo el alto que le deje la card en vez de tener una medida fija, así que una
+   charla de 45 minutos lo muestra más grande que una de 35.
+
+   La base tiene que ser `0` y no `auto`: con `auto` el tamaño de partida del item es el alto
+   intrínseco de la imagen, y entonces la card crecía con el logo en vez de recortarlo — el de
+   Mercado Libre pedía 126px dentro de una card de 95. Con base 0 el alto sale del sobrante
+   después del horario, y recién ahí el `max-height: 100%` de la imagen tiene contra qué medir. */
 .sd-agenda__mark {
-  grid-row: 1 / 3;
-  display: grid;
-  place-items: center;
-  min-width: 22px;
-  max-width: clamp(48px, 5vw, 68px);
-  height: 22px;
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  /* Sólo para el nombre de fallback, que sí va en flujo. */
+  display: flex;
+  align-items: center;
 }
 
 /* `brightness(0) invert(1)` lleva cualquier píxel opaco a blanco puro respetando el alfa — el
    mismo tratamiento que `.sd-quien__logo img`, y por la misma razón: sobre la card oscura, los
    logos que vienen en negro (uin, TQe, Zettios) directamente no se veían. */
+/* Posicionada y no en flujo: `max-height: 100%` no servía porque la caja del logo es un item de
+   flex cuya fila es `auto`, así que el porcentaje quedaba circular y el navegador lo descartaba
+   — el logo de Mercado Libre pedía 126px adentro de una caja de 39 y se recortaba. Con `inset: 0`
+   más `width/height: 100%` el alto queda determinado por los bordes, sin porcentajes que
+   resolver, y `object-fit: contain` escala sin deformar. Los wordmarks anchos (Resender, 7.8:1)
+   topan contra el `max-width` y los compactos (Mercado Libre, 1.4:1) contra el alto. */
 .sd-agenda__mark img {
-  max-width: 100%;
-  max-height: 100%;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: 260px;
   object-fit: contain;
+  object-position: left center;
   filter: brightness(0) invert(1);
   opacity: 0.92;
 }
@@ -2053,16 +2069,10 @@ a.sd-quien__logo:focus-visible {
   opacity: 1;
 }
 
-.sd-agenda__dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 1px;
-  background: var(--sd-purple);
-}
 
+/* Sólo para las charlas sin archivo de logo: ocupa el lugar del logo, no se suma a él. */
 .sd-agenda__name {
   margin: 0;
-  align-self: center;
   font-family: var(--sd-font-display);
   font-size: clamp(0.95rem, 1.5vw, 1.15rem);
   font-weight: 700;
@@ -2073,6 +2083,7 @@ a.sd-quien__logo:focus-visible {
 }
 
 .sd-agenda__when {
+  flex: 0 0 auto;
   margin: 0;
   font-family: var(--sd-font-mono);
   font-size: clamp(0.7rem, 0.95vw, 0.8rem);
@@ -2151,6 +2162,12 @@ a.sd-quien__logo:focus-visible {
      margen que en desktop separaba dos cards contiguas. */
   .sd-agenda__card {
     margin-bottom: 0;
+  }
+
+  /* Acá la card no tiene alto impuesto por la grilla, así que `flex-basis: 0` dejaría el logo en
+     cero: hace falta un piso explícito. */
+  .sd-agenda__mark {
+    min-height: clamp(38px, 12vw, 52px);
   }
 }
 
@@ -3349,11 +3366,16 @@ a.sd-partner__name:hover {
 }
 
 /* ── Inscripción (Luma) ── */
+/* Centrada en los tres ejes: `margin-inline` centra la caja de 46rem dentro de la banda,
+   `justify-items` centra cada hijo —que traen sus propios `max-width`, así que sin esto quedaban
+   pegados a la izquierda de la caja— y `text-align` centra el texto adentro de cada uno. */
 .sd-signup {
   display: grid;
-  justify-items: start;
+  justify-items: center;
   gap: 1rem;
   max-width: 46rem;
+  margin-inline: auto;
+  text-align: center;
 }
 
 .sd-signup__cta {

@@ -191,7 +191,9 @@ export function SdShell({
                   <a href="#que-pasa">La experiencia</a>
                   <a href="#piso">El lugar</a>
                   <a href="#agenda">Agenda</a>
+                  {/* StartupMate oculta — ver `StartupDay.tsx`
                   <a href="#startupmate">StartupMate</a>
+                  */}
                   <a href="#reservar">Inscripción</a>
                 </div>
               ) : (

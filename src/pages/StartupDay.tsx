@@ -8,7 +8,7 @@ import { MAIN_SITE_URL, STARTUP_DAY_CANONICAL } from '../lib/startupDayHost';
 import {
   SD_COMING_SOON,
   SD_EVENT,
-  SD_STARTUPMATE,
+  // SD_STARTUPMATE,  ← ver "StartupMate: sección OCULTA" más abajo
   sdLumaUrl,
 } from '../data/startupDay';
 import { SdReveal } from '../components/startup-day/SdReveal';
@@ -23,7 +23,12 @@ import { SdSponsorStrip } from '../components/startup-day/SdSponsorStrip';
 import { StartupDayFloor } from '../components/startup-day/floor/StartupDayFloor';
 import '../styles/startupDay.css';
 
-/** Tags decorativos de la sección StartupMate — ilustran ejes de matching, no una UI real. */
+/* ── StartupMate: sección OCULTA a pedido ────────────────────────────────────────
+   Para volver a mostrarla hay que descomentar TRES cosas, no sólo el bloque de abajo:
+   el import de `SD_STARTUPMATE`, la constante `SD_STARTUPMATE_TAGS`, y el link
+   `#startupmate` del footer en `SdShell.tsx`. Los estilos (`.sd-smate*`) quedaron
+   intactos en `startupDay.css`. */
+/* Tags decorativos de la sección StartupMate — ilustran ejes de matching, no una UI real.
 const SD_STARTUPMATE_TAGS: readonly { label: string; x: number; y: number; d: number }[] = [
   { label: 'Founder', x: 6, y: 18, d: 0 },
   { label: 'Technical', x: 78, y: 12, d: 0.6 },
@@ -31,6 +36,7 @@ const SD_STARTUPMATE_TAGS: readonly { label: string; x: number; y: number; d: nu
   { label: 'Busca equipo', x: 70, y: 74, d: 0.3 },
   { label: 'Producto en marcha', x: 42, y: 8, d: 0.9 },
 ];
+*/
 
 function useComingSoonGate() {
   const [gated, setGated] = useState(SD_COMING_SOON);
@@ -196,6 +202,7 @@ function StartupDayContent() {
         <StartupDayAgenda />
       </section>
 
+      {/* StartupMate — OCULTA. Ver la nota arriba del archivo para volver a mostrarla.
       <section id="startupmate" className="sd-band sd-band--purple-wash sd-smate">
         <div className="sd-smate__tags" aria-hidden>
           {SD_STARTUPMATE_TAGS.map((t) => (
@@ -224,6 +231,7 @@ function StartupDayContent() {
           </p>
         </SdReveal>
       </section>
+      */}
 
       <section id="reservar" className="sd-band sd-band--ink">
         <SdReveal className="sd-signup">

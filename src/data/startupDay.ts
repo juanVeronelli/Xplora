@@ -170,7 +170,7 @@ export const SD_CHARLAS: readonly SdCharla[] = [
     logo: 'mercado-libre.png',
     logoEnColor: true,
   },
-  { aula: 'm', from: '19:25', to: '20:00', name: 'Pasito', logo: 'pasito.webp' },
+  { aula: 'm', from: '19:25', to: '20:00', name: 'Pasito', logo: 'quien/pasito.png' },
 
   { aula: 'k', from: '15:30', to: '16:15', name: 'Endeavor', logo: 'endeavor.png' },
   { aula: 'k', from: '16:30', to: '17:15', name: 'TQe', logo: 'tqe.webp' },
