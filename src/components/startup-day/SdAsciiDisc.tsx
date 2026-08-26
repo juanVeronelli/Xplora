@@ -27,8 +27,13 @@ const MONO =
 /**
  * Del ink casi invisible al lavanda de las crestas. El original de Luma nunca llega a blanco
  * (pico ~134/255), así que las puntas quedan apagadas a propósito.
+ *
+ * La rampa no es libre: son seis muestras interpoladas entre los tres valores del sistema
+ * —`--sd-void` (11,7,18) → `--sd-purple` (96,62,249) → `--sd-purple-lift` (196,181,255)—, así que
+ * el disco vive en el mismo hue que todo lo demás. Va hardcodeada porque esto se pinta en canvas,
+ * donde no llegan las custom properties; si cambian los tokens, hay que recalcularla acá.
  */
-const TINTS = ['#241a3f', '#33256d', '#4936a4', '#6b53d8', '#9d8cf0', '#c4b8ff'];
+const TINTS = ['#27195f', '#3e289d', '#5537da', '#7456fa', '#9c85fd', '#c4b5ff'];
 
 const smoothstep = (a: number, b: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));

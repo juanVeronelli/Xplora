@@ -1,7 +1,7 @@
 /* Landing /sponsors — identidad Xplora (ink / purple / cream), dirigida a marcas */
 
 .xp-sponsors {
-  background: var(--xp-ink, #0b0712);
+  background: var(--xp-ink, var(--sd-void));
   overflow-x: clip;
 }
 
@@ -14,7 +14,7 @@
   align-items: flex-end;
   overflow: hidden;
   color: #fff;
-  background: var(--xp-ink, #0b0712);
+  background: var(--xp-ink, var(--sd-void));
 }
 
 .xp-sp-hero__img {
@@ -41,8 +41,8 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(100deg, rgba(11, 7, 18, 0.88) 0%, rgba(11, 7, 18, 0.45) 55%, rgba(11, 7, 18, 0.55) 100%),
-    linear-gradient(180deg, rgba(11, 7, 18, 0.25) 0%, rgba(11, 7, 18, 0.9) 100%);
+    linear-gradient(100deg, rgb(var(--sd-void-rgb) / 0.88) 0%, rgb(var(--sd-void-rgb) / 0.45) 55%, rgb(var(--sd-void-rgb) / 0.55) 100%),
+    linear-gradient(180deg, rgb(var(--sd-void-rgb) / 0.25) 0%, rgb(var(--sd-void-rgb) / 0.9) 100%);
   pointer-events: none;
 }
 
@@ -57,7 +57,7 @@
 }
 
 .xp-sp-hero__eyebrow {
-  color: #c4b5ff;
+  color: var(--sd-purple-lift);
 }
 
 .xp-sp-hero__title {
@@ -97,7 +97,7 @@
 }
 
 .xp-sp-hero__line--accent {
-  color: #b8a4ff;
+  color: var(--sd-purple-lift);
 }
 
 .xp-sp-hero__lead {
@@ -106,7 +106,7 @@
   font-family: var(--xp-body, 'Instrument Sans', sans-serif);
   font-size: clamp(1.05rem, 2.2vw, 1.25rem);
   line-height: 1.5;
-  color: rgba(250, 248, 245, 0.78);
+  color: rgb(var(--sd-cream-rgb) / 0.78);
   animation: sd-fade-up 0.9s 0.55s ease both;
 }
 
@@ -123,7 +123,7 @@
   font-family: var(--xp-body, 'Instrument Sans', sans-serif);
   font-size: 0.92rem;
   font-weight: 600;
-  color: rgba(250, 248, 245, 0.78);
+  color: rgb(var(--sd-cream-rgb) / 0.78);
   text-decoration: underline;
   text-underline-offset: 4px;
 }
@@ -143,7 +143,7 @@
 
 .xp-sp-why__title em {
   font-style: normal;
-  color: var(--xp-purple, #603ef9);
+  color: var(--xp-purple, var(--sd-purple));
 }
 
 .xp-sp-why__grid {
@@ -163,7 +163,7 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  border-top: 1px solid rgba(26, 16, 40, 0.12);
+  border-top: 1px solid rgb(var(--sd-ink-rgb) / 0.12);
 }
 
 .xp-sp-benefit {
@@ -171,7 +171,7 @@
   grid-template-columns: 3.25rem minmax(0, 1fr);
   gap: 1rem;
   padding: 1.15rem 0;
-  border-bottom: 1px solid rgba(26, 16, 40, 0.12);
+  border-bottom: 1px solid rgb(var(--sd-ink-rgb) / 0.12);
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -184,7 +184,7 @@
   font-size: 0.85rem;
   font-weight: 800;
   letter-spacing: 0.08em;
-  color: var(--xp-purple, #603ef9);
+  color: var(--xp-purple, var(--sd-purple));
   padding-top: 0.2rem;
 }
 
@@ -195,7 +195,7 @@
   font-weight: 800;
   letter-spacing: -0.03em;
   text-transform: uppercase;
-  color: var(--xp-ink-2, #1a1028);
+  color: var(--xp-ink-2, var(--sd-ink));
 }
 
 .xp-sp-benefit__text {
@@ -211,7 +211,7 @@
   margin: 0;
   border-radius: 14px;
   overflow: hidden;
-  background: #1a1028;
+  background: var(--sd-ink);
   aspect-ratio: 4 / 5;
   max-height: 420px;
   width: 100%;
@@ -233,7 +233,7 @@
 
 /* ── Contact + form ── */
 .xp-sp-contact {
-  border-top: 1px solid rgba(26, 16, 40, 0.08);
+  border-top: 1px solid rgb(var(--sd-ink-rgb) / 0.08);
 }
 
 .xp-sp-contact__layout {
@@ -254,7 +254,7 @@
 }
 
 .xp-sp-contact__shine {
-  background: linear-gradient(110deg, #1a1028 0%, #603ef9 40%, #1a1028 80%);
+  background: linear-gradient(110deg, var(--sd-ink) 0%, var(--sd-purple) 40%, var(--sd-ink) 80%);
   background-size: 220% 100%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -288,7 +288,7 @@
   font-family: var(--xp-body, 'Instrument Sans', sans-serif);
   font-size: 0.98rem;
   font-weight: 600;
-  color: var(--xp-ink-2, #1a1028);
+  color: var(--xp-ink-2, var(--sd-ink));
 }
 
 .xp-sp-contact__points li::before {
@@ -298,16 +298,16 @@
   top: 0.55em;
   width: 6px;
   height: 6px;
-  background: var(--xp-purple, #603ef9);
+  background: var(--xp-purple, var(--sd-purple));
   border-radius: 1px;
 }
 
 .xp-sp-contact__panel {
   background: #fff;
-  border: 1px solid rgba(26, 16, 40, 0.1);
+  border: 1px solid rgb(var(--sd-ink-rgb) / 0.1);
   border-radius: 14px;
   padding: clamp(1.35rem, 3vw, 1.85rem);
-  box-shadow: 0 18px 48px rgba(26, 16, 40, 0.06);
+  box-shadow: 0 18px 48px rgb(var(--sd-ink-rgb) / 0.06);
 }
 
 /* Form propio — no pelear con .sd-form ink */
@@ -332,7 +332,7 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #6b6180;
+  color: var(--sd-muted);
   box-sizing: border-box;
 }
 
@@ -345,10 +345,10 @@
   box-sizing: border-box;
   margin: 0;
   padding: 12px 14px;
-  border: 1px solid rgba(26, 16, 40, 0.16);
+  border: 1px solid rgb(var(--sd-ink-rgb) / 0.16);
   border-radius: var(--sd-radius, 10px);
-  background: #faf8f5;
-  color: #1a1028;
+  background: var(--sd-cream);
+  color: var(--sd-ink);
   font-family: var(--xp-body, 'Instrument Sans', sans-serif);
   font-size: 1rem;
   font-weight: 500;
@@ -360,29 +360,29 @@
 
 .xp-sp-form select {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='rgba(26,16,40,0.45)' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='rgb(var(--sd-ink-rgb) / 0.45)' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 14px center;
-  background-color: #faf8f5;
+  background-color: var(--sd-cream);
   padding-right: 36px;
   cursor: pointer;
 }
 
 .xp-sp-form select option {
-  color: #1a1028;
-  background: #faf8f5;
+  color: var(--sd-ink);
+  background: var(--sd-cream);
 }
 
 .xp-sp-form input:focus,
 .xp-sp-form textarea:focus,
 .xp-sp-form select:focus {
-  border-color: var(--xp-purple, #603ef9);
-  box-shadow: 0 0 0 3px rgba(96, 62, 249, 0.12);
+  border-color: var(--xp-purple, var(--sd-purple));
+  box-shadow: 0 0 0 3px rgb(var(--sd-purple-rgb) / 0.12);
 }
 
 .xp-sp-form input::placeholder,
 .xp-sp-form textarea::placeholder {
-  color: rgba(26, 16, 40, 0.38);
+  color: rgb(var(--sd-ink-rgb) / 0.38);
 }
 
 .xp-sp-form textarea {
@@ -429,7 +429,7 @@
   margin: 0;
   font-family: var(--xp-display, 'Syne', sans-serif);
   font-size: 1.45rem;
-  color: var(--xp-ink-2, #1a1028);
+  color: var(--xp-ink-2, var(--sd-ink));
 }
 
 .xp-sp-form__ok p {

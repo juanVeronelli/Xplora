@@ -1,36 +1,87 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import {
+  LOGO,
   SD_AGENDA_LOCKED,
+  SD_AULAS,
+  SD_CHARLAS,
   SD_EVENT,
-  SD_SCHEDULE,
   SD_STANDS,
   sdLumaUrl,
-  type SdScheduleBeat,
+  type SdCharla,
 } from '../../data/startupDay';
 import { SdReveal } from './SdReveal';
 
-function speakerOf(beat: SdScheduleBeat): string | undefined {
-  if (beat.kind === 'workshop') return beat.label;
-  if (beat.kind === 'stands') return undefined;
-  return beat.detail;
+/* ── El tiempo como grilla ──
+   La ventana del día partida en filas de 5 minutos. Cada charla declara `grid-row: inicio / fin`
+   y con eso queda ubicada Y dimensionada por su horario real: los huecos entre charlas son filas
+   vacías y una charla de 15 minutos sale un tercio de alto que una de 45. Nada de esto se mide en
+   JS — la versión anterior de esta sección leía `getBoundingClientRect()` de cada fila en un
+   `useLayoutEffect` y en un listener de `resize` para dibujar su línea de tiempo. */
+const INICIO = 15 * 60 + 30; // 15:30
+const FIN = 20 * 60; // 20:00
+const PASO = 5; // minutos por fila
+/** 54. Se lo pasamos al CSS como custom property en vez de repetir el número en la hoja: el
+    `repeat()` de `.sd-agenda__col` lo lee de acá y no puede quedar desfasado de `linea()`. */
+const FILAS = (FIN - INICIO) / PASO;
+
+const minutos = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3));
+/** Línea de grilla de un horario: 15:30 → 1, 20:00 → 55. */
+const linea = (t: string) => (minutos(t) - INICIO) / PASO + 1;
+/** Posición del horario sobre el riel, en % de su alto. */
+const pct = (t: string) => ((minutos(t) - INICIO) / (FIN - INICIO)) * 100;
+
+/** Marcas del riel: una cada media hora, de 15:30 a 20:00. */
+const TICKS = Array.from({ length: (FIN - INICIO) / 30 + 1 }, (_, i) => {
+  const m = INICIO + i * 30;
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+});
+
+function Charla({ charla }: { charla: SdCharla }) {
+  /* Una charla de 15 minutos ocupa 3 filas: no hay alto para el nombre Y el horario. Igual que en
+     el diseño, esas cards se quedan sólo con el nombre. */
+  const corta = minutos(charla.to) - minutos(charla.from) < 30;
+
+  return (
+    <li
+      className={`sd-agenda__card${corta ? ' is-corta' : ''}`}
+      style={{ gridRow: `${linea(charla.from)} / ${linea(charla.to)}` }}
+    >
+      {/* Caja de tamaño fijo: con logo entra el archivo, sin logo el punto. Así las cuatro
+          charlas que todavía no tienen logo no descolocan la fila. */}
+      <span className="sd-agenda__mark">
+        {charla.logo ? (
+          <img
+            className={charla.logoEnColor ? 'is-color' : undefined}
+            src={LOGO(charla.logo)}
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
+        ) : (
+          <span className="sd-agenda__dot" aria-hidden />
+        )}
+      </span>
+
+      <h3 className="sd-agenda__name">{charla.name}</h3>
+
+      {corta ? null : (
+        <p className="sd-agenda__when">
+          <time dateTime={`${SD_EVENT.dateISO}T${charla.from}`}>{charla.from}</time>
+          {' — '}
+          <time dateTime={`${SD_EVENT.dateISO}T${charla.to}`}>{charla.to}</time>
+        </p>
+      )}
+    </li>
+  );
 }
 
-function titleOf(beat: SdScheduleBeat): string {
-  if (beat.kind === 'main') return 'Charla principal';
-  if (beat.kind === 'final') return 'Charla final';
-  if (beat.kind === 'stands') return 'Stands abiertos';
-  return 'Workshop';
-}
-
-/** Encabezado común a las dos vistas de la sección. */
+/** Encabezado de la sección — el título grande y su bajada. */
 function AgendaHead() {
   return (
     <SdReveal className="sd-agenda__head">
-      <p className="sd-kicker">Agenda</p>
-      <p className="sd-agenda__when">
-        <span>11 de septiembre</span>
-        <span aria-hidden className="sd-agenda__dot" />
-        <span>{SD_EVENT.timeLabel}</span>
+      <h2 className="sd-agenda__title">Todo lo que va a pasar</h2>
+      <p className="sd-agenda__sub">
+        Charlas, workshops y espacios para conectar con founders, inversores y builders.
       </p>
     </SdReveal>
   );
@@ -53,7 +104,7 @@ function AgendaLocked() {
           </svg>
         </span>
 
-        <h2 className="sd-agenda-locked__title">Agenda próximamente</h2>
+        <h3 className="sd-agenda-locked__title">Agenda próximamente</h3>
 
         <p className="sd-agenda-locked__copy">
           Estamos cerrando las charlas y los workshops del día. Publicamos la grilla completa
@@ -80,168 +131,70 @@ function AgendaLocked() {
   );
 }
 
-/** Línea de tiempo interactiva. Se publica cuando `SD_AGENDA_LOCKED` pasa a `false`. */
-function AgendaTimeline() {
-  const rootRef = useRef<HTMLDivElement>(null);
-  const lineRef = useRef<HTMLOListElement>(null);
-  const rowRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const [active, setActive] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const [inView, setInView] = useState(false);
-  const [spine, setSpine] = useState({ top: 0, bottom: 0, fill: 0 });
-  const userLocked = useRef(false);
-
-  const measureSpine = () => {
-    const line = lineRef.current;
-    if (!line) return;
-
-    const dots = rowRefs.current
-      .map((row) => row?.querySelector<HTMLElement>('.sd-agenda__dot-hit') ?? null)
-      .filter((el): el is HTMLElement => Boolean(el));
-
-    if (dots.length === 0) return;
-
-    const lineRect = line.getBoundingClientRect();
-    const centers = dots.map((dot) => {
-      const r = dot.getBoundingClientRect();
-      return r.top - lineRect.top + r.height / 2;
-    });
-
-    const first = centers[0] ?? 0;
-    const last = centers[centers.length - 1] ?? first;
-    const current = centers[active] ?? first;
-
-    setSpine({
-      top: first,
-      bottom: lineRect.height - last,
-      fill: Math.max(0, current - first),
-    });
-  };
-
-  useEffect(() => {
-    const el = rootRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => setInView(entry.isIntersecting),
-      { threshold: 0.3 },
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (!inView || paused) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    const id = window.setInterval(() => {
-      if (userLocked.current) return;
-      setActive((i) => (i + 1) % SD_SCHEDULE.length);
-    }, 2200);
-    return () => window.clearInterval(id);
-  }, [inView, paused]);
-
-  useEffect(() => {
-    if (!paused || !userLocked.current) return;
-    const id = window.setTimeout(() => {
-      userLocked.current = false;
-      setPaused(false);
-    }, 7000);
-    return () => window.clearTimeout(id);
-  }, [paused, active]);
-
-  useLayoutEffect(() => {
-    measureSpine();
-  }, [active]);
-
-  useEffect(() => {
-    const onResize = () => measureSpine();
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, [active]);
-
+/**
+ * La grilla: un riel de horarios a la izquierda y una columna por aula, en paralelo.
+ * Sin estado, sin timers, sin observers — todo el posicionamiento es CSS.
+ */
+function AgendaGrilla() {
   return (
-    <div id="agenda" className="sd-piso__agenda" ref={rootRef}>
+    <div id="agenda" className="sd-piso__agenda">
       <AgendaHead />
 
-      <SdReveal className="sd-agenda">
-        <p className="sd-agenda__stands">
-          <span className="sd-agenda__stands-label">{SD_STANDS.label}</span>
-          <span className="sd-agenda__stands-sep" aria-hidden />
-          <span className="sd-agenda__stands-copy">
-            Abiertos todo el horario — también durante charlas y workshops
-          </span>
-          <span className="sd-agenda__stands-range">
-            {SD_STANDS.from}:00 — {SD_STANDS.to}:00
-          </span>
-        </p>
+      <SdReveal delay={1} className="sd-agenda">
+        {/* Los encabezados van en su propia grilla con el MISMO template de columnas que la de
+            abajo (la custom property `--sd-agenda-cols`), así quedan a plomo sin `subgrid`. */}
+        <div className="sd-agenda__cols" aria-hidden>
+          <span />
+          {SD_AULAS.map((aula) => (
+            <span key={aula.id} className="sd-agenda__col-head">
+              {aula.label}
+            </span>
+          ))}
+        </div>
 
-        <ol
-          ref={lineRef}
-          className="sd-agenda__line"
-          onMouseLeave={() => {
-            if (!userLocked.current) setPaused(false);
-          }}
-        >
-          <div
-            className="sd-agenda__spine"
-            aria-hidden
-            style={{ top: spine.top, bottom: spine.bottom }}
-          >
-            <span className="sd-agenda__spine-base" />
-            <span className="sd-agenda__spine-fill" style={{ height: spine.fill }} />
+        <div className="sd-agenda__grid">
+          {/* El riel se estira solo al alto de las columnas (`stretch` del grid), así que los
+              porcentajes de cada marca caen exactos sin medir nada. */}
+          <div className="sd-agenda__rail" aria-hidden>
+            {TICKS.map((t) => (
+              <span key={t} className="sd-agenda__tick" style={{ top: `${pct(t)}%` }}>
+                {t}
+              </span>
+            ))}
           </div>
 
-          {SD_SCHEDULE.map((beat, i) => {
-            const speaker = speakerOf(beat);
-            const selected = i === active;
-            return (
-              <li key={`${beat.time}-${beat.label}`}>
-                <button
-                  type="button"
-                  ref={(el) => {
-                    rowRefs.current[i] = el;
-                  }}
-                  className={`sd-agenda__row sd-agenda__row--${beat.kind}${selected ? ' is-active' : ''}`}
-                  aria-current={selected ? 'true' : undefined}
-                  onMouseEnter={() => {
-                    setPaused(true);
-                    setActive(i);
-                  }}
-                  onFocus={() => {
-                    setPaused(true);
-                    setActive(i);
-                  }}
-                  onClick={() => {
-                    userLocked.current = true;
-                    setActive(i);
-                    setPaused(true);
-                  }}
-                >
-                  <time className="sd-agenda__time" dateTime={`2026-09-09T${beat.time}:00`}>
-                    {beat.time}
-                  </time>
-                  <span className="sd-agenda__dot-hit" aria-hidden />
-                  <span className="sd-agenda__title">{titleOf(beat)}</span>
-                  {speaker ? (
-                    <span className="sd-agenda__speaker">{speaker}</span>
-                  ) : (
-                    <span className="sd-agenda__speaker sd-agenda__speaker--empty" aria-hidden />
-                  )}
-                </button>
-              </li>
-            );
-          })}
-        </ol>
+          {SD_AULAS.map((aula) => (
+            <ol
+              key={aula.id}
+              className="sd-agenda__col"
+              aria-label={aula.label}
+              style={{ '--sd-agenda-filas': FILAS } as CSSProperties}
+            >
+              {SD_CHARLAS.filter((c) => c.aula === aula.id).map((c) => (
+                <Charla key={`${c.aula}-${c.from}`} charla={c} />
+              ))}
+            </ol>
+          ))}
+        </div>
+
+        <p className="sd-agenda__note">
+          <span className="sd-agenda__note-icon" aria-hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 11v5.5" strokeLinecap="round" />
+              <path d="M12 7.6v.6" strokeLinecap="round" />
+            </svg>
+          </span>
+          La agenda puede estar sujeta a cambios.
+          <span className="sd-agenda__note-sep" aria-hidden />
+          {SD_STANDS.label} abiertos de {SD_STANDS.from} a {SD_STANDS.to} hs.
+        </p>
       </SdReveal>
     </div>
   );
 }
 
-/**
- * Elige la vista según el flag. Son dos componentes y no un early-return para que la
- * timeline no monte sus timers ni su observer mientras la agenda está bloqueada.
- */
 export function StartupDayAgenda() {
   if (SD_AGENDA_LOCKED) return <AgendaLocked />;
-  return <AgendaTimeline />;
+  return <AgendaGrilla />;
 }

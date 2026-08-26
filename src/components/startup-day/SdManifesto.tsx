@@ -24,60 +24,84 @@
 import { useLayoutEffect, useRef } from 'react';
 import gsap from 'gsap';
 
-import { sdLumaUrl } from '../../data/startupDay';
+import { SD_STARTUPS, sdLumaUrl } from '../../data/startupDay';
 
 const ASSET = (file: string) => `/logos/startup-day/quien/${file}?v=1`;
 
-type QuienLogo = {
-  id: string;
-  name: string;
-  src: string;
-  /** Caja EXACTA del diseño, en px del frame de 1920. */
-  w: number;
-  h: number;
+/**
+ * Marcas que el evento no muestra en esta banda: son sponsors y empresas invitadas, no startups
+ * del piso. Hoy ninguna está en `SD_STARTUPS` —sólo aparecen como texto en la agenda—, pero el
+ * filtro queda explícito para que la banda no las levante si mañana se suman a la lista.
+ */
+const EXCLUIDAS = new Set(['endeavor', 'mercadolibre', 'mercado-libre', 'globant', 'picante', 'newtopia']);
+
+/**
+ * Assets con placa de fondo propia: el logo no es sólo el glifo, trae una tarjeta detrás, así que
+ * blanquearlo por filtro fundiría placa y glifo en un bloque macizo. Se muestra tal cual — el
+ * mismo tratamiento que el diseño le da a Berry, que en el Figma viene sobre una placa blanca.
+ *
+ * Berry quedó como único caso: al resto de las marcas con placa (Piggy Wallet, WIP Club, Startups
+ * Argentina) se les generó una versión monocroma sobre transparente en `quien/`, que entra por
+ * `OVERRIDE`.
+ */
+const CON_CHIP = new Set(['berry']);
+
+/**
+ * Reemplazos del logo de `SD_STARTUPS` para esta banda, que es monocroma sobre negro y necesita
+ * el glifo en blanco sobre transparente.
+ *
+ * Los de `quien/` se derivaron del asset del repo quitándole la placa de fondo: el alfa sale de la
+ * distancia al color de la placa —no de un umbral duro— para que los bordes antialiaseados no
+ * queden dentados, con un piso que elimina el velo residual sobre la superficie de la tarjeta.
+ * WIP Club es el caso especial: su marca es texto blanco calado sobre un disco azul, así que lo
+ * que se elimina es el blanco de afuera y queda el disco en blanco con las letras caladas.
+ */
+const OVERRIDE: Record<string, string> = {
+  /** El del repo es un wordmark negro sobre amarillo a sangre; éste es el export del Figma. */
+  paisanos: ASSET('paisanos.svg'),
   /**
-   * El asset viene a color y el diseño lo usa en blanco. `brightness(0) invert(1)` lleva
-   * cualquier píxel opaco a blanco puro respetando el alfa — no sirve `grayscale`, que sobre un
-   * azul saturado deja un gris medio.
+   * El logo del repo es la ilustración del regador, con el wordmark "PASITO" adentro a 66×19px y
+   * pisado por el dibujo: recortarlo de ahí no daba una letra usable a este tamaño. Éste es el
+   * wordmark suelto que pasó el cliente, sólo recortado al contenido.
    */
-  whiten?: boolean;
+  pasito: ASSET('pasito.png'),
+  /** El mismo que ya usa la tira de sponsors: blanco sobre transparente, sin retoque. */
+  resender: '/logos/startup-day/resender-dev.png?v=12',
+  piggywallet: ASSET('piggywallet.png'),
+  /** Reemplazo pasado por el cliente: birrete + wordmark, ya en claro sobre transparente. */
+  tuni: ASSET('tuni.png'),
+  /**
+   * Isotipo monocromo. Va como override y no reemplazando el asset general porque el del repo
+   * —isotipo + wordmark a color— lo siguen usando la tira de sponsors y el carrusel de
+   * confirmadas, donde ese logo funciona.
+   */
+  coworkeando: ASSET('coworkeando.png'),
+  wipclub: ASSET('wipclub.png'),
+  'startups-argentina': ASSET('startups-argentina.png'),
 };
 
 /**
- * Los logos exportados del Figma, no los de `SD_STARTUPS`: son las versiones monocromas
- * preparadas para banda oscura, y una (Firmaway) ni siquiera existe en la data del proyecto.
+ * Toda la grilla de startups, en el orden de la data. Se blanquean por filtro
+ * (`brightness(0) invert(1)`, que lleva cualquier píxel opaco a blanco respetando el alfa) porque
+ * la banda es monocroma sobre negro; las de `CON_CHIP` quedan afuera de esa regla.
  *
- * Dos excepciones: el export del MCP devolvió `elcerokm` y `certenza` 100% transparentes (son
- * image-fills y no se renderizaron). Para esos dos se usa el asset que ya tiene el repo —misma
- * marca, 3-4× la resolución de la caja del diseño— blanqueado por filtro.
- *
- * `w`/`h` son la caja de cada logo tal cual el diseño: se escalan todas por el mismo factor
- * (`--sd-quien-k`) pero cada una conserva su geometría, que es lo que sostiene el ritmo óptico
- * de la fila.
+ * A diferencia de la versión anterior —7 logos con la caja exacta del Figma— acá la caja es
+ * uniforme: el diseño sólo definió geometría para esas 7, y para la grilla entera lo que
+ * sostiene el ritmo es una celda igual para todas con `object-fit: contain`. Los wordmarks anchos
+ * terminan topando contra el ancho y los isotipos cuadrados contra el alto, que es justamente la
+ * proporción que tenían en el diseño.
  */
-const LOGOS: QuienLogo[] = [
-  { id: 'yafu', name: 'Yafu', src: ASSET('yafu.svg'), w: 129, h: 33 },
-  { id: 'sof', name: 'Satellites on Fire', src: ASSET('flame.svg'), w: 51.084, h: 66.848 },
-  { id: 'paisanos', name: 'Paisanos', src: ASSET('paisanos.svg'), w: 183, h: 29.94 },
-  { id: 'berry', name: 'Berry', src: ASSET('berry.png'), w: 72, h: 72 },
-  {
-    id: 'elcerokm',
-    name: 'El cero KM',
-    src: '/logos/startup-day/elcerokm.webp?v=12',
-    w: 145,
-    h: 72,
-    whiten: true,
-  },
-  { id: 'firmaway', name: 'Firmaway', src: ASSET('firmaway.svg'), w: 258, h: 97 },
-  {
-    id: 'certenza',
-    name: 'Certenza',
-    src: '/logos/startup-day/certenza.png?v=12',
-    w: 205,
-    h: 31,
-    whiten: true,
-  },
-];
+const LOGOS = SD_STARTUPS.filter((c) => !EXCLUIDAS.has(c.id)).map((c) => ({
+  id: c.id,
+  name: c.name,
+  /** Vacío para las confirmadas que todavía no tienen archivo: se cae al nombre en texto. */
+  src: OVERRIDE[c.id] ?? c.logoUrl,
+  chip: CON_CHIP.has(c.id),
+  href: c.website || c.instagram || c.linkedin,
+}));
+
+/** Duplicada: el keyframe `sd-marquee` desplaza el track -50%, así que el ciclo cierra sin salto. */
+const LOOP = [...LOGOS, ...LOGOS];
 
 const HEADLINE = 'No importa quién sos. Importa quién querés ser.';
 
@@ -93,7 +117,7 @@ function buildTimeline(els: {
   headline: Element;
   lede: Element;
   actions: Element;
-  logos: Element[];
+  marquee: Element;
 }) {
   const tl = gsap.timeline({ paused: true });
 
@@ -117,12 +141,10 @@ function buildTimeline(els: {
     .fromTo(els.headline, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.7 }, 0.45)
     .fromTo(els.lede, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5 }, 0.7)
     .fromTo(els.actions, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5 }, 0.85)
-    .fromTo(
-      els.logos,
-      { opacity: 0, y: 14 },
-      { opacity: 1, y: 0, duration: 0.45, stagger: 0.07, ease: 'power2.out' },
-      1.15,
-    );
+    /* La banda entra como bloque y no logo por logo: con la fila duplicada para el loop, un
+       stagger recorrería decenas de elementos —la mayoría fuera de pantalla— y el remate de la
+       lámina llegaría varios segundos tarde. */
+    .fromTo(els.marquee, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5 }, 1.1);
 
   return tl;
 }
@@ -133,6 +155,7 @@ export function SdManifesto() {
   const headlineRef = useRef<HTMLHeadingElement>(null);
   const ledeRef = useRef<HTMLParagraphElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
+  const marqueeRef = useRef<HTMLDivElement>(null);
   const firedRef = useRef(false);
 
   /* `useLayoutEffect`: el timeline se crea pausado y GSAP aplica su estado "from" apenas se
@@ -155,13 +178,13 @@ export function SdManifesto() {
     const glows = q('.sd-quien__glow');
     const rules = q('.sd-quien__rule');
     const marks = q('.sd-quien__mark');
-    const logos = q('.sd-quien__logo');
+    const marquee = marqueeRef.current;
 
-    if (!rules.length || !logos.length) return;
+    if (!rules.length || !marquee) return;
 
     let tl: gsap.core.Timeline | undefined;
     const ctx = gsap.context(() => {
-      tl = buildTimeline({ ascii, glows, rules, marks, headline, lede, actions, logos });
+      tl = buildTimeline({ ascii, glows, rules, marks, headline, lede, actions, marquee });
     }, root);
 
     const obs = new IntersectionObserver(
@@ -189,13 +212,12 @@ export function SdManifesto() {
       <div className="sd-quien__glow sd-quien__glow--bl" aria-hidden />
       <div className="sd-quien__glow sd-quien__glow--cta" aria-hidden />
 
-      {/* Marco técnico: la placa gris exterior, las hairlines del marco interior y las cuatro
-          marcas de esquina. Todo decorativo — el contenido vive en `__body` / `__logos`. */}
-      <div className="sd-quien__plate" aria-hidden />
+      {/* Marco técnico: dos reglas a sangre —arriba y abajo— y las cuatro marcas de esquina.
+          Sin verticales: cruzaban la banda de logos de punta a punta y cortaban el desfile. Las
+          marcas de esquina quedan igual y solas alcanzan para acotar la lámina. */}
       <div className="sd-quien__frame" aria-hidden>
         <span className="sd-quien__rule sd-quien__rule--top" />
-        <span className="sd-quien__rule sd-quien__rule--left" />
-        <span className="sd-quien__rule sd-quien__rule--right" />
+        <span className="sd-quien__rule sd-quien__rule--bottom" />
         <span className="sd-quien__mark sd-quien__mark--tl" />
         <span className="sd-quien__mark sd-quien__mark--tr" />
         <span className="sd-quien__mark sd-quien__mark--bl" />
@@ -221,8 +243,9 @@ export function SdManifesto() {
             >
               Inscribirme
             </a>
-            <a className="sd-btn sd-btn--ghost" href="#confirmadas">
-              Conocé las startups
+            {/* Apunta a `#que-pasa`, que es la sección "La experiencia" (`SdExperiencia`). */}
+            <a className="sd-btn sd-btn--ghost" href="#que-pasa">
+              Conocé el evento
             </a>
           </div>
         </div>
@@ -235,19 +258,57 @@ export function SdManifesto() {
         <span className="sd-quien__rule sd-quien__rule--band-top" aria-hidden />
         <span className="sd-quien__rule sd-quien__rule--band-bottom" aria-hidden />
 
-        <ul className="sd-quien__logo-row">
-          {LOGOS.map((logo, i) => (
-            <li key={logo.id} className="sd-quien__logo-cell">
-              {i > 0 && <span className="sd-quien__logo-sep" aria-hidden />}
-              <span
-                className={`sd-quien__logo${logo.whiten ? ' sd-quien__logo--whiten' : ''}`}
-                style={{ ['--w' as string]: logo.w, ['--h' as string]: logo.h }}
-              >
-                <img src={logo.src} alt={logo.name} loading="lazy" decoding="async" />
-              </span>
-            </li>
-          ))}
-        </ul>
+        <div
+          className="sd-quien__marquee"
+          ref={marqueeRef}
+          role="group"
+          aria-label="Startups confirmadas"
+        >
+          {/* La duración escala con la cantidad de marcas para que la velocidad de paso no
+              dependa de cuántas haya en la data. */}
+          <ul
+            className="sd-quien__logo-row"
+            style={{ ['--sd-quien-dur' as string]: `${LOGOS.length * 3.2}s` }}
+          >
+            {LOOP.map((logo, i) => {
+              /* La segunda vuelta es la copia que cierra el loop: se esconde de lectores de
+                 pantalla y se saca del tabulado para no repetir las 35 marcas dos veces. */
+              const copia = i >= LOGOS.length;
+              const contenido = logo.src ? (
+                /* Sin `loading="lazy"` a propósito: el navegador decide qué diferir por la
+                   posición de LAYOUT, y en un track que se mueve por `transform` todas las marcas
+                   quedan fuera de pantalla para siempre según ese criterio. Medido: a los 9s de
+                   animación seguían sin cargar 49 de 62, o sea que entraban en blanco. El costo
+                   real es cercano a cero igual, porque son los mismos archivos que el carrusel de
+                   "Confirmadas" pide unas líneas más abajo. */
+                <img src={logo.src} alt={logo.name} decoding="async" />
+              ) : (
+                <span className="sd-quien__logo-text">{logo.name}</span>
+              );
+              const clase = `sd-quien__logo${logo.chip ? ' sd-quien__logo--chip' : ''}`;
+
+              return (
+                <li key={`${logo.id}-${i}`} className="sd-quien__logo-cell" aria-hidden={copia}>
+                  <span className="sd-quien__logo-sep" aria-hidden />
+                  {logo.href ? (
+                    <a
+                      className={clase}
+                      href={logo.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      tabIndex={copia ? -1 : undefined}
+                      title={logo.name}
+                    >
+                      {contenido}
+                    </a>
+                  ) : (
+                    <span className={clase}>{contenido}</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       </div>
     </section>
   );

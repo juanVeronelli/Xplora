@@ -49,7 +49,7 @@ export function StartupDayCursor() {
     const onOver = (e: MouseEvent) => {
       const t = e.target as HTMLElement | null;
       const hovering = Boolean(
-        t?.closest('a, button, input, textarea, .sd-logo-tile'),
+        t?.closest('a, button, input, textarea'),
       );
       ringRef.current?.classList.toggle('is-hot', hovering);
     };

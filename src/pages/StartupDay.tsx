@@ -7,16 +7,14 @@ import { DEFAULT_LOGO_URL } from '../lib/defaultsMedia';
 import { MAIN_SITE_URL, STARTUP_DAY_CANONICAL } from '../lib/startupDayHost';
 import {
   SD_COMING_SOON,
-  SD_DAY_STORY,
   SD_EVENT,
   SD_STARTUPMATE,
-  SD_STARTUPS,
   sdLumaUrl,
 } from '../data/startupDay';
 import { SdReveal } from '../components/startup-day/SdReveal';
 import { SdShell } from '../components/startup-day/SdShell';
+import { SdExperiencia } from '../components/startup-day/SdExperiencia';
 import { SdManifesto } from '../components/startup-day/SdManifesto';
-import { SdModuleStrip } from '../components/startup-day/SdModuleStrip';
 import { StartupDayAgenda } from '../components/startup-day/StartupDayAgenda';
 import { StartupDayComingSoon } from '../components/startup-day/StartupDayComingSoon';
 import { StartupDayCursor } from '../components/startup-day/StartupDayCursor';
@@ -114,10 +112,6 @@ export default function StartupDay() {
 }
 
 function StartupDayContent() {
-  const featured = SD_STARTUPS.filter((s) => s.featured);
-  const rest = SD_STARTUPS.filter((s) => !s.featured);
-  const marquee = [...rest, ...rest];
-
   return (
     <>
       <section className="sd-hero">
@@ -159,7 +153,7 @@ function StartupDayContent() {
                 Inscribirme gratis
               </a>
               <a className="sd-btn sd-btn--ghost" href="#que-pasa">
-                Qué pasa ese día
+                La experiencia
               </a>
             </div>
           </div>
@@ -179,104 +173,19 @@ function StartupDayContent() {
 
       <SdManifesto />
 
-      <section id="confirmadas" className="sd-band sd-band--ink">
-        <SdReveal>
-          <SdModuleStrip className="sd-confirmed__strip" />
-          <p className="sd-kicker">Confirmadas</p>
-          <h2 className="sd-h2">Startups en el piso</h2>
-        </SdReveal>
-
-        {/* Las 4 con `featured: true` en la data (ya existía, no se usaba en ningún lado) pasan
-            a una fila editorial con su blurb visible; el resto sigue en el marquee de abajo. */}
-        <div className="sd-confirmed__featured">
-          {featured.map((co, i) => {
-            const href = co.website || co.linkedin || co.instagram;
-            return (
-              <SdReveal
-                key={co.id}
-                as="article"
-                delay={(i % 3) as 0 | 1 | 2}
-                className="sd-confirmed__featured-item"
-              >
-                <a
-                  href={href || '#'}
-                  target={href ? '_blank' : undefined}
-                  rel="noopener noreferrer"
-                  style={{ display: 'contents', color: 'inherit', textDecoration: 'none' }}
-                  onClick={(e) => {
-                    if (!href) e.preventDefault();
-                  }}
-                >
-                  <p className="sd-confirmed__featured-name">{co.name}</p>
-                  <p className="sd-confirmed__featured-blurb">{co.blurb}</p>
-                </a>
-              </SdReveal>
-            );
-          })}
-        </div>
-
-        <div className="sd-marquee" aria-label="Startups confirmadas">
-          <div
-            className="sd-marquee__track"
-            /* La duración escala con la cantidad de logos para que la velocidad no cambie. */
-            style={{ ['--sd-marquee-dur' as string]: `${rest.length * 4.75}s` }}
-          >
-            <div className="sd-marquee__group">
-              {marquee.map((co, i) => {
-                const href = co.website || co.linkedin || co.instagram;
-                return (
-                  <a
-                    key={`${co.id}-${i}`}
-                    className={`sd-logo-tile${co.tileLight ? ' sd-logo-tile--light' : ''}`}
-                    href={href || '#'}
-                    target={href ? '_blank' : undefined}
-                    rel="noopener noreferrer"
-                    onClick={(e) => {
-                      if (!href) e.preventDefault();
-                    }}
-                    title={co.name}
-                  >
-                    {co.logoUrl ? (
-                      <img src={co.logoUrl} alt={co.name} loading="lazy" />
-                    ) : (
-                      co.name
-                    )}
-                  </a>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="que-pasa" className="sd-band sd-band--purple-wash sd-pulse">
-        <div className="sd-pulse__glow" aria-hidden />
-
-        <SdReveal className="sd-pulse__head">
-          <p className="sd-kicker">{SD_DAY_STORY.kicker}</p>
-          <h2 className="sd-pulse__title">{SD_DAY_STORY.title}</h2>
-          <p className="sd-pulse__meta">{SD_DAY_STORY.meta}</p>
-          <p className="sd-pulse__lead">{SD_DAY_STORY.lead}</p>
-        </SdReveal>
-
-        <div className="sd-pulse__pillars">
-          {SD_DAY_STORY.pillars.map((p, i) => (
-            <SdReveal key={p.tag} delay={(i % 3) as 0 | 1 | 2} className="sd-pulse__pillar" as="article">
-              <p className="sd-pulse__tag">{p.tag}</p>
-              <p className="sd-pulse__copy">{p.text}</p>
-            </SdReveal>
-          ))}
-        </div>
-      </section>
+      <SdExperiencia />
 
       {/* "El lugar" + Agenda fusionados: la agenda ya no es una sección aparte con su propio
           fondo — es la continuación directa del piso ("así va a suceder"), ver
           `.sd-piso__agenda` y el comentario en `StartupDayAgenda.tsx`. */}
       <section id="piso" className="sd-band sd-band--ink sd-piso">
         <SdReveal className="sd-piso__head">
-          <p className="sd-kicker">El lugar</p>
-          <h2 className="sd-h2">El 2º piso de Alem 882</h2>
-          <p className="sd-lead">
+          {/* Masthead: título a la izquierda y la regla corriendo hasta el margen derecho. */}
+          <div className="sd-piso__masthead">
+            <h2 className="sd-piso__title">El lugar</h2>
+            <span className="sd-piso__rule" aria-hidden />
+          </div>
+          <p className="sd-piso__lead">
             Dos salas de workshops, cuatro con stands y el hall alrededor del núcleo de
             ascensores. Giralo para ver cómo se recorre el día.
           </p>

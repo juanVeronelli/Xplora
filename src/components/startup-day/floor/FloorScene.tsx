@@ -98,7 +98,7 @@ function Realce({ sala }: { sala: Sala }) {
     <mesh position={[cx, y, cz]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={3}>
       <planeGeometry args={[w, d]} />
       <meshBasicMaterial
-        color="#7d5cff"
+        color="#603ef9"
         transparent
         opacity={0.19}
         depthWrite={false}
@@ -216,7 +216,9 @@ function Escena({
   const sala = SALAS.find((s) => s.id === activa) ?? null;
   return (
     <>
-      <color attach="background" args={['#14101d']} />
+      {/* Igual que `.sd-piso__viewport` en `startupDay.css` (--sd-void): si divergen,
+          aparece un marco alrededor del canvas. */}
+      <color attach="background" args={['#0b0712']} />
       <Entorno />
 
       <ambientLight intensity={0.46} />

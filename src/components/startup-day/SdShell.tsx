@@ -188,8 +188,7 @@ export function SdShell({
                   <h3>Startup Day</h3>
                   <a href="#para-quien">Para quién</a>
                   <a href="#sponsors">Sponsors</a>
-                  <a href="#confirmadas">Confirmadas</a>
-                  <a href="#que-pasa">Qué pasa</a>
+                  <a href="#que-pasa">La experiencia</a>
                   <a href="#piso">El lugar</a>
                   <a href="#agenda">Agenda</a>
                   <a href="#startupmate">StartupMate</a>

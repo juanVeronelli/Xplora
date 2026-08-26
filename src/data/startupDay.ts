@@ -27,11 +27,16 @@ export type StartupDayPartner = {
   instagram?: string;
 };
 
-const LOGO = (file: string) => `/logos/startup-day/${file}?v=12`;
+/** Ruta pública de un logo. El `?v=` es el cache-buster; vive acá y sólo acá. */
+export const LOGO = (file: string) => `/logos/startup-day/${file}?v=12`;
 
 export const SD_EVENT = {
   title: 'Startup Day',
   dateLabel: '11 de septiembre de 2026',
+  /* La misma fecha en ISO, para los `<time dateTime>` de la agenda. Va acá y no hardcodeada en
+     el componente porque justamente así se desfasó: el markup decía `2026-09-09` mientras todo
+     lo visible decía 11 de septiembre. */
+  dateISO: '2026-09-11',
   timeLabel: '15 a 20 hs',
   address: 'Av. Alem 882',
   addressFull: 'Av. Alem 882, Ciudad de Buenos Aires · UCEMA',
@@ -71,19 +76,20 @@ export const SD_STARTUPMATE = {
 export const SD_COMING_SOON = true;
 
 /**
- * Agenda bloqueada. Mientras esté en `true` la sección muestra “Agenda próximamente”
- * en vez de la línea de tiempo: los horarios de `SD_SCHEDULE` son tentativos y las
- * charlas todavía no están confirmadas. Pasar a `false` para publicarla.
+ * Agenda bloqueada. Mientras esté en `true` la sección muestra “Agenda próximamente” en vez de
+ * la grilla. Se publicó con las charlas de `SD_CHARLAS` confirmadas; volver a `true` la vuelve
+ * a tapar sin perder los datos.
  */
-export const SD_AGENDA_LOCKED = true;
+export const SD_AGENDA_LOCKED = false;
 
-/** Experiencia Startup Day — tipografía + pilares (brand ink/purple). */
+/**
+ * Experiencia Startup Day — el título y las cuatro filas del acordeón de `SdExperiencia`.
+ *
+ * Sin `kicker`: la sección arranca directo en el título. El horario no vive acá sino en
+ * `SD_STANDS`, que ya lo comparte con la agenda — así no puede quedar desfasado entre las dos.
+ */
 export const SD_DAY_STORY = {
-  kicker: 'Qué pasa ese día',
   title: 'La experiencia',
-  meta: '15 — 20 hs · UCEMA · 100% gratuito',
-  lead:
-    'Stands abiertos durante todo el evento, workshops con empresas líderes, charlas y espacio para conversar con quienes están construyendo startups.',
   pillars: [
     {
       tag: 'Stands',
@@ -104,13 +110,75 @@ export const SD_DAY_STORY = {
   ],
 } as const;
 
-/** Agenda del día — stands todo el rato + beats puntuales. */
-export type SdScheduleBeat = {
-  time: string;
-  kind: 'main' | 'workshop' | 'final' | 'stands';
-  label: string;
-  detail?: string;
+/**
+ * Las dos salas de workshops del 2º piso. Los ids son los mismos que en `SALAS`
+ * (`startupDayFloor.ts`), donde M es "Acá se hacen los workshops" y K "la sala más grande".
+ */
+export const SD_AULAS = [
+  { id: 'm', label: 'Aula M' },
+  { id: 'k', label: 'Aula K' },
+] as const;
+
+export type SdAula = (typeof SD_AULAS)[number]['id'];
+
+/**
+ * Una charla de la grilla.
+ *
+ * `from`/`to` no son sólo texto: `StartupDayAgenda` los convierte en líneas de una grilla CSS,
+ * así que la card queda ubicada y dimensionada por su horario real — los huecos entre charlas y
+ * el largo de cada una salen solos de estos dos valores.
+ */
+export type SdCharla = {
+  aula: SdAula;
+  /** HH:MM en 24h, dentro de la ventana 15:30 — 20:00 que dibuja el riel. */
+  from: string;
+  to: string;
+  name: string;
+  /** Archivo dentro de `/logos/startup-day/`. Sin él la card cae al punto violeta. */
+  logo?: string;
+  /**
+   * Deja el logo en su color en vez de aplanarlo a blanco.
+   *
+   * La card normaliza los logos con `brightness(0) invert(1)`, que respeta el alfa y sirve para
+   * cualquier wordmark. Pero una marca pictórica maciza —sin detalle interno— se aplana a una
+   * silueta blanca y deja de leerse: ahí hace falta el color. Es una propiedad del archivo, no
+   * una decisión de diseño por charla.
+   */
+  logoEnColor?: boolean;
 };
+
+/**
+ * La grilla del día. Reemplazó a un borrador de una sola pista donde 6 de 10 filas decían
+ * "Stands abiertos": el evento son dos aulas en paralelo.
+ *
+ * Faltan los archivos de logo de NEWTOPIA, Derecruiters, Picante y FUD. Cuando estén en
+ * `src/public/logos/startup-day/` alcanza con sumarles la clave `logo:` acá.
+ */
+/* Ojo con qué archivo se elige: la card los pinta con `brightness(0) invert(1)`, que sólo
+   funciona sobre PNG/WebP con alfa. `endeavor.webp` viene sin canal alfa y salía como un
+   rectángulo blanco; `resender.png` es el ícono cuadrado y no el wordmark; y `derecruiters.png`
+   llegó con fondo negro macizo, así que se le quitó con `ffmpeg -vf colorkey`. */
+export const SD_CHARLAS: readonly SdCharla[] = [
+  { aula: 'm', from: '15:30', to: '16:15', name: 'uin', logo: 'uin.png' },
+  { aula: 'm', from: '16:30', to: '17:15', name: 'NEWTOPIA', logo: 'newtopia.png' },
+  { aula: 'm', from: '17:30', to: '18:15', name: 'Derecruiters', logo: 'derecruiters.png' },
+  {
+    aula: 'm',
+    from: '18:30',
+    to: '19:15',
+    name: 'Mercado Libre',
+    logo: 'mercado-libre.png',
+    logoEnColor: true,
+  },
+  { aula: 'm', from: '19:25', to: '20:00', name: 'Pasito', logo: 'pasito.webp' },
+
+  { aula: 'k', from: '15:30', to: '16:15', name: 'Endeavor', logo: 'endeavor.png' },
+  { aula: 'k', from: '16:30', to: '17:15', name: 'TQe', logo: 'tqe.webp' },
+  { aula: 'k', from: '17:30', to: '18:15', name: 'Picante', logo: 'picante.png' },
+  { aula: 'k', from: '18:15', to: '18:30', name: 'FUD' },
+  { aula: 'k', from: '18:30', to: '19:15', name: 'Zettios', logo: 'zettios.png' },
+  { aula: 'k', from: '19:25', to: '20:00', name: 'Resender', logo: 'resender-dev.png' },
+];
 
 export const SD_STANDS = {
   from: '15',
@@ -118,65 +186,6 @@ export const SD_STANDS = {
   label: 'Stands',
   note: 'Abiertos todo el horario',
 } as const;
-
-/**
- * Horarios TENTATIVOS — no se renderizan mientras `SD_AGENDA_LOCKED` sea `true`.
- * Los nombres de cada `detail`/`label` son borradores: confirmarlos antes de destrabar.
- */
-export const SD_SCHEDULE: readonly SdScheduleBeat[] = [
-  {
-    time: '15:00',
-    kind: 'main',
-    label: 'Charla principal',
-    detail: 'Endeavor',
-  },
-  {
-    time: '15:30',
-    kind: 'stands',
-    label: 'Stands abiertos',
-  },
-  {
-    time: '16:00',
-    kind: 'workshop',
-    label: 'Satellites on Fire',
-  },
-  {
-    time: '16:30',
-    kind: 'stands',
-    label: 'Stands abiertos',
-  },
-  {
-    time: '17:00',
-    kind: 'workshop',
-    label: 'TQe',
-  },
-  {
-    time: '17:30',
-    kind: 'stands',
-    label: 'Stands abiertos',
-  },
-  {
-    time: '18:00',
-    kind: 'final',
-    label: 'Charla final',
-    detail: 'Mercado Libre',
-  },
-  {
-    time: '18:30',
-    kind: 'stands',
-    label: 'Stands abiertos',
-  },
-  {
-    time: '19:00',
-    kind: 'stands',
-    label: 'Stands abiertos',
-  },
-  {
-    time: '19:30',
-    kind: 'stands',
-    label: 'Stands abiertos',
-  },
-] as const;
 
 /** Startups confirmadas — logos normalizados en `/logos/startup-day/*.webp`. */
 export const SD_STARTUPS: StartupDayCompany[] = [
@@ -195,7 +204,7 @@ export const SD_STARTUPS: StartupDayCompany[] = [
     logoUrl: LOGO('tqe.webp'),
     featured: true,
     blurb:
-      'Stand + workshop a las 17 hs. Van a bajar método de producto, go-to-market y cómo escalan operación.',
+      'Stand + workshop. Van a bajar método de producto, go-to-market y cómo escalan operación.',
     website: 'https://www.tqe.com.ar/',
   },
   {
@@ -204,7 +213,7 @@ export const SD_STARTUPS: StartupDayCompany[] = [
     logoUrl: LOGO('satellites-on-fire.webp'),
     featured: true,
     blurb:
-      'Stand + workshop a las 16 hs. Tech de alto crecimiento: fundraising, equipo y cómo construyen producto.',
+      'Stand + workshop. Tech de alto crecimiento: fundraising, equipo y cómo construyen producto.',
     website: 'https://www.satellitesonfire.com/',
   },
   {
@@ -257,7 +266,7 @@ export const SD_STARTUPS: StartupDayCompany[] = [
     id: 'piggywallet',
     name: 'Piggy Wallet',
     logoUrl: LOGO('piggywallet.webp'),
-    website: 'https://www.piggywallet.app/home-spanish',
+    website: 'https://www.piggywallet.app/',
   },
   { id: 'bata', name: 'Bata', logoUrl: LOGO('bata.png'), website: 'https://bataedu.com/' },
   {
@@ -267,7 +276,7 @@ export const SD_STARTUPS: StartupDayCompany[] = [
     website: 'https://compassguard.xyz/',
     tileLight: true,
   },
-  { id: 'paisanos', name: 'Paisanos', logoUrl: LOGO('paisanos.png'), website: 'https://www.paisanos.io/es' },
+  { id: 'paisanos', name: 'Paisanos', logoUrl: LOGO('paisanos.png'), website: 'https://www.paisanos.io/' },
   { id: 'gasti', name: 'Gasti', logoUrl: LOGO('gasti.png'), website: 'https://gasti.pro/' },
   { id: 'yafu', name: 'Yafu', logoUrl: LOGO('yafu.png'), website: 'https://yafu.app/' },
   { id: 'berry', name: 'Berry', logoUrl: LOGO('berry.png'), website: 'https://berry.app/' },
@@ -309,13 +318,6 @@ export const SD_STARTUPS: StartupDayCompany[] = [
     website: 'https://www.startupsargentina.com/',
     tileLight: true,
   },
-  {
-    id: 'galo',
-    name: 'Galo',
-    logoUrl: LOGO('galo.svg'),
-    website: 'https://www.soygalo.com/',
-    tileLight: true,
-  },
   { id: 'fluxis', name: 'Fluxis', logoUrl: LOGO('fluxis.png'), website: 'https://fluxis.us/' },
   { id: 'divenuo', name: 'diVenuo', logoUrl: LOGO('divenuo.png'), website: 'https://divenuo.com/' },
   {
@@ -324,6 +326,13 @@ export const SD_STARTUPS: StartupDayCompany[] = [
     logoUrl: LOGO('prestagro.png'),
     website: 'https://prestagro.com.ar/',
   },
+  /** Único asset disponible: el export monocromo del key art, ya en blanco sobre transparente. */
+  { id: 'firmaway', name: 'Firmaway', logoUrl: LOGO('firmaway.svg') },
+  /* Las tres llegaron sólo en versión monocroma clara, que sirve igual para las dos bandas
+     oscuras donde aparecen (el carrusel de confirmadas y "Para quién es"). */
+  { id: 'uin', name: 'UIN', logoUrl: LOGO('uin.png'), website: 'https://uin.tech/' },
+  { id: 'extra', name: 'Extra', logoUrl: LOGO('extra.png'), website: 'https://extra.com.ar/' },
+  { id: 'firstplug', name: 'First Plug', logoUrl: LOGO('firstplug.png'), website: 'https://firstplug.co/' },
 ];
 
 /**

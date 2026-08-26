@@ -20,12 +20,50 @@
 }
 
 .sd-root {
+  /* ── Violeta: UN solo hue (251°). Todo lo violeta de la landing sale de acá. ──
+     Hasta acá convivían nueve violetas distintos —#c4b5ff, #b8a4ff, #7d5cff, rgba(133,101,255),
+     rgba(140,90,255), rgba(113,82,206), #2b117b, #4a2ab8, #3f335c— con hues entre 251° y 258°.
+     Ninguno era una decisión: era deriva, una sección a la vez. Ahora hay dos valores y una
+     regla.
+
+     · `--sd-purple`       acentos, CTAs, líneas: todo lo que no sea texto chico sobre oscuro.
+     · `--sd-purple-rgb`   la tripleta suelta. TODA transparencia violeta se escribe
+                           `rgb(var(--sd-purple-rgb) / α)` — nunca otra tripleta. Esa es la
+                           regla que impide que la deriva vuelva a pasar.
+     · `--sd-purple-lift`  el único aclarado, y existe por contraste: `--sd-purple` sobre
+                           `--sd-ink` da 3.1:1, que alcanza para títulos y bordes pero no para
+                           kickers ni bullets. Éste da 7.4:1 y es el MISMO hue, sólo más claro. */
+  --sd-purple: #603ef9;
+  --sd-purple-rgb: 96 62 249;
+  --sd-purple-lift: #c4b5ff;
+  --sd-purple-lift-rgb: 196 181 255;
+
+  /* ── Oscuros: sólo DOS. ──
+     `--sd-ink` es la base de banda; `--sd-void` el fondo profundo (hero, lámina, footer, piso).
+     Antes había nueve casi-iguales (#120c1c, #140c22, #14101d, #150f24, #100b1b, #0d0917,
+     #020202…), cada uno inventado en su sección. */
   --sd-ink: #1a1028;
+  --sd-ink-rgb: 26 16 40;
+  --sd-void: #0b0712;
+  --sd-void-rgb: 11 7 18;
   --sd-ink-soft: #3d3060;
   --sd-muted: #7a6e92;
-  --sd-faint: #b8b0cc;
-  --sd-purple: #603ef9;
-  --sd-purple-soft: rgba(96, 62, 249, 0.12);
+
+  /* ── Grilla de contenido ──
+     Una sola medida para toda la landing: el contenido de cualquier sección arranca y termina
+     en la misma x. Antes convivían tres grillas distintas —el hero capado a 1320, las bandas
+     full-bleed con sólo 56px de inset, y "Para quién es" con el 10,8vw del Figma— y los bordes
+     no coincidían entre secciones.
+
+     · `--sd-shell`  → ancho total de la caja, gutters incluidos (la medida del hero, que es la
+                       referencia porque es el key art).
+     · `--sd-gutter` → aire mínimo contra el borde de la ventana.
+     · `--sd-pad-x`  → inset para una sección FULL-BLEED: mete el contenido en la grilla sin
+                       recortarle el fondo, que es lo que necesitan las bandas de color. Por
+                       debajo de `--sd-shell` colapsa al gutter solo. */
+  --sd-gutter: clamp(20px, 5vw, 56px);
+  --sd-shell: 1320px;
+  --sd-pad-x: calc(var(--sd-gutter) + max(0px, (100% - var(--sd-shell)) / 2));
 
   /* Wash violeta de la esquina inferior izquierda. Vive en variables porque el hero y
      `.sd-sponsor-band` pintan LA MISMA elipse, con el centro a `86dvh` del tope de la página: el
@@ -37,11 +75,11 @@
      caída larga y convexa en vez de la rampa lineal de antes, así el color se apaga suave hacia
      abajo y hacia los lados. */
   --sd-wash-bl:
-    rgba(96, 62, 249, 0.7) 0%,
-    rgba(96, 62, 249, 0.47) 22%,
-    rgba(96, 62, 249, 0.24) 42%,
-    rgba(96, 62, 249, 0.09) 60%,
-    rgba(96, 62, 249, 0) 78%;
+    rgb(var(--sd-purple-rgb) / 0.7) 0%,
+    rgb(var(--sd-purple-rgb) / 0.47) 22%,
+    rgb(var(--sd-purple-rgb) / 0.24) 42%,
+    rgb(var(--sd-purple-rgb) / 0.09) 60%,
+    rgb(var(--sd-purple-rgb) / 0) 78%;
 
   /* La atenuación vertical es UNA sola rampa partida en dos tramos: el hero llega al borde con
      0.58 y la banda arranca en 0.58 y muere en 0 justo donde termina. Los tramos están calculados
@@ -63,10 +101,11 @@
     rgba(0, 0, 0, 0) 100%
   );
   --sd-cream: #faf8f5;
+  --sd-cream-rgb: 250 248 245;
   --sd-cream-dark: #f2eee8;
   --sd-warm: #ede8e0;
   --sd-white: #ffffff;
-  --sd-line: rgba(26, 16, 40, 0.08);
+  --sd-line: rgb(var(--sd-ink-rgb) / 0.08);
   /* Cruz de registro: el motivo del key art del evento, donde se cruzan las líneas de la grilla.
      Se dibuja en SVG para que quede a 1px exacto en cualquier densidad de pantalla. */
   --sd-cross: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11'%3E%3Cpath d='M5.5 0v11M0 5.5h11' stroke='%231a1028' stroke-opacity='.34' stroke-width='1'/%3E%3C/svg%3E");
@@ -81,13 +120,20 @@
      aparte por si el afiche necesita divergir más adelante. */
   --sd-font-poster: 'Glacial Indifference', sans-serif;
   --sd-radius: 10px; /* unificado: nada circular / pill */
+
+  /* ── Un solo tamaño para todos los títulos de sección ──
+     La medida sale del manifiesto ("No importa quién sos…"), que es la referencia. Antes cada
+     sección traía la suya —"La experiencia" y "El lugar" llegaban a 7rem, StartupMate a 6.4rem,
+     la agenda a 3.6rem— y ninguna coincidía con otra. Es un token y no un valor repetido cinco
+     veces justamente para que no vuelvan a separarse. */
+  --sd-title: clamp(1.9rem, 3.38vw, 4.053rem);
   margin: 0;
   padding: 0;
   min-height: 100vh;
   min-height: 100dvh;
   font-family: var(--sd-font-body);
   color: var(--sd-ink);
-  background: #120c1c;
+  background: var(--sd-void);
   overflow-x: hidden;
 }
 
@@ -97,7 +143,7 @@ html.sd-mode body,
 html.sd-mode #root {
   margin: 0 !important;
   padding: 0 !important;
-  background: #120c1c !important;
+  background: var(--sd-void) !important;
   min-height: 100%;
 }
 
@@ -131,7 +177,7 @@ html.sd-cursor-on * {
   width: 36px;
   height: 36px;
   margin: -18px 0 0 -18px;
-  border: 1.5px solid rgba(96, 62, 249, 0.85);
+  border: 1.5px solid rgb(var(--sd-purple-rgb) / 0.85);
   transition: width 0.2s ease, height 0.2s ease, margin 0.2s ease, background 0.2s ease,
     border-color 0.2s ease;
 }
@@ -140,8 +186,8 @@ html.sd-cursor-on * {
   width: 52px;
   height: 52px;
   margin: -26px 0 0 -26px;
-  background: rgba(96, 62, 249, 0.12);
-  border-color: #603ef9;
+  background: rgb(var(--sd-purple-rgb) / 0.12);
+  border-color: var(--sd-purple);
 }
 
 .sd-root h1,
@@ -167,7 +213,7 @@ html.sd-cursor-on * {
   z-index: 100;
   display: grid;
   place-items: center;
-  background: #0b0712;
+  background: var(--sd-void);
 }
 
 .sd-loader__bg {
@@ -176,8 +222,8 @@ html.sd-cursor-on * {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 70% 55% at 50% 40%, rgba(96, 62, 249, 0.28), transparent 62%),
-    linear-gradient(165deg, #1a1028 0%, #0b0712 48%, #140c22 100%);
+    radial-gradient(ellipse 70% 55% at 50% 40%, rgb(var(--sd-purple-rgb) / 0.28), transparent 62%),
+    linear-gradient(165deg, var(--sd-ink) 0%, var(--sd-void) 48%, var(--sd-ink) 100%);
   overflow: hidden;
 }
 
@@ -194,7 +240,7 @@ html.sd-cursor-on * {
   left: 50%;
   top: 38%;
   transform: translate(-50%, -50%);
-  background: radial-gradient(circle, rgba(96, 62, 249, 0.55), transparent 68%);
+  background: radial-gradient(circle, rgb(var(--sd-purple-rgb) / 0.55), transparent 68%);
   animation: sd-loader-breathe-a 2.8s ease-in-out infinite;
 }
 
@@ -203,7 +249,7 @@ html.sd-cursor-on * {
   height: min(45vw, 280px);
   right: 8%;
   bottom: 12%;
-  background: radial-gradient(circle, rgba(140, 90, 255, 0.28), transparent 70%);
+  background: radial-gradient(circle, rgb(var(--sd-purple-rgb) / 0.28), transparent 70%);
   animation: sd-loader-breathe-b 3.6s ease-in-out infinite;
 }
 
@@ -265,7 +311,7 @@ html.sd-cursor-on * {
   aspect-ratio: 1;
   width: 100%;
   opacity: 0;
-  background-color: var(--sd-purple, #603ef9);
+  background-color: var(--sd-purple, var(--sd-purple));
 }
 
 /* ── Coming soon gate ── */
@@ -277,7 +323,7 @@ html.sd-cursor-on * {
   place-items: center;
   overflow: hidden;
   isolation: isolate;
-  background: #0b0712;
+  background: var(--sd-void);
   color: var(--sd-cream);
   padding: clamp(28px, 6vw, 56px);
 }
@@ -297,8 +343,8 @@ html.sd-cursor-on * {
   pointer-events: none;
   mix-blend-mode: screen;
   background:
-    radial-gradient(80% 75% at 100% 0%, rgba(133, 101, 255, 0.7) 0%, transparent 62%),
-    radial-gradient(85% 80% at 0% 100%, rgba(96, 62, 249, 0.65) 0%, transparent 64%);
+    radial-gradient(80% 75% at 100% 0%, rgb(var(--sd-purple-rgb) / 0.7) 0%, transparent 62%),
+    radial-gradient(85% 80% at 0% 100%, rgb(var(--sd-purple-rgb) / 0.65) 0%, transparent 64%);
 }
 
 /* El wash de arriba lo comparten hero y gate; sólo el hero necesita continuar más abajo, porque
@@ -311,10 +357,10 @@ html.sd-cursor-on * {
   /* `vh` primero como reserva: si el navegador no entiende `dvh` se queda con este, que en el hero
      resuelve al mismo alto — y la banda usa el mismo par, así que siguen empalmando igual. */
   background:
-    radial-gradient(80% 75% at 100% 0%, rgba(133, 101, 255, 0.7) 0%, transparent 62%),
+    radial-gradient(80% 75% at 100% 0%, rgb(var(--sd-purple-rgb) / 0.7) 0%, transparent 62%),
     radial-gradient(85% 80vh at 0% 86%, var(--sd-wash-bl));
   background:
-    radial-gradient(80% 75% at 100% 0%, rgba(133, 101, 255, 0.7) 0%, transparent 62%),
+    radial-gradient(80% 75% at 100% 0%, rgb(var(--sd-purple-rgb) / 0.7) 0%, transparent 62%),
     radial-gradient(85% 80dvh at 0% 86%, var(--sd-wash-bl));
   -webkit-mask-image: var(--sd-wash-fade-hero);
   mask-image: var(--sd-wash-fade-hero);
@@ -352,8 +398,8 @@ html.sd-cursor-on * {
 .sd-soon__orbit {
   position: absolute;
   inset: -10px;
-  border: 1.5px solid rgba(96, 62, 249, 0.55);
-  border-top-color: #c4b5ff;
+  border: 1.5px solid rgb(var(--sd-purple-rgb) / 0.55);
+  border-top-color: var(--sd-purple-lift);
   border-radius: 50%;
   animation: sd-spin 2.4s linear infinite;
 }
@@ -362,7 +408,7 @@ html.sd-cursor-on * {
   width: 56px;
   height: 56px;
   object-fit: contain;
-  filter: drop-shadow(0 0 18px rgba(96, 62, 249, 0.45));
+  filter: drop-shadow(0 0 18px rgb(var(--sd-purple-rgb) / 0.45));
   animation: sd-soon-logo 2.8s ease-in-out infinite;
 }
 
@@ -372,7 +418,7 @@ html.sd-cursor-on * {
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: rgba(250, 248, 245, 0.5);
+  color: rgb(var(--sd-cream-rgb) / 0.5);
   animation: sd-fade-up 0.9s 0.08s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
@@ -394,7 +440,7 @@ html.sd-cursor-on * {
   max-width: 28rem;
   font-size: clamp(1.02rem, 2.2vw, 1.18rem);
   line-height: 1.55;
-  color: rgba(250, 248, 245, 0.72);
+  color: rgb(var(--sd-cream-rgb) / 0.72);
   animation: sd-fade-up 0.95s 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
@@ -410,7 +456,7 @@ html.sd-cursor-on * {
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(250, 248, 245, 0.55);
+  color: rgb(var(--sd-cream-rgb) / 0.55);
   animation: sd-fade-up 0.95s 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
@@ -430,7 +476,7 @@ html.sd-cursor-on * {
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #c4b5ff;
+  color: var(--sd-purple-lift);
   animation: sd-fade-up 0.95s 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
@@ -439,7 +485,7 @@ html.sd-cursor-on * {
   height: 8px;
   border-radius: 50%;
   background: var(--sd-purple);
-  box-shadow: 0 0 0 0 rgba(96, 62, 249, 0.55);
+  box-shadow: 0 0 0 0 rgb(var(--sd-purple-rgb) / 0.55);
   animation: sd-soon-pulse 1.8s ease-out infinite;
 }
 
@@ -447,9 +493,9 @@ html.sd-cursor-on * {
   pointer-events: auto;
   font-size: 0.9rem;
   font-weight: 650;
-  color: rgba(250, 248, 245, 0.78);
+  color: rgb(var(--sd-cream-rgb) / 0.78);
   text-decoration: none;
-  border-bottom: 1px solid rgba(250, 248, 245, 0.28);
+  border-bottom: 1px solid rgb(var(--sd-cream-rgb) / 0.28);
   padding-bottom: 2px;
   transition: color 0.2s ease, border-color 0.2s ease;
   animation: sd-fade-up 0.95s 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -457,7 +503,7 @@ html.sd-cursor-on * {
 
 .sd-soon__link:hover {
   color: #fff;
-  border-bottom-color: #c4b5ff;
+  border-bottom-color: var(--sd-purple-lift);
 }
 
 @keyframes sd-soon-logo {
@@ -472,13 +518,13 @@ html.sd-cursor-on * {
 
 @keyframes sd-soon-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(96, 62, 249, 0.55);
+    box-shadow: 0 0 0 0 rgb(var(--sd-purple-rgb) / 0.55);
   }
   70% {
-    box-shadow: 0 0 0 12px rgba(96, 62, 249, 0);
+    box-shadow: 0 0 0 12px rgb(var(--sd-purple-rgb) / 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(96, 62, 249, 0);
+    box-shadow: 0 0 0 0 rgb(var(--sd-purple-rgb) / 0);
   }
 }
 
@@ -525,7 +571,7 @@ html.sd-coming-soon body {
 .sd-loader__orbit {
   position: absolute;
   inset: -5px;
-  border: 1.5px solid rgba(96, 62, 249, 0.22);
+  border: 1.5px solid rgb(var(--sd-purple-rgb) / 0.22);
   border-top-color: var(--sd-purple);
   border-radius: 50%;
   animation: sd-spin 0.85s linear infinite;
@@ -546,7 +592,7 @@ html.sd-coming-soon body {
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(250, 248, 245, 0.65);
+  color: rgb(var(--sd-cream-rgb) / 0.65);
 }
 
 @keyframes sd-spin {
@@ -704,12 +750,12 @@ html.sd-coming-soon body {
   /* numérico para que max-width anime (none no interpola) */
   max-width: 100%;
   margin: 0 auto;
-  padding: 16px clamp(20px, 5vw, 56px);
-  background: rgba(18, 12, 28, 0);
+  padding: 16px var(--sd-pad-x);
+  background: rgb(var(--sd-void-rgb) / 0);
   backdrop-filter: blur(0px);
   -webkit-backdrop-filter: blur(0px);
   color: var(--sd-cream);
-  border: 1px solid rgba(96, 62, 249, 0);
+  border: 1px solid rgb(var(--sd-purple-rgb) / 0);
   border-radius: 0;
   box-shadow: 0 0 0 rgba(0, 0, 0, 0);
   transition:
@@ -730,10 +776,10 @@ html.sd-coming-soon body {
   max-width: 720px;
   border-radius: var(--sd-radius);
   padding: 8px 14px 8px 12px;
-  background: rgba(18, 12, 28, 0.92);
+  background: rgb(var(--sd-void-rgb) / 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-color: rgba(96, 62, 249, 0.4);
+  border-color: rgb(var(--sd-purple-rgb) / 0.4);
   box-shadow:
     0 14px 40px rgba(0, 0, 0, 0.4),
     0 0 0 1px rgba(255, 255, 255, 0.04);
@@ -788,7 +834,7 @@ html.sd-coming-soon body {
   padding: 7px 12px;
   border: none;
   background: transparent;
-  color: rgba(250, 248, 245, 0.55);
+  color: rgb(var(--sd-cream-rgb) / 0.55);
   cursor: pointer;
   border-radius: var(--sd-radius);
   text-decoration: none;
@@ -806,7 +852,7 @@ html.sd-coming-soon body {
 .sd-tabs button.is-active,
 .sd-tabs a.is-active {
   color: #fff;
-  background: rgba(96, 62, 249, 0.28);
+  background: rgb(var(--sd-purple-rgb) / 0.28);
 }
 
 .sd-tabs button:hover,
@@ -935,7 +981,7 @@ html.sd-coming-soon body {
   flex-direction: column;
   justify-content: center;
   color: var(--sd-cream);
-  background: #0b0712;
+  background: var(--sd-void);
   isolation: isolate;
   overflow: hidden;
 }
@@ -945,11 +991,11 @@ html.sd-coming-soon body {
   position: relative;
   z-index: 3;
   width: 100%;
-  max-width: 1320px;
+  max-width: var(--sd-shell);
   margin: 0 auto;
   padding:
     calc(96px + env(safe-area-inset-top, 0px))
-    clamp(20px, 5vw, 56px)
+    var(--sd-gutter)
     88px;
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
@@ -991,7 +1037,7 @@ html.sd-coming-soon body {
 }
 
 /* Funde el borde del círculo dibujado en canvas con lo que sea que haya detrás — antes era un
-   color plano (`#0b0712`) hardcodeado, que tapaba el glow violeta del fondo entero en el cuarto
+   color plano (`var(--sd-void)`) hardcodeado, que tapaba el glow violeta del fondo entero en el cuarto
    donde vive el disco. Transparente: el canvas ya desvanece su propio trazo cerca del borde
    (`smoothstep` en `SdAsciiDisc`), así que esto sólo necesita afinar esa transición, no pintar
    encima de lo que hay atrás. */
@@ -1000,7 +1046,7 @@ html.sd-coming-soon body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(circle at 50% 50%, transparent 62%, rgba(11, 7, 18, 0.3) 88%, transparent 100%);
+  background: radial-gradient(circle at 50% 50%, transparent 62%, rgb(var(--sd-void-rgb) / 0.3) 88%, transparent 100%);
 }
 
 .sd-hero__content .sd-btn,
@@ -1027,7 +1073,7 @@ html.sd-coming-soon body {
   font-weight: 600;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(250, 248, 245, 0.38);
+  color: rgb(var(--sd-cream-rgb) / 0.38);
 }
 
 .sd-sponsor-strip__row {
@@ -1070,16 +1116,16 @@ html.sd-coming-soon body {
   transform: translateY(-3px) scale(1.06);
 }
 
-/* Banda propia entre el hero y "Para quién es": mismo `#0b0712` que ambos, así no se nota la
+/* Banda propia entre el hero y "Para quién es": mismo `var(--sd-void)` que ambos, así no se nota la
    costura. Vive fuera del hero a propósito — el hero mide justo `100dvh`. */
 .sd-sponsor-band {
   position: relative;
-  /* Contiene el `screen` del `::before` a esta caja: mezcla contra su propio `#0b0712`, que es el
+  /* Contiene el `screen` del `::before` a esta caja: mezcla contra su propio `var(--sd-void)`, que es el
      mismo fondo que tiene el hero debajo del wash. Sin esto la mezcla dependería de qué apilado
      haya más arriba y los dos lados de la costura podrían no dar el mismo color. */
   isolation: isolate;
-  background: #0b0712;
-  padding: clamp(32px, 6vw, 52px) clamp(20px, 5vw, 56px) clamp(48px, 8vw, 72px);
+  background: var(--sd-void);
+  padding: clamp(32px, 6vw, 52px) var(--sd-pad-x) clamp(48px, 8vw, 72px);
 }
 
 /* Cola del wash del hero, no un degradado nuevo: misma elipse, mismo `screen`, mismas paradas. El
@@ -1110,7 +1156,7 @@ html.sd-coming-soon body {
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(250, 248, 245, 0.55);
+  color: rgb(var(--sd-cream-rgb) / 0.55);
   opacity: 0;
 }
 
@@ -1134,7 +1180,7 @@ html.sd-coming-soon body {
   max-width: 36rem;
   font-size: clamp(1.08rem, 2.1vw, 1.3rem);
   line-height: 1.55;
-  color: rgba(250, 248, 245, 0.78);
+  color: rgb(var(--sd-cream-rgb) / 0.78);
   opacity: 0;
 }
 
@@ -1161,7 +1207,7 @@ html.sd-coming-soon body {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(250, 248, 245, 0.45);
+  color: rgb(var(--sd-cream-rgb) / 0.45);
 }
 
 .sd-hero__facts strong {
@@ -1181,12 +1227,13 @@ html.sd-coming-soon body {
 .sd-hero__scroll {
   position: absolute;
   z-index: 3;
-  left: clamp(20px, 5vw, 56px);
+  /* Cuelga de la grilla, no del borde de la ventana: queda a plomo con el titular del hero. */
+  left: var(--sd-pad-x);
   bottom: 28px;
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  color: rgba(250, 248, 245, 0.55);
+  color: rgb(var(--sd-cream-rgb) / 0.55);
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -1296,8 +1343,8 @@ html.sd-coming-soon body {
   display: grid;
   place-items: center;
   padding: 8px 10px;
-  background: #1a1028;
-  border: 1px solid rgba(26, 16, 40, 0.2);
+  background: var(--sd-ink);
+  border: 1px solid rgb(var(--sd-ink-rgb) / 0.2);
   border-radius: var(--sd-radius);
 }
 
@@ -1305,20 +1352,6 @@ html.sd-coming-soon body {
   width: 100%;
   height: 36px;
   object-fit: contain;
-}
-
-.sd-logo-tile {
-  min-width: 220px;
-  height: 124px;
-  padding: 18px 28px;
-  border-radius: var(--sd-radius);
-}
-
-.sd-logo-tile img {
-  width: 100%;
-  height: 68px;
-  object-fit: contain;
-  display: block;
 }
 
 .sd-chips {
@@ -1355,13 +1388,21 @@ html.sd-coming-soon body {
    `prefers-reduced-motion`, o el primer frame— la lámina se ve completa. */
 .sd-quien {
   /* Geometría del marco, en las proporciones del Figma:
-     · x      → verticales en x=208 / x=1724 de 1920  (10,8%)
      · top    → regla superior en y=146 de 1262       (11,6%)
      · bottom → borde inferior del marco en y=1080    (182px desde abajo → 14,4%)
-     · k      → escala de la banda de logos: a 1920 vale 1px, o sea la caja nativa del diseño. */
-  --sd-quien-x: clamp(20px, 10.8vw, 208px);
+     · k      → escala de la banda de logos: a 1920 vale 1px, o sea la caja nativa del diseño.
+
+     La x ya NO sale del Figma (ahí era 10,8vw: verticales en x=208 / x=1724 de 1920). Esa medida
+     es la de una diapositiva suelta y acá dejaba el titular corrido respecto del resto de la
+     landing. Las verticales del marco cuelgan de `--sd-pad-x`, así que caen exactamente sobre el
+     borde de contenido de las demás secciones: el marco pasa a ser el que marca la grilla, en vez
+     de una caja con reglas propias. La proporción 601/541 de las dos columnas se conserva. */
+  --sd-quien-x: var(--sd-pad-x);
   --sd-quien-top: clamp(48px, 11.6vh, 146px);
-  --sd-quien-bottom: clamp(36px, 14.4vh, 182px);
+  /* Del pie del marco al borde de la sección. El Figma acá pide 14,4vh (182px sobre 1262), pero
+     ver `padding-bottom`: esa proporción es la de una lámina suelta y en la página se lee como
+     hueco. */
+  --sd-quien-bottom: clamp(28px, 6vh, 72px);
   --sd-quien-k: clamp(0.3px, 0.052vw, 0.8px);
   --sd-quien-hair: rgba(107, 107, 107, 0.29);
   /* Cuánto tardan las capas de atmósfera en entrar y salir en los bordes de la sección. Ver
@@ -1383,26 +1424,46 @@ html.sd-coming-soon body {
   position: relative;
   isolation: isolate;
   overflow: hidden;
+  /* La lámina ocupa una pantalla entera, como en el Figma.
+
+     Ojo con la geometría, que es la que hace que el aire de esta sección se comporte raro: la
+     banda de logos es el último hijo del flex y el `__body` es el que estira (`flex: 1 1 auto`),
+     así que la distancia de la banda al pie la fija el `padding-bottom` —y todo el sobrante de
+     la pantalla se inyecta ARRIBA de ella—. Con el contenido real (unos 580px a 1440×900) eso
+     son ~320px de sobrante, y dónde caen los decide el `align-content` del `__body`. Ver
+     `.sd-quien__body`. */
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  /* El diseño pide un negro más profundo (`#020202`) que el `#0b0712` del resto de la landing, y
-     eso deja un escalón contra las secciones vecinas. Se resuelve en el mismo `background`: la
-     sección arranca exactamente en el `#0b0712` con el que termina `.sd-sponsor-band` y cierra en
-     el `--sd-ink` (#1a1028) con el que abre "Confirmadas", con el negro del diseño ocupando todo
-     el medio. Los bordes quedan sin costura sin resignar el color de la lámina. */
+  /* Centra el GRUPO entero —bloque de texto + banda de logos— en la pantalla. Antes el `__body`
+     estiraba y se comía todo el sobrante, así que la banda quedaba clavada al pie y lejos del
+     texto por más que el texto estuviera centrado. Ahora ninguno de los dos estira: van pegados
+     uno al otro y el sobrante se reparte arriba del texto y abajo de la banda. */
+  justify-content: center;
+  /* Esta lámina tenía su propio negro (`#020202`, más profundo que el resto de la landing) y el
+     degradado de cuatro paradas existía sólo para coser ese escalón contra las secciones vecinas.
+     Ese negro se fue con la unificación de fondos: ahora arranca en `--sd-void` —el mismo con el
+     que termina `.sd-sponsor-band`— y cierra en `--sd-ink`, con el que abre "Confirmadas". Misma
+     costura, dos paradas menos. */
   background: linear-gradient(
     to bottom,
-    #0b0712 0,
-    #020202 clamp(90px, 12vh, 160px),
-    #020202 calc(100% - clamp(90px, 12vh, 160px)),
-    #1a1028 100%
+    var(--sd-void) 0,
+    var(--sd-void) calc(100% - clamp(90px, 12vh, 160px)),
+    var(--sd-ink) 100%
   );
   color: #fff;
-  /* Debajo de la banda el diseño deja aire hasta el borde del marco (y=833 → 1080) y de ahí al
-     pie de la lámina (1080 → 1262). Se conserva esa respiración, comprimible en pantallas bajas. */
-  padding-bottom: calc(var(--sd-quien-bottom) + clamp(32px, 19.6vh, 247px));
+  /* Aire por debajo de la banda de logos: primero hasta el cierre del marco, después hasta el
+     borde de la sección.
+
+     El Figma deja 247px de la banda al marco (y=833 → 1080) y 182px más hasta el pie de la
+     lámina (1080 → 1262): 429px en total. Esa respiración funciona en una diapositiva suelta,
+     que termina ahí, pero en la página deja un vacío enorme entre el desfile de logos y la
+     sección siguiente —la banda queda flotando muy arriba del corte—. Se conserva el orden de la
+     composición (la banda cierra, después el marco, después la sección) con una fracción del
+     aire. Ojo: la sección mantiene `min-height: 100dvh` y centra su contenido, así que recortar
+     acá no la achica — corre el grupo centrado un poco más abajo. */
+  padding-bottom: calc(var(--sd-quien-bottom) + clamp(24px, 5vh, 72px));
 }
 
 /* El compás de Xplora tramado en ASCII, al 20% sobre negro. La caja del Figma (−15,1% a los lados,
@@ -1436,8 +1497,8 @@ html.sd-coming-soon body {
 .sd-quien__glow--tr {
   background: radial-gradient(
     ellipse 34% 52% at 94% 7%,
-    rgba(83, 40, 216, 0.78),
-    rgba(44, 21, 114, 0.42) 42%,
+    rgb(var(--sd-purple-rgb) / 0.52),
+    rgb(var(--sd-purple-rgb) / 0.2) 42%,
     transparent 74%
   );
 }
@@ -1445,8 +1506,8 @@ html.sd-coming-soon body {
 .sd-quien__glow--bl {
   background: radial-gradient(
     ellipse 34% 52% at 6% 76%,
-    rgba(83, 40, 216, 0.72),
-    rgba(44, 21, 114, 0.4) 42%,
+    rgb(var(--sd-purple-rgb) / 0.48),
+    rgb(var(--sd-purple-rgb) / 0.19) 42%,
     transparent 74%
   );
 }
@@ -1455,19 +1516,9 @@ html.sd-coming-soon body {
 .sd-quien__glow--cta {
   background: radial-gradient(
     ellipse 10% 15% at 69% 46%,
-    rgba(83, 40, 216, 0.42),
+    rgb(var(--sd-purple-rgb) / 0.28),
     transparent 70%
   );
-}
-
-/* Placa gris exterior (1706×934 en el diseño): un rectángulo por fuera de las verticales del
-   marco. No se anima — es el borde del "papel", no una hairline del sistema. */
-.sd-quien__plate {
-  position: absolute;
-  inset: var(--sd-quien-top) clamp(10px, 5.57vw, 107px) var(--sd-quien-bottom);
-  z-index: 1;
-  pointer-events: none;
-  border: 1px solid rgba(107, 107, 107, 0.9);
 }
 
 .sd-quien__frame {
@@ -1478,36 +1529,34 @@ html.sd-coming-soon body {
 }
 
 /* Las hairlines se dibujan con `scale` desde su origen. Cada una declara su `transform-origin`
-   acá y el timeline sólo interpola: así el reposo (sin JS) ya es la línea entera. */
+   acá y el timeline sólo interpola: así el reposo (sin JS) ya es la línea entera.
+
+   Quedan sólo horizontales: las dos verticales del marco cruzaban la banda de logos entera y
+   partían el desfile en tajadas. Las marcas de esquina se mantienen y acotan la lámina igual. */
 .sd-quien__rule {
   position: absolute;
   background: var(--sd-quien-hair);
 }
 
-/* La regla superior va a sangre —en el diseño cruza los 1920 de punta a punta—, a diferencia de
-   las verticales, que sí respetan el inset del marco. */
-.sd-quien__rule--top {
-  top: 0;
+/* Las dos reglas que cierran la lámina van a sangre —en el diseño cruzan los 1920 de punta a
+   punta— y comparten el mismo `--sd-quien-hair`, así el tono es parejo a lo largo de toda la
+   línea. Antes acá se superponía además el borde de una placa exterior a alfa 0,9: donde
+   coincidían, el tramo del medio salía al doble de intensidad que las puntas, y por abajo esa
+   placa era la única línea, con lo cual no llegaba a los bordes. */
+.sd-quien__rule--top,
+.sd-quien__rule--bottom {
   left: 0;
   right: 0;
   height: 1px;
   transform-origin: 50% 50%;
 }
 
-.sd-quien__rule--left,
-.sd-quien__rule--right {
+.sd-quien__rule--top {
   top: 0;
+}
+
+.sd-quien__rule--bottom {
   bottom: 0;
-  width: 1px;
-  transform-origin: 50% 0;
-}
-
-.sd-quien__rule--left {
-  left: var(--sd-quien-x);
-}
-
-.sd-quien__rule--right {
-  right: var(--sd-quien-x);
 }
 
 /* Marcas de esquina: dos líneas blancas de 1,5px en una caja de 15px, tal cual el Figma. Se
@@ -1553,16 +1602,28 @@ html.sd-coming-soon body {
 .sd-quien__body {
   position: relative;
   z-index: 2;
-  flex: 1 1 auto;
+  /* Sin `grow`: el que centra ahora es la sección (`justify-content: center`). Si el body
+     estirara, absorbería el sobrante y la banda de logos volvería a caer al pie. */
+  flex: 0 1 auto;
   box-sizing: border-box;
   width: 100%;
-  max-width: calc(1297px + 2 * 208px);
+  /* Antes tenía caja propia (`1297px + 2 * 208px` centrada). Con la x colgando de `--sd-pad-x`
+     eso sobraba y encima desalineaba: el `100%` del padding mide contra la sección, no contra
+     esta caja, así que capar el ancho acá movía el contenido hacia adentro. */
+  max-width: 100%;
   margin: 0 auto;
   padding: calc(var(--sd-quien-top) + clamp(28px, 8vh, 102px)) var(--sd-quien-x)
     clamp(28px, 6vh, 72px);
   display: grid;
   grid-template-columns: minmax(0, 601fr) minmax(0, 541fr);
   align-items: end;
+  /* Con `flex: 0 1 auto` el body ya mide lo que mide su contenido, así que esto sólo importa en
+     el caso raro de que algo lo estire. Queda en `center` por coherencia con el centrado de la
+     sección.
+
+     Historial, para que no vuelva a proponerse: se probó estirar el body y alinear su contenido
+     con `end` —sobrante todo arriba, texto apoyado contra la banda—. Descartado: dejaba media
+     lámina vacía arriba y el bloque de texto aplastado contra el desfile. */
   align-content: center;
   gap: clamp(28px, 8vw, 155px);
 }
@@ -1573,7 +1634,7 @@ html.sd-coming-soon body {
   margin: 0;
   font-family: var(--sd-font-display);
   font-weight: 700;
-  font-size: clamp(1.9rem, 3.38vw, 4.053rem);
+  font-size: var(--sd-title);
   line-height: 1.108;
   letter-spacing: -0.005em;
   text-transform: uppercase;
@@ -1625,6 +1686,17 @@ html.sd-coming-soon body {
   bottom: 0;
 }
 
+/* La banda desfila hacia la izquierda con `sd-marquee`, que desplaza el track -50%: la fila va
+   duplicada en el componente para que el ciclo cierre sin salto. El keyframe venía del carrusel
+   de "Confirmadas" y, borrada esa sección, éste es su único uso. */
+.sd-quien__marquee {
+  overflow: hidden;
+  /* Difuminado ancho: las marcas empiezan a desvanecerse bien antes del borde, así entran y salen
+     de la banda en vez de aparecer y cortarse contra el filo del marco. */
+  mask-image: linear-gradient(90deg, transparent 0, #000 20%, #000 80%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 20%, #000 80%, transparent 100%);
+}
+
 /* En el Figma la fila es un flex con 33px entre TODOS los elementos, separadores incluidos. Acá
    ese 33 aparece dos veces —el `gap` de la fila y el de cada celda— y da justo el mismo ritmo:
    logo ·33· separador ·33· logo. */
@@ -1633,11 +1705,19 @@ html.sd-coming-soon body {
   margin: 0;
   padding: 0;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
+  /* `max-content` en vez de envolver: el track tiene que ser una sola línea para poder correrlo. */
+  width: max-content;
   gap: calc(33 * var(--sd-quien-k));
   min-height: calc(137 * var(--sd-quien-k));
+  animation: sd-marquee var(--sd-quien-dur, 100s) linear infinite;
+}
+
+/* Sin esto los logos son un blanco móvil: al ser links hay que poder frenarlos para clickearlos.
+   `:focus-within` cubre el mismo caso llegando por teclado. */
+.sd-quien__marquee:hover .sd-quien__logo-row,
+.sd-quien__marquee:focus-within .sd-quien__logo-row {
+  animation-play-state: paused;
 }
 
 .sd-quien__logo-cell {
@@ -1655,25 +1735,64 @@ html.sd-coming-soon body {
   background: rgba(107, 107, 107, 0.62);
 }
 
+/* Celda uniforme para todas las marcas. El diseño definía una caja propia por logo, pero sólo
+   para las 7 que dibujó; con la grilla entera de startups eso no existe, así que el ritmo lo
+   sostiene una celda igual para todas. No es un alto común disfrazado: al topar por ancho O por
+   alto, los wordmarks anchos terminan bajos y los isotipos cuadrados altos — la misma proporción
+   relativa que tenían en el Figma. */
 .sd-quien__logo {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: calc(180 * var(--sd-quien-k));
+  height: calc(62 * var(--sd-quien-k));
+  text-decoration: none;
+  opacity: 0.82;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-/* Cada logo conserva SU caja del diseño (`--w`/`--h`, que pone el componente) y todas comparten
-   un único factor de escala. Nada de un alto común: las cajas del Figma son deliberadamente
-   distintas —de 29,94px de alto el wordmark de Paisanos a 97px el de Firmaway— y es eso lo que
-   equilibra ópticamente la fila. */
+/* Las marcas linkean al sitio de cada startup. En reposo van levemente apagadas para que la banda
+   no compita con el titular, y se encienden al pasar por encima. */
+a.sd-quien__logo:hover,
+a.sd-quien__logo:focus-visible {
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
+a.sd-quien__logo:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.7);
+  outline-offset: calc(6 * var(--sd-quien-k));
+}
+
+/* Fallback para las confirmadas que todavía no tienen archivo de logo: el nombre en la misma
+   tipografía de titulares, para que la celda no quede vacía. */
+.sd-quien__logo-text {
+  font-family: var(--sd-font-display);
+  font-weight: 700;
+  font-size: calc(19 * var(--sd-quien-k));
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: #fff;
+  text-align: center;
+  line-height: 1.1;
+}
+
+/* `brightness(0) invert(1)` lleva cualquier píxel opaco a blanco puro respetando el alfa. No
+   sirve `grayscale`, que sobre un azul o un verde saturado deja un gris medio. */
 .sd-quien__logo img {
   display: block;
-  width: calc(var(--w) * var(--sd-quien-k));
-  height: calc(var(--h) * var(--sd-quien-k));
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+  filter: brightness(0) invert(1);
 }
 
-.sd-quien__logo--whiten img {
-  filter: brightness(0) invert(1);
+/* Las que traen fondo opaco propio: blanquearlas daría un bloque sólido, así que se muestran tal
+   cual, sobre su chip. Mismo tratamiento que el diseño le da al isotipo de Berry. */
+.sd-quien__logo--chip img {
+  filter: none;
+  border-radius: calc(10 * var(--sd-quien-k));
 }
 
 /* ── Angosto ──
@@ -1698,13 +1817,8 @@ html.sd-coming-soon body {
     align-items: start;
   }
 
-  .sd-quien__logo-sep {
-    display: none;
-  }
-
   .sd-quien__logo-row {
-    padding: clamp(20px, 5vw, 32px) var(--sd-quien-x);
-    row-gap: clamp(18px, 4vw, 28px);
+    padding-block: clamp(14px, 3vw, 22px);
   }
 }
 
@@ -1719,37 +1833,6 @@ html.sd-coming-soon body {
   }
 }
 
-.sd-agenda__head {
-  margin-bottom: clamp(1.75rem, 4vw, 2.75rem);
-}
-
-.sd-agenda__head .sd-kicker {
-  margin-bottom: 0.65rem;
-}
-
-.sd-agenda__when {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.65rem 0.85rem;
-  margin: 0;
-  font-family: var(--sd-font-display);
-  font-size: clamp(1.05rem, 2.2vw, 1.25rem);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: rgba(250, 248, 245, 0.55);
-  line-height: 1.2;
-}
-
-.sd-agenda__dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 1px;
-  background: var(--sd-purple);
-  flex-shrink: 0;
-}
-
 /* Agenda bloqueada — ver SD_AGENDA_LOCKED en data/startupDay.ts */
 .sd-agenda-locked {
   display: grid;
@@ -1760,7 +1843,7 @@ html.sd-coming-soon body {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--sd-radius);
   background:
-    radial-gradient(120% 140% at 0% 0%, rgba(96, 62, 249, 0.2), transparent 62%),
+    radial-gradient(120% 140% at 0% 0%, rgb(var(--sd-purple-rgb) / 0.2), transparent 62%),
     rgba(255, 255, 255, 0.03);
 }
 
@@ -1792,7 +1875,7 @@ html.sd-coming-soon body {
   font-size: clamp(1rem, 2vw, 1.1rem);
   line-height: 1.65;
   max-width: 44ch;
-  color: rgba(250, 248, 245, 0.72);
+  color: rgb(var(--sd-cream-rgb) / 0.72);
 }
 
 .sd-agenda-locked__fact {
@@ -1811,7 +1894,7 @@ html.sd-coming-soon body {
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #c4b5ff;
+  color: var(--sd-purple-lift);
 }
 
 .sd-agenda-locked__fact-v {
@@ -1822,325 +1905,252 @@ html.sd-coming-soon body {
   color: var(--sd-cream);
 }
 
+
+/* ── Grilla de la agenda ──────────────────────────────────────────────
+   Antes esto era una línea de tiempo de una sola pista, con una "espina" cuya altura se calculaba
+   leyendo el `getBoundingClientRect()` de cada fila en un `useLayoutEffect` y en un listener de
+   `resize`. El evento son dos aulas en paralelo, y con eso la posición dejó de necesitar JS: el
+   tiempo ES la grilla. Cada columna son 54 filas de 5 minutos y cada card declara
+   `grid-row: inicio / fin`, así que su lugar y su alto salen de su horario real — los huecos son
+   filas vacías y una charla de 15 minutos sale un tercio de alto que una de 45.
+
+   `--sd-agenda-cols` la comparten el encabezado y la grilla para que las columnas queden a plomo
+   sin `subgrid`; `--sd-agenda-filas` la escribe el componente, que es quien sabe cuántas filas
+   son (ver `FILAS` en `StartupDayAgenda.tsx`). */
 .sd-agenda {
+  --sd-agenda-cols: clamp(3rem, 5vw, 4.25rem) repeat(2, minmax(0, 1fr));
+  --sd-agenda-gap: clamp(12px, 2vw, 24px);
+  --sd-agenda-slot: clamp(8px, 1.4vh, 11px); /* alto de 5 minutos */
+  --sd-agenda-rule: 1px solid rgb(var(--sd-purple-rgb) / 0.18);
   display: grid;
-  gap: clamp(2rem, 4vw, 3rem);
-  width: 100%;
+  gap: clamp(0.75rem, 2vh, 1.15rem);
 }
 
-.sd-agenda__stands {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.65rem 1rem;
-  margin: 0;
-  padding-bottom: 1.15rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  font-size: 0.84rem;
-  letter-spacing: 0.04em;
-}
-
-.sd-agenda__stands-label {
-  font-family: var(--sd-font-display);
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--sd-purple);
-}
-
-.sd-agenda__stands-sep {
-  width: 28px;
-  height: 1px;
-  background: rgba(96, 62, 249, 0.7);
-}
-
-.sd-agenda__stands-copy {
-  flex: 1 1 12rem;
-  color: rgba(250, 248, 245, 0.55);
-  font-weight: 500;
-}
-
-.sd-agenda__stands-range {
-  margin-left: auto;
-  font-family: var(--sd-font-display);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: #c4b5ff;
-  white-space: nowrap;
-}
-
-.sd-agenda__line {
-  position: relative;
-  display: grid;
-  gap: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  width: 100%;
-}
-
-.sd-agenda__line > li {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.sd-agenda__spine {
-  display: none;
-}
-
-@media (min-width: 720px) {
-  .sd-agenda__spine {
-    display: block;
-    position: absolute;
-    /* Centro exacto de la columna del dot: 5.5rem + gap 1.5rem + mitad de 1.25rem */
-    left: calc(5.5rem + 1.5rem + 0.625rem);
-    width: 1px;
-    transform: translateX(-50%);
-    pointer-events: none;
-  }
-}
-
-.sd-agenda__spine-base {
-  position: absolute;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.sd-agenda__spine-fill {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  background: var(--sd-purple);
-  transition: height 0.55s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.sd-agenda__row {
-  appearance: none;
-  position: relative;
-  display: grid;
-  grid-template-columns: 5.5rem minmax(0, 1fr);
-  grid-template-areas:
-    'time title'
-    'time speaker';
-  column-gap: 1.25rem;
-  row-gap: 0.2rem;
-  align-items: baseline;
-  width: 100%;
-  margin: 0;
-  padding: 1.2rem 0;
-  border: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: transparent;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: opacity 0.35s ease;
-}
-
-.sd-agenda__row::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 2px;
-  background: var(--sd-purple);
-  transform: scaleX(0);
-  transform-origin: left center;
-  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-  pointer-events: none;
-}
-
-.sd-agenda__row.is-active::after,
-.sd-agenda__row:hover::after,
-.sd-agenda__row:focus-visible::after {
-  transform: scaleX(1);
-}
-
-@media (min-width: 720px) {
-  .sd-agenda__row {
-    grid-template-columns: 5.5rem 1.25rem minmax(0, 1fr) auto;
-    grid-template-areas: 'time dot title speaker';
-    column-gap: 1.5rem;
-    padding: 1.45rem 0;
-  }
-
-  .sd-agenda__row--stands {
-    padding: 1.05rem 0;
-  }
-}
-
-.sd-agenda__line:hover .sd-agenda__row:not(.is-active):not(:hover),
-.sd-agenda__line:focus-within .sd-agenda__row:not(.is-active):not(:focus-visible) {
-  opacity: 0.38;
-}
-
-.sd-agenda__row:hover,
-.sd-agenda__row:focus-visible,
-.sd-agenda__row.is-active {
-  opacity: 1;
-  outline: none;
-}
-
-.sd-agenda__time {
-  grid-area: time;
-  font-family: var(--sd-font-display);
-  font-size: clamp(1.55rem, 3.4vw, 2rem);
-  font-weight: 700;
-  letter-spacing: -0.045em;
-  line-height: 1;
-  color: rgba(250, 248, 245, 0.42);
-  font-variant-numeric: tabular-nums;
-  transition: color 0.3s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.sd-agenda__row.is-active .sd-agenda__time,
-.sd-agenda__row:hover .sd-agenda__time,
-.sd-agenda__row:focus-visible .sd-agenda__time {
-  color: #fff;
-  transform: translateX(2px);
-}
-
-.sd-agenda__dot-hit {
-  display: none;
-}
-
-@media (min-width: 720px) {
-  .sd-agenda__dot-hit {
-    grid-area: dot;
-    display: block;
-    width: 9px;
-    height: 9px;
-    margin-top: 0.45rem;
-    border-radius: 1px;
-    background: rgba(255, 255, 255, 0.22);
-    justify-self: center;
-    transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
-  }
-
-  .sd-agenda__row.is-active .sd-agenda__dot-hit,
-  .sd-agenda__row:hover .sd-agenda__dot-hit,
-  .sd-agenda__row:focus-visible .sd-agenda__dot-hit {
-    background: #fff;
-    transform: scale(1.15);
-    box-shadow: 0 0 0 4px rgba(96, 62, 249, 0.35);
-  }
+.sd-agenda__head {
+  margin-bottom: clamp(1.75rem, 4vh, 2.75rem);
 }
 
 .sd-agenda__title {
-  grid-area: title;
+  margin: 0;
   font-family: var(--sd-font-display);
-  font-size: clamp(1.2rem, 2.6vw, 1.55rem);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.15;
-  color: rgba(250, 248, 245, 0.55);
-  transition: color 0.3s ease;
-}
-
-.sd-agenda__row.is-active .sd-agenda__title,
-.sd-agenda__row:hover .sd-agenda__title,
-.sd-agenda__row:focus-visible .sd-agenda__title {
-  color: #fff;
-}
-
-.sd-agenda__speaker {
-  grid-area: speaker;
-  font-size: clamp(0.95rem, 1.6vw, 1.1rem);
-  line-height: 1.35;
-  color: rgba(250, 248, 245, 0.38);
-  transition: color 0.3s ease;
-}
-
-@media (min-width: 720px) {
-  .sd-agenda__speaker {
-    justify-self: end;
-    text-align: right;
-    max-width: 22rem;
-    font-family: var(--sd-font-display);
-    font-size: clamp(1.05rem, 1.8vw, 1.25rem);
-    font-weight: 600;
-    letter-spacing: -0.02em;
-  }
-}
-
-.sd-agenda__speaker--empty {
-  display: none;
-}
-
-@media (min-width: 720px) {
-  .sd-agenda__speaker--empty {
-    display: block;
-  }
-}
-
-.sd-agenda__row.is-active .sd-agenda__speaker,
-.sd-agenda__row:hover .sd-agenda__speaker,
-.sd-agenda__row:focus-visible .sd-agenda__speaker {
-  color: #c4b5ff;
-}
-
-.sd-agenda__row--main.is-active .sd-agenda__speaker,
-.sd-agenda__row--final.is-active .sd-agenda__speaker {
-  color: var(--sd-purple);
-}
-
-.sd-agenda__row--stands .sd-agenda__time {
-  font-size: clamp(1.25rem, 2.6vw, 1.55rem);
-}
-
-.sd-agenda__row--stands .sd-agenda__title {
-  font-family: var(--sd-font-body);
-  font-size: clamp(0.95rem, 1.8vw, 1.1rem);
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: var(--sd-title);
+  font-weight: 800;
+  line-height: 0.98;
+  letter-spacing: -0.035em;
   text-transform: uppercase;
-  color: rgba(250, 248, 245, 0.38);
+  color: var(--sd-cream);
 }
 
-.sd-agenda__row--stands.is-active .sd-agenda__title,
-.sd-agenda__row--stands:hover .sd-agenda__title,
-.sd-agenda__row--stands:focus-visible .sd-agenda__title {
-  color: rgba(250, 248, 245, 0.82);
+.sd-agenda__sub {
+  margin: clamp(0.75rem, 1.6vh, 1.1rem) 0 0;
+  max-width: 46ch;
+  font-family: var(--sd-font-body);
+  font-weight: 300;
+  font-size: clamp(0.95rem, 1.04vw, 1.25rem);
+  line-height: 1.5;
+  color: rgb(var(--sd-cream-rgb) / 0.62);
 }
 
-.sd-agenda__row--stands .sd-agenda__dot-hit {
-  width: 7px;
-  height: 7px;
-  background: rgba(255, 255, 255, 0.14);
+.sd-agenda__cols {
+  display: grid;
+  grid-template-columns: var(--sd-agenda-cols);
+  column-gap: var(--sd-agenda-gap);
 }
 
-.sd-agenda__row--stands.is-active .sd-agenda__dot-hit,
-.sd-agenda__row--stands:hover .sd-agenda__dot-hit,
-.sd-agenda__row--stands:focus-visible .sd-agenda__dot-hit {
-  background: #c4b5ff;
-  box-shadow: 0 0 0 3px rgba(96, 62, 249, 0.22);
+.sd-agenda__col-head {
+  padding-left: var(--sd-agenda-gap);
+  font-family: var(--sd-font-mono);
+  font-size: clamp(0.72rem, 1vw, 0.85rem);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sd-purple-lift);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .sd-agenda__spine-fill,
-  .sd-agenda__time,
-  .sd-agenda__dot-hit,
-  .sd-agenda__title,
-  .sd-agenda__speaker,
-  .sd-agenda__row,
-  .sd-agenda__row::after {
-    transition: none;
+.sd-agenda__grid {
+  display: grid;
+  grid-template-columns: var(--sd-agenda-cols);
+  column-gap: var(--sd-agenda-gap);
+}
+
+/* El riel no declara alto: se estira solo al de las columnas (`stretch` del grid), y por eso los
+   porcentajes de cada marca caen exactos sin medir nada. */
+.sd-agenda__rail {
+  position: relative;
+}
+
+.sd-agenda__tick {
+  position: absolute;
+  right: 0;
+  transform: translateY(-50%);
+  font-family: var(--sd-font-mono);
+  font-size: clamp(0.68rem, 0.9vw, 0.78rem);
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--sd-cream-rgb) / 0.4);
+  white-space: nowrap;
+}
+
+.sd-agenda__col {
+  display: grid;
+  grid-template-rows: repeat(var(--sd-agenda-filas), var(--sd-agenda-slot));
+  margin: 0;
+  padding: 0 0 0 var(--sd-agenda-gap);
+  list-style: none;
+  border-left: var(--sd-agenda-rule);
+}
+
+.sd-agenda__card.is-corta {
+  align-content: center;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.sd-agenda__card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: start;
+  gap: 2px clamp(8px, 1vw, 12px);
+  /* Separa dos cards pegadas sin robarle alto a la grilla de tiempo. */
+  margin-bottom: 4px;
+  padding: clamp(9px, 1.3vw, 15px) clamp(10px, 1.4vw, 16px);
+  overflow: hidden;
+  border: 1px solid rgb(var(--sd-purple-rgb) / 0.22);
+  border-radius: var(--sd-radius);
+  background: linear-gradient(
+    155deg,
+    rgb(var(--sd-purple-rgb) / 0.13),
+    rgb(var(--sd-purple-rgb) / 0.02)
+  );
+}
+
+/* Alto fijo y ancho libre, como `.sd-sponsor-strip__logo img`: los wordmarks son anchos y en una
+   caja cuadrada quedaban del tamaño de una moneda. El `min-width` sostiene el punto de las
+   charlas sin logo para que no descoloquen la fila; el `max-width` evita que un wordmark muy
+   largo le coma el lugar al nombre. */
+.sd-agenda__mark {
+  grid-row: 1 / 3;
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  max-width: clamp(48px, 5vw, 68px);
+  height: 22px;
+}
+
+/* `brightness(0) invert(1)` lleva cualquier píxel opaco a blanco puro respetando el alfa — el
+   mismo tratamiento que `.sd-quien__logo img`, y por la misma razón: sobre la card oscura, los
+   logos que vienen en negro (uin, TQe, Zettios) directamente no se veían. */
+.sd-agenda__mark img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  opacity: 0.92;
+}
+
+/* Ver `logoEnColor` en `SdCharla`: las marcas macizas se aplanan a una mancha blanca. */
+.sd-agenda__mark img.is-color {
+  filter: none;
+  opacity: 1;
+}
+
+.sd-agenda__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 1px;
+  background: var(--sd-purple);
+}
+
+.sd-agenda__name {
+  margin: 0;
+  align-self: center;
+  font-family: var(--sd-font-display);
+  font-size: clamp(0.95rem, 1.5vw, 1.15rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--sd-cream);
+  overflow-wrap: anywhere;
+}
+
+.sd-agenda__when {
+  margin: 0;
+  font-family: var(--sd-font-mono);
+  font-size: clamp(0.7rem, 0.95vw, 0.8rem);
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--sd-cream-rgb) / 0.55);
+  white-space: nowrap;
+}
+
+.sd-agenda__note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin: clamp(0.5rem, 1.5vh, 1rem) 0 0;
+  padding-top: clamp(0.85rem, 2vh, 1.15rem);
+  border-top: var(--sd-agenda-rule);
+  font-size: clamp(0.78rem, 1vw, 0.88rem);
+  color: rgb(var(--sd-cream-rgb) / 0.5);
+}
+
+.sd-agenda__note-icon {
+  display: block;
+  width: 16px;
+  color: var(--sd-purple-lift);
+}
+
+.sd-agenda__note-icon svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.sd-agenda__note-sep {
+  width: 1px;
+  height: 0.9em;
+  background: rgb(var(--sd-purple-rgb) / 0.35);
+}
+
+/* ── Angosto: se cae el paralelismo ──
+   Dos columnas de cards no entran en un teléfono. El riel se va —cada card ya trae su horario,
+   así que no se pierde información— y cada aula pasa a ser una lista apilada con su rótulo
+   propio, porque el encabezado de dos columnas deja de tener sentido. */
+@media (max-width: 719px) {
+  .sd-agenda__cols {
+    display: none;
   }
 
-  .sd-agenda__row.is-active .sd-agenda__time,
-  .sd-agenda__row:hover .sd-agenda__time,
-  .sd-agenda__row:focus-visible .sd-agenda__time {
-    transform: none;
+  .sd-agenda__grid {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: clamp(1.5rem, 5vw, 2.25rem);
   }
 
-  .sd-agenda__row.is-active::after,
-  .sd-agenda__row:hover::after,
-  .sd-agenda__row:focus-visible::after {
-    transform: none;
-    opacity: 1;
+  .sd-agenda__rail {
+    display: none;
+  }
+
+  .sd-agenda__col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .sd-agenda__col::before {
+    content: attr(aria-label);
+    font-family: var(--sd-font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--sd-purple-lift);
+  }
+
+  /* En flex el `grid-row` inline que trae cada card no aplica; sólo hay que neutralizar el
+     margen que en desktop separaba dos cards contiguas. */
+  .sd-agenda__card {
+    margin-bottom: 0;
   }
 }
 
@@ -2195,7 +2205,7 @@ html.sd-coming-soon body {
 }
 
 .sd-btn--ghost:hover {
-  background: rgba(255, 255, 245, 0.08);
+  background: rgb(255 255 255 / 0.08);
   border-color: rgba(255, 255, 255, 0.6);
 }
 
@@ -2234,25 +2244,25 @@ html.sd-coming-soon body {
 }
 
 .sd-root--startupday .sd-btn--primary {
-  background: rgba(113, 82, 206, 0.72);
-  border-color: #2b117b;
+  background: var(--sd-purple);
+  border-color: var(--sd-purple);
   color: #fff;
 }
 
 .sd-root--startupday .sd-btn--primary:hover:not(:disabled):not(.is-disabled) {
-  background: rgba(113, 82, 206, 0.92);
-  border-color: #4a2ab8;
+  background: rgb(var(--sd-purple-rgb) / 0.82);
+  border-color: var(--sd-purple);
   color: #fff;
 }
 
 .sd-root--startupday .sd-btn--ghost {
-  background: rgba(113, 82, 206, 0.33);
+  background: rgb(var(--sd-purple-rgb) / 0.33);
   border-color: transparent;
   color: #fff;
 }
 
 .sd-root--startupday .sd-btn--ghost:hover {
-  background: rgba(113, 82, 206, 0.52);
+  background: rgb(var(--sd-purple-rgb) / 0.52);
   border-color: transparent;
 }
 
@@ -2266,7 +2276,7 @@ html.sd-coming-soon body {
 
 /* ── Band / sections (sin HR: flujo continuo) ── */
 .sd-band {
-  padding: clamp(56px, 9vw, 100px) clamp(20px, 5vw, 56px);
+  padding: clamp(56px, 9vw, 100px) var(--sd-pad-x);
 }
 
 
@@ -2286,7 +2296,26 @@ html.sd-coming-soon body {
 }
 
 .sd-band--purple-wash {
-  background: linear-gradient(165deg, #1a1028 0%, #241848 42%, #1a1028 100%);
+  /* Vertical y no inclinado (antes 165deg): con el eje en diagonal cada esquina caía en un punto
+     distinto de la rampa y la costura contra las vecinas —todas en `--sd-ink`— se leía como
+     escalón.
+
+     El violeta ya no son tres hexes propios (#1c1130 / #201540 / #241848) sino ALFA del único
+     violeta apoyada sobre `--sd-ink`. Las paradas están calculadas para dar los mismos colores
+     que antes: 0.15 sobre ink resuelve a (36,24,72), que es exactamente el #241848 del medio.
+     Arranca y cierra en alfa 0, así que los dos bordes siguen siendo `--sd-ink` exacto. */
+  background:
+    linear-gradient(
+      to bottom,
+      rgb(var(--sd-purple-rgb) / 0) 0%,
+      rgb(var(--sd-purple-rgb) / 0.04) 12%,
+      rgb(var(--sd-purple-rgb) / 0.11) 30%,
+      rgb(var(--sd-purple-rgb) / 0.15) 50%,
+      rgb(var(--sd-purple-rgb) / 0.11) 70%,
+      rgb(var(--sd-purple-rgb) / 0.04) 88%,
+      rgb(var(--sd-purple-rgb) / 0) 100%
+    ),
+    var(--sd-ink);
   color: var(--sd-cream);
 }
 
@@ -2301,7 +2330,7 @@ html.sd-coming-soon body {
 
 .sd-band--ink .sd-kicker,
 .sd-band--purple-wash .sd-kicker {
-  color: #c4b5ff;
+  color: var(--sd-purple-lift);
 }
 
 .sd-h2 {
@@ -2324,7 +2353,7 @@ html.sd-coming-soon body {
 
 .sd-band--ink .sd-lead,
 .sd-band--purple-wash .sd-lead {
-  color: rgba(250, 248, 245, 0.72);
+  color: rgb(var(--sd-cream-rgb) / 0.72);
 }
 
 .sd-split {
@@ -2380,7 +2409,7 @@ html.sd-coming-soon body {
 
 .sd-band--ink .sd-list li::before,
 .sd-band--purple-wash .sd-list li::before {
-  background: #c4b5ff;
+  background: var(--sd-purple-lift);
 }
 
 /* ── Sponsors Startup Day (cierre institucional, pre-CTA) ── */
@@ -2491,7 +2520,7 @@ a.sd-spn__logo:hover {
   padding: 12px 22px;
   background: transparent;
   color: var(--sd-ink);
-  border: 1px solid rgba(26, 16, 40, 0.22);
+  border: 1px solid rgb(var(--sd-ink-rgb) / 0.22);
   font-size: 0.9rem;
   font-weight: 650;
   letter-spacing: 0.02em;
@@ -2513,7 +2542,7 @@ a.sd-spn__logo:hover {
   place-items: center;
   padding: 16px;
   /* Overlay liviano: se ve la página; sin blur/glass */
-  background: rgba(11, 7, 18, 0.35);
+  background: rgb(var(--sd-void-rgb) / 0.35);
   animation: sd-fade-in 0.2s ease both;
 }
 
@@ -2524,11 +2553,11 @@ a.sd-spn__logo:hover {
   overflow-y: auto;
   padding: clamp(1.35rem, 3vw, 1.75rem);
   /* Panel sólido (no translúcido) */
-  background: #faf8f5;
-  border: 1px solid rgba(26, 16, 40, 0.12);
+  background: var(--sd-cream);
+  border: 1px solid rgb(var(--sd-ink-rgb) / 0.12);
   border-radius: var(--sd-radius);
   color: var(--sd-ink);
-  box-shadow: 0 28px 80px rgba(18, 12, 28, 0.28);
+  box-shadow: 0 28px 80px rgb(var(--sd-void-rgb) / 0.28);
   animation: sd-fade-up 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
   box-sizing: border-box;
 }
@@ -2561,7 +2590,7 @@ a.sd-spn__logo:hover {
   place-items: center;
   margin: 0;
   padding: 0;
-  border: 1px solid rgba(26, 16, 40, 0.14);
+  border: 1px solid rgb(var(--sd-ink-rgb) / 0.14);
   border-radius: var(--sd-radius);
   background: transparent;
   color: var(--sd-ink);
@@ -2571,7 +2600,7 @@ a.sd-spn__logo:hover {
 }
 
 .sd-modal__close:hover {
-  background: rgba(26, 16, 40, 0.05);
+  background: rgb(var(--sd-ink-rgb) / 0.05);
 }
 
 .sd-form--modal {
@@ -2605,14 +2634,14 @@ a.sd-spn__logo:hover {
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  border: 1px solid rgba(26, 16, 40, 0.14);
+  border: 1px solid rgb(var(--sd-ink-rgb) / 0.14);
   background: #fff;
   color: var(--sd-ink);
 }
 
 .sd-form--modal select {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='rgba(26,16,40,0.45)' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='rgb(var(--sd-ink-rgb) / 0.45)' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 14px center;
   padding-right: 36px;
@@ -2623,12 +2652,12 @@ a.sd-spn__logo:hover {
 .sd-form--modal textarea:focus,
 .sd-form--modal select:focus {
   border-color: var(--sd-purple);
-  box-shadow: 0 0 0 3px rgba(96, 62, 249, 0.12);
+  box-shadow: 0 0 0 3px rgb(var(--sd-purple-rgb) / 0.12);
 }
 
 .sd-form--modal input::placeholder,
 .sd-form--modal textarea::placeholder {
-  color: rgba(26, 16, 40, 0.35);
+  color: rgb(var(--sd-ink-rgb) / 0.35);
 }
 
 .sd-form--modal .sd-btn--primary {
@@ -2707,132 +2736,20 @@ a.sd-spn__logo:hover {
 }
 
 .sd-links a:hover {
-  color: #c4b5ff;
-  border-bottom-color: #c4b5ff;
+  color: var(--sd-purple-lift);
+  border-bottom-color: var(--sd-purple-lift);
 }
 
 .sd-band--cream .sd-links a,
 .sd-band--warm .sd-links a {
   color: var(--sd-ink);
-  border-bottom-color: rgba(26, 16, 40, 0.25);
+  border-bottom-color: rgb(var(--sd-ink-rgb) / 0.25);
 }
 
 .sd-band--cream .sd-links a:hover,
 .sd-band--warm .sd-links a:hover {
   color: var(--sd-purple);
   border-bottom-color: var(--sd-purple);
-}
-
-/* ── Confirmadas: destacadas ──
-   `SD_STARTUPS` ya traía `featured`/`blurb` en la data pero nada los renderizaba — hoy las 4
-   destacadas (Pasito, TQe, Satellites on Fire, Marz) tienen su propia fila editorial arriba del
-   marquee, que se queda con el resto. Clases nuevas (no `.sd-featured*`, que ya usan Sponsors/
-   XploraSite sobre banda clara — reusarlo acá sobre banda ink habría chocado de color). */
-.sd-confirmed__featured {
-  display: grid;
-  margin-top: clamp(24px, 4vw, 40px);
-}
-
-.sd-confirmed__featured-item {
-  display: grid;
-  gap: 6px 32px;
-  padding: clamp(20px, 3vw, 28px) 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  text-decoration: none;
-  color: inherit;
-}
-
-.sd-confirmed__featured:has(.sd-confirmed__featured-item:last-child) .sd-confirmed__featured-item:last-child {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-@media (min-width: 720px) {
-  .sd-confirmed__featured-item {
-    grid-template-columns: minmax(160px, 0.4fr) 1fr;
-    align-items: baseline;
-    gap: 12px 32px;
-  }
-}
-
-.sd-confirmed__featured-name {
-  margin: 0;
-  font-family: var(--sd-font-display);
-  font-size: clamp(1.4rem, 3vw, 1.9rem);
-  color: var(--sd-cream);
-  transition: color 0.2s ease;
-}
-
-.sd-confirmed__featured-item:hover .sd-confirmed__featured-name {
-  color: #b8a4ff;
-}
-
-.sd-confirmed__featured-blurb {
-  margin: 0;
-  font-size: 0.98rem;
-  line-height: 1.55;
-  color: rgba(250, 248, 245, 0.62);
-}
-
-/* ── Marquee logos ── */
-.sd-marquee {
-  overflow: hidden;
-  margin-top: 2.5rem;
-  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
-}
-
-.sd-marquee__track {
-  display: flex;
-  width: max-content;
-  animation: sd-marquee var(--sd-marquee-dur, 38s) linear infinite;
-}
-
-.sd-marquee__group {
-  display: flex;
-  gap: 16px;
-  padding-right: 16px;
-}
-
-.sd-logo-tile {
-  flex: 0 0 auto;
-  min-width: 220px;
-  height: 124px;
-  display: grid;
-  place-items: center;
-  padding: 18px 28px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
-  font-family: var(--sd-font-display);
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  text-align: center;
-  text-decoration: none;
-  transition: background 0.2s ease, border-color 0.2s ease;
-}
-
-/* Logos oscuros o de color: se leen sobre fondo claro, no sobre la banda ink. */
-.sd-band--ink .sd-logo-tile--light {
-  background: var(--sd-cream);
-  border-color: rgba(26, 16, 40, 0.12);
-  color: var(--sd-ink);
-}
-
-.sd-band--ink .sd-logo-tile--light:hover {
-  background: var(--sd-white);
-  border-color: rgba(26, 16, 40, 0.2);
-}
-
-.sd-logo-tile:hover {
-  background: rgba(96, 62, 249, 0.2);
-  border-color: rgba(96, 62, 249, 0.45);
-}
-
-.sd-band--cream .sd-logo-tile,
-.sd-band--warm .sd-logo-tile {
-  background: var(--sd-white);
-  border-color: var(--sd-line);
-  color: var(--sd-ink);
 }
 
 /* ── Featured startups ── */
@@ -2981,122 +2898,305 @@ a.sd-partner__name:hover {
   }
 }
 
-/* ── Qué pasa ese día (Startup Day energy) ── */
-.sd-pulse {
-  position: relative;
-  overflow-x: clip;
-  overflow-y: hidden;
-  max-width: 100%;
+/* ── "La experiencia" (#que-pasa) — acordeón tipográfico ─────────────
+   Tercera versión de esta sección. Primero fueron cuatro filas gigantes a sangre; después un
+   panel redondeado con sombra, degradado propio, una foto de horizonte en `screen` y cuatro SVG
+   con halos. Las dos anteriores acumulaban capas sin que la sección dijera más.
+
+   Ahora: plano sobre `--sd-ink` —el mismo fondo que `#piso` y `#reservar`, que son sus vecinos,
+   así que no hay costura que coser—, título grande a la derecha y cuatro filas numeradas
+   separadas por hairlines. Una sola abierta por vez. Todo el color sale de `--sd-purple`. */
+.sd-exp {
+  scroll-margin-top: clamp(72px, 12vh, 120px);
+  padding-top: clamp(48px, 7vh, 96px);
+  padding-bottom: clamp(48px, 7vh, 96px);
 }
 
-.sd-pulse__glow {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -30%;
-  height: min(70%, 520px);
-  background: radial-gradient(ellipse at center, rgba(96, 62, 249, 0.35), transparent 68%);
-  pointer-events: none;
+/* ── Cabecera ── */
+.sd-exp__head {
+  text-align: right;
+  margin-bottom: clamp(2.5rem, 6vh, 4.5rem);
 }
 
-.sd-pulse__head {
-  position: relative;
-  z-index: 1;
-  max-width: min(52rem, 100%);
-  margin-bottom: clamp(2.75rem, 6vw, 4.5rem);
-}
-
-.sd-pulse__title {
-  margin: 0 0 1rem;
-  max-width: 100%;
-  font-family: var(--sd-font-display);
-  font-size: clamp(1.7rem, 7vw, 4.75rem);
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.045em;
-  text-transform: uppercase;
-  color: #fff;
-  white-space: nowrap;
-}
-
-.sd-pulse__meta {
-  margin: 0 0 1.25rem;
-  font-family: var(--sd-font-display);
-  font-size: clamp(0.85rem, 2vw, 1.1rem);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--sd-purple);
-}
-
-.sd-pulse__lead {
+.sd-exp__title {
   margin: 0;
-  max-width: min(34rem, 100%);
-  font-size: clamp(1.05rem, 2.1vw, 1.22rem);
-  line-height: 1.55;
-  color: rgba(250, 248, 245, 0.72);
+  font-family: var(--sd-font-display);
+  font-size: var(--sd-title);
+  font-weight: 800;
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  color: var(--sd-cream);
 }
 
-/* Antes: grid parejo de 4 cards. Ahora: cada concepto es una fila que ocupa buena parte del
-   ancho, con el nombre gigante como protagonista tipográfico en vez de encerrado en una card —
-   y cada uno entra con su propio delay de `SdReveal` a medida que el usuario scrollea, en vez
-   de aparecer todos juntos. */
-.sd-pulse__pillars {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
+
+/* ── Las cuatro filas ──
+   Cada fila es una grilla de cuatro columnas y sus tres piezas comparten la primera línea: el
+   botón toma las columnas 1-2 (número + nombre), la descripción la 3 y la flecha la 4. La
+   descripción es HERMANA del botón, no hija: así arranca a la altura del nombre en vez de caer
+   debajo, y el nombre accesible del botón sigue siendo sólo "Stands" y no el párrafo entero.
+
+   El botón repite el ancho de la primera columna en su propia grilla en vez de usar `subgrid`:
+   son dos tracks y de esta forma el número queda a plomo con el resto sin depender de él. */
+.sd-exp__list {
+  --sd-exp-num-col: clamp(3.2rem, 5vw, 4.5rem);
+  --sd-exp-arrow-size: clamp(18px, 2vw, 24px);
+  --sd-exp-name-size: clamp(1.5rem, 3.4vw, 2.6rem);
+  --sd-exp-gap: clamp(12px, 2vw, 28px);
+  --sd-exp-rule: 1px solid rgb(var(--sd-purple-rgb) / 0.18);
 }
 
-.sd-pulse__pillar {
+.sd-exp__row {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.5rem;
-  min-width: 0;
-  max-width: 100%;
-  padding: clamp(22px, 4vw, 40px) 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  grid-template-columns:
+    var(--sd-exp-num-col) minmax(0, 1fr) minmax(0, 1.05fr) var(--sd-exp-arrow-size);
+  gap: var(--sd-exp-gap);
+  /* Anclado arriba: cuando una fila se abre, el número, el nombre y la flecha se quedan en la
+     primera línea en vez de irse al centro de la caja alta. */
+  align-items: start;
+  padding: clamp(18px, 2.6vh, 30px) 0;
+  border-top: var(--sd-exp-rule);
+}
+
+.sd-exp__row:last-child {
+  border-bottom: var(--sd-exp-rule);
+}
+
+.sd-exp__trigger {
+  grid-column: 1 / 3;
+  display: grid;
+  grid-template-columns: var(--sd-exp-num-col) minmax(0, 1fr);
+  gap: var(--sd-exp-gap);
+  align-items: center;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
   background: none;
+  text-align: left;
+  /* La landing fuerza `cursor: none` con el cursor custom (ver `html.sd-cursor-on`): un
+     `cursor: pointer` acá no se vería y sólo pelearía con esa regla. */
+  cursor: inherit;
+  color: inherit;
+  font: inherit;
 }
 
-.sd-pulse__pillar:last-child {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+.sd-exp__num {
+  font-family: var(--sd-font-mono);
+  font-size: clamp(0.78rem, 1vw, 0.9rem);
+  letter-spacing: 0.08em;
+  color: rgb(var(--sd-purple-lift-rgb) / 0.6);
+  transition: color 0.3s ease;
 }
 
-@media (min-width: 760px) {
-  .sd-pulse__pillar {
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-    align-items: baseline;
-    gap: clamp(24px, 5vw, 56px);
+.sd-exp__name {
+  font-family: var(--sd-font-display);
+  font-size: var(--sd-exp-name-size);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
+  color: rgb(var(--sd-cream-rgb) / 0.72);
+  transition: color 0.3s ease;
+}
+
+.sd-exp__row.is-open .sd-exp__num {
+  color: var(--sd-purple-lift);
+}
+
+.sd-exp__row.is-open .sd-exp__name {
+  color: var(--sd-cream);
+}
+
+/* Flecha: una sola ↗ dibujada, girada 90° cuando la fila está cerrada (queda ↘). El
+   `margin-top` la centra ópticamente contra la caja del nombre, que es bastante más alta. */
+.sd-exp__arrow {
+  grid-column: 4 / 5;
+  display: block;
+  width: var(--sd-exp-arrow-size);
+  margin-top: calc((var(--sd-exp-name-size) - var(--sd-exp-arrow-size)) / 2);
+  color: var(--sd-purple-lift);
+}
+
+.sd-exp__arrow-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  transform: rotate(90deg);
+  transition: transform 0.35s ease;
+}
+
+.sd-exp__row.is-open .sd-exp__arrow-svg {
+  transform: rotate(0deg);
+}
+
+/* ── Cuerpo desplegable ──
+   `grid-template-rows: 0fr → 1fr` en vez de `height`: no hace falta medir nada en JS. El
+   `visibility` es lo que saca el contenido cerrado del árbol de accesibilidad, y a diferencia de
+   `display: none` se puede animar. */
+.sd-exp__body {
+  grid-column: 3 / 4;
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition:
+    grid-template-rows 0.4s ease,
+    visibility 0.4s;
+}
+
+.sd-exp__row.is-open .sd-exp__body {
+  grid-template-rows: 1fr;
+  visibility: visible;
+}
+
+/* Mismo cuerpo que la bajada de "No importa quién sos" (`.sd-quien__lede`). El margen negativo
+   compensa el medio interlineado de la primera línea, para que su altura de mayúscula empiece a
+   la par del nombre de la fila y no un par de píxeles más abajo. */
+.sd-exp__copy {
+  min-height: 0;
+  overflow: hidden;
+  margin: -0.25em 0 0;
+  max-width: 44ch;
+  font-family: var(--sd-font-body);
+  font-weight: 300;
+  font-size: clamp(0.95rem, 1.04vw, 1.25rem);
+  line-height: 1.5;
+  color: #fff;
+}
+
+/* ── Cierre: el mismo par de botones que cierra "No importa quién sos" ── */
+.sd-exp__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: clamp(2rem, 5vh, 3.25rem);
+}
+
+/* ── Angosto: tres columnas (número + resto + flecha) y la descripción debajo del nombre ──
+   Acá las filas van EXPLÍCITAS. El cuerpo pasa a ocupar las columnas 2-3, o sea que pisa al
+   botón, y con auto-placement eso empuja la flecha a una tercera fila: quedaba colgada abajo
+   del todo. Fijando `grid-row` cada pieza cae donde tiene que caer. El `row-gap: 0` es por lo
+   mismo: con el cuerpo colapsado a `0fr` el gap seguía separando y las filas cerradas quedaban
+   con un hueco muerto; el aire de la descripción abierta lo pone su propio `margin-top`. */
+@media (max-width: 719px) {
+  .sd-exp__row {
+    grid-template-columns: var(--sd-exp-num-col) minmax(0, 1fr) var(--sd-exp-arrow-size);
+    row-gap: 0;
+  }
+
+  .sd-exp__trigger {
+    grid-column: 1 / 3;
+    grid-row: 1;
+  }
+
+  .sd-exp__arrow {
+    grid-column: 3 / 4;
+    grid-row: 1;
+  }
+
+  .sd-exp__body {
+    grid-column: 2 / 4;
+    grid-row: 2;
+  }
+
+  .sd-exp__copy {
+    margin-top: clamp(10px, 2.5vw, 16px);
+    max-width: none;
   }
 }
 
-.sd-pulse__tag {
+@media (max-width: 520px) {
+  .sd-exp__actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sd-exp__actions .sd-btn {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sd-exp__body,
+  .sd-exp__arrow-svg,
+  .sd-exp__num,
+  .sd-exp__name {
+    transition: none;
+  }
+}
+
+/* ── El lugar: masthead + render 3D del piso ──────────────────────────
+   La sección venía sin regla propia: heredaba el padding de `.sd-band` y arrancaba con un kicker
+   chico. Como "La experiencia", su vecina de arriba, también es `--sd-band--ink`, las dos se
+   fundían en una sola mancha. Ahora abre con una hairline a todo el ancho y bastante más aire
+   encima, que es el corte que faltaba. */
+.sd-piso {
+  position: relative;
+  padding-top: clamp(80px, 13vh, 150px);
+}
+
+.sd-piso::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: var(--sd-pad-x);
+  right: var(--sd-pad-x);
+  height: 1px;
+  background: rgb(var(--sd-purple-rgb) / 0.18);
+}
+
+.sd-piso__head {
+  margin-bottom: clamp(2.5rem, 6vh, 4rem);
+}
+
+/* Título pesado a la izquierda, la regla corriendo el hueco y la dirección en mono a la derecha,
+   los tres apoyados en la misma línea de base. Es el idioma de "La experiencia" —display grande,
+   hairlines, mono violeta— con el eje espejado, así riman sin repetirse. */
+.sd-piso__masthead {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: clamp(16px, 2.5vw, 32px);
+}
+
+.sd-piso__title {
   margin: 0;
   font-family: var(--sd-font-display);
-  font-size: clamp(2.1rem, 7vw, 4.6rem);
+  font-size: var(--sd-title);
   font-weight: 800;
-  letter-spacing: -0.03em;
+  line-height: 0.92;
+  letter-spacing: -0.035em;
   text-transform: uppercase;
-  color: #fff;
-  line-height: 0.94;
-  overflow-wrap: anywhere;
+  color: var(--sd-cream);
 }
 
-.sd-pulse__copy {
-  margin: 0;
-  max-width: 42ch;
-  font-size: 1.02rem;
-  line-height: 1.6;
-  color: rgba(250, 248, 245, 0.58);
+/* Va sobre la línea de base del título, no en su centro: en `align-items: baseline` un elemento
+   sin texto se alinea por su borde de abajo, que es justo donde lo queremos. */
+.sd-piso__rule {
+  height: 1px;
+  background: rgb(var(--sd-purple-rgb) / 0.18);
 }
 
-/* ── El lugar: render 3D del piso ── */
-.sd-piso__head {
-  margin-bottom: clamp(1.5rem, 3.5vw, 2.25rem);
+
+.sd-piso__lead {
+  margin: clamp(1.25rem, 3vh, 2rem) 0 0;
+  max-width: 46ch;
+  font-family: var(--sd-font-body);
+  font-weight: 300;
+  font-size: clamp(0.95rem, 1.04vw, 1.25rem);
+  line-height: 1.5;
+  color: rgb(var(--sd-cream-rgb) / 0.62);
+}
+
+@media (max-width: 719px) {
+  .sd-piso__masthead {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
+  .sd-piso__rule {
+    display: none;
+  }
 }
 
 .sd-piso__layout {
@@ -3125,7 +3225,7 @@ a.sd-partner__name:hover {
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--sd-radius);
-  background: #14101d;
+  background: var(--sd-void);
 }
 
 @media (max-width: 640px) {
@@ -3149,7 +3249,7 @@ a.sd-partner__name:hover {
   margin: 0;
   font-size: 0.86rem;
   letter-spacing: 0.04em;
-  color: rgba(250, 248, 245, 0.5);
+  color: rgb(var(--sd-cream-rgb) / 0.5);
 }
 
 /* Referencia de salas: reemplaza al código de colores dentro del render */
@@ -3207,7 +3307,7 @@ a.sd-partner__name:hover {
   font-size: 0.78rem;
   line-height: 1.35;
   text-align: right;
-  color: rgba(250, 248, 245, 0.55);
+  color: rgb(var(--sd-cream-rgb) / 0.55);
 }
 
 /* Fallback sin WebGL o si el chunk de three no carga */
@@ -3234,7 +3334,7 @@ a.sd-partner__name:hover {
   text-align: center;
   font-size: 0.85rem;
   line-height: 1.55;
-  color: rgba(250, 248, 245, 0.6);
+  color: rgb(var(--sd-cream-rgb) / 0.6);
 }
 
 /* "El lugar" ya no termina en el plano 3D: la agenda vive adentro de la misma sección/banda,
@@ -3242,6 +3342,7 @@ a.sd-partner__name:hover {
    fondo. `StartupDayAgenda` ya no pinta su propia `<section>` — esto es lo que la separa
    visualmente del piso sin cortar la banda. */
 .sd-piso__agenda {
+  scroll-margin-top: clamp(72px, 12vh, 120px);
   margin-top: clamp(56px, 9vw, 96px);
   padding-top: clamp(36px, 6vw, 64px);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -3265,7 +3366,7 @@ a.sd-partner__name:hover {
   margin: 0;
   font-size: 0.86rem;
   letter-spacing: 0.02em;
-  color: rgba(250, 248, 245, 0.55);
+  color: rgb(var(--sd-cream-rgb) / 0.55);
 }
 
 /* ── StartupMate ──
@@ -3296,13 +3397,13 @@ a.sd-partner__name:hover {
 
 .sd-smate__headline span {
   display: block;
-  font-size: clamp(2.8rem, 9vw, 6.4rem);
+  font-size: var(--sd-title);
   font-weight: 800;
   color: var(--sd-cream);
 }
 
 .sd-smate__headline-accent {
-  color: #b8a4ff;
+  color: var(--sd-purple-lift);
 }
 
 .sd-smate__name {
@@ -3320,7 +3421,7 @@ a.sd-partner__name:hover {
   font-size: clamp(0.95rem, 2vw, 1.1rem);
   font-weight: 500;
   letter-spacing: 0.01em;
-  color: #c4b5ff;
+  color: var(--sd-purple-lift);
 }
 
 /* Tags flotantes, decorativos — sugieren "matching" por rol/etapa sin inventar una UI real. */
@@ -3342,7 +3443,7 @@ a.sd-partner__name:hover {
   font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: rgba(250, 248, 245, 0.45);
+  color: rgb(var(--sd-cream-rgb) / 0.45);
   white-space: nowrap;
   animation: sd-smate-float 7s ease-in-out infinite;
   animation-delay: calc(var(--d) * 1s);
@@ -3382,14 +3483,14 @@ a.sd-partner__name:hover {
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(250, 248, 245, 0.78);
+  color: rgb(var(--sd-cream-rgb) / 0.78);
 }
 
 .sd-smate__pulse {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #c4b5ff;
+  background: var(--sd-purple-lift);
   flex-shrink: 0;
   animation: sd-smate-pulse 2.4s ease-in-out infinite;
 }
@@ -3453,7 +3554,7 @@ a.sd-partner__name:hover {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(250, 248, 245, 0.65);
+  color: rgb(var(--sd-cream-rgb) / 0.65);
 }
 
 .sd-form input,
@@ -3479,7 +3580,7 @@ a.sd-partner__name:hover {
 
 .sd-form select {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='rgba(250,248,245,0.55)' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='rgb(var(--sd-cream-rgb) / 0.55)' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 14px center;
   padding-right: 36px;
@@ -3487,8 +3588,8 @@ a.sd-partner__name:hover {
 }
 
 .sd-form select option {
-  color: #1a1028;
-  background: #faf8f5;
+  color: var(--sd-ink);
+  background: var(--sd-cream);
 }
 
 .sd-form input:focus,
@@ -3499,36 +3600,36 @@ a.sd-partner__name:hover {
 
 .sd-form input::placeholder,
 .sd-form textarea::placeholder {
-  color: rgba(250, 248, 245, 0.35);
+  color: rgb(var(--sd-cream-rgb) / 0.35);
 }
 
 /* Modal / toast sobre cream: tipografía e inputs oscuros (gana al .sd-form ink) */
 .sd-form.sd-form--modal label {
-  color: #6b6180;
+  color: var(--sd-muted);
 }
 
 .sd-form.sd-form--modal input,
 .sd-form.sd-form--modal textarea,
 .sd-form.sd-form--modal select {
-  border: 1px solid rgba(26, 16, 40, 0.16);
+  border: 1px solid rgb(var(--sd-ink-rgb) / 0.16);
   background: #fff;
-  color: #1a1028;
+  color: var(--sd-ink);
 }
 
 .sd-form.sd-form--modal input::placeholder,
 .sd-form.sd-form--modal textarea::placeholder {
-  color: rgba(26, 16, 40, 0.4);
+  color: rgb(var(--sd-ink-rgb) / 0.4);
 }
 
 .sd-form.sd-form--modal select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='rgba(26,16,40,0.45)' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='rgb(var(--sd-ink-rgb) / 0.45)' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
 }
 
 .sd-form.sd-form--modal input:focus,
 .sd-form.sd-form--modal textarea:focus,
 .sd-form.sd-form--modal select:focus {
   border-color: var(--sd-purple);
-  box-shadow: 0 0 0 3px rgba(96, 62, 249, 0.12);
+  box-shadow: 0 0 0 3px rgb(var(--sd-purple-rgb) / 0.12);
 }
 
 .sd-form textarea {
@@ -3538,7 +3639,7 @@ a.sd-partner__name:hover {
 
 .sd-form__hint {
   font-size: 0.85rem;
-  color: rgba(250, 248, 245, 0.55);
+  color: rgb(var(--sd-cream-rgb) / 0.55);
   line-height: 1.45;
   text-transform: none;
   letter-spacing: normal;
@@ -3555,8 +3656,8 @@ a.sd-partner__name:hover {
 
 .sd-form__ok {
   padding: 20px;
-  background: rgba(96, 62, 249, 0.18);
-  border: 1px solid rgba(96, 62, 249, 0.35);
+  background: rgb(var(--sd-purple-rgb) / 0.18);
+  border: 1px solid rgb(var(--sd-purple-rgb) / 0.35);
 }
 
 .sd-form__ok h3 {
@@ -3567,7 +3668,7 @@ a.sd-partner__name:hover {
 
 .sd-form__ok p {
   margin: 0;
-  color: rgba(250, 248, 245, 0.75);
+  color: rgb(var(--sd-cream-rgb) / 0.75);
   line-height: 1.5;
 }
 
@@ -3595,7 +3696,7 @@ a.sd-partner__name:hover {
 
 .sd-stat__label {
   font-size: 0.85rem;
-  color: rgba(250, 248, 245, 0.6);
+  color: rgb(var(--sd-cream-rgb) / 0.6);
   line-height: 1.35;
 }
 
@@ -3615,14 +3716,14 @@ a.sd-partner__name:hover {
   margin: 0;
   max-width: 40rem;
   line-height: 1.65;
-  color: rgba(250, 248, 245, 0.75);
+  color: rgb(var(--sd-cream-rgb) / 0.75);
 }
 
 /* ── Footer island (tipo Aikido: no full-bleed, esquinas arriba) ── */
 .sd-footer {
   margin: 0;
   padding: 56px clamp(12px, 2.8vw, 28px) 0;
-  background: #0b0712;
+  background: var(--sd-void);
   color: var(--sd-cream);
   font-family: var(--sd-font-body);
 }
@@ -3641,7 +3742,9 @@ a.sd-partner__name:hover {
   gap: 48px 36px;
   grid-template-columns: 1.35fr repeat(3, minmax(0, 1fr)) 1.4fr;
   align-items: start;
-  max-width: 1100px;
+  /* Mismo ancho de contenido que el resto de la página (`--sd-shell` menos sus gutters). El
+     island ya trae su propio padding, así que acá va la medida neta, sin gutters. */
+  max-width: calc(var(--sd-shell) - 2 * var(--sd-gutter));
   margin: 0 auto;
   padding-bottom: 48px;
 }
@@ -3683,7 +3786,7 @@ a.sd-partner__name:hover {
   margin: 0;
   font-size: 0.98rem;
   line-height: 1.65;
-  color: rgba(250, 248, 245, 0.72);
+  color: rgb(var(--sd-cream-rgb) / 0.72);
 }
 
 .sd-footer__col {
@@ -3701,7 +3804,7 @@ a.sd-partner__name:hover {
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: #c4b5ff;
+  color: var(--sd-purple-lift);
 }
 
 .sd-footer__subhead {
@@ -3710,7 +3813,7 @@ a.sd-partner__name:hover {
 
 .sd-footer__col a,
 .sd-footer__col span {
-  color: rgba(250, 248, 245, 0.78);
+  color: rgb(var(--sd-cream-rgb) / 0.78);
   font-family: var(--sd-font-body);
   font-size: 0.98rem;
   font-weight: 500;
@@ -3731,7 +3834,7 @@ a.sd-partner__name:hover {
   margin: 0 0 14px;
   font-size: 0.98rem;
   line-height: 1.6;
-  color: rgba(250, 248, 245, 0.72);
+  color: rgb(var(--sd-cream-rgb) / 0.72);
 }
 
 .sd-footer__nl-row {
@@ -3762,7 +3865,7 @@ a.sd-partner__name:hover {
 }
 
 .sd-footer__nl-row input::placeholder {
-  color: rgba(250, 248, 245, 0.35);
+  color: rgb(var(--sd-cream-rgb) / 0.35);
 }
 
 .sd-footer__nl-row button {
@@ -3793,16 +3896,16 @@ a.sd-partner__name:hover {
   margin: 0;
   font-size: 0.98rem;
   line-height: 1.55;
-  color: rgba(250, 248, 245, 0.78);
+  color: rgb(var(--sd-cream-rgb) / 0.78);
 }
 
 .sd-footer__copy {
-  max-width: 1100px;
+  max-width: calc(var(--sd-shell) - 2 * var(--sd-gutter));
   margin: 0 auto;
   padding: 4px clamp(0px, 1vw, 0px) 20px;
   font-size: 0.82rem;
   font-weight: 500;
-  color: rgba(250, 248, 245, 0.42);
+  color: rgb(var(--sd-cream-rgb) / 0.42);
 }
 
 /* Marquee dentro del island — fill opaco, borde nítido */
@@ -3853,10 +3956,10 @@ a.sd-partner__name:hover {
   white-space: nowrap;
   transform: translateY(28%);
   /* borde nítido */
-  -webkit-text-stroke: 1.25px rgba(196, 181, 255, 0.5);
+  -webkit-text-stroke: 1.25px rgb(var(--sd-purple-lift-rgb) / 0.5);
   /* interior visible (más claro que el fondo ink) */
-  color: #3f335c;
-  -webkit-text-fill-color: #3f335c;
+  color: var(--sd-ink-soft);
+  -webkit-text-fill-color: var(--sd-ink-soft);
   background: none;
   -webkit-background-clip: border-box;
   background-clip: border-box;
@@ -3875,9 +3978,15 @@ a.sd-partner__name:hover {
   }
 }
 
+/* Último título de sección de la landing — al mismo tamaño que los otros cuatro. Va acotado a
+   `#reservar` porque `.sd-h2` es la regla global que también usan XploraSite y Sponsors. */
+#reservar .sd-h2 {
+  font-size: var(--sd-title);
+}
+
 /* El form cierra hacia el vacío oscuro antes del island */
 #reservar.sd-band--ink {
-  background: linear-gradient(180deg, var(--sd-ink) 0%, var(--sd-ink) 72%, #0b0712 100%);
+  background: linear-gradient(180deg, var(--sd-ink) 0%, var(--sd-ink) 72%, var(--sd-void) 100%);
   padding-bottom: clamp(64px, 10vw, 96px);
 }
 
@@ -3987,34 +4096,8 @@ a.sd-partner__name:hover {
     font-size: 16px; /* evita zoom iOS */
   }
 
-  .sd-logo-tile {
-    min-width: min(220px, 72vw);
-    height: 100px;
-    padding: 14px 18px;
-  }
-
-  .sd-logo-tile img {
-    height: 56px;
-  }
-
-  .sd-agenda__stands-range {
-    margin-left: 0;
-    width: 100%;
-  }
-
-  .sd-agenda__row {
-    grid-template-columns: 4.25rem minmax(0, 1fr);
-    column-gap: 0.85rem;
-    padding: 1rem 0;
-  }
-
-  .sd-agenda__title {
-    font-size: clamp(1.05rem, 4.2vw, 1.2rem);
-    overflow-wrap: anywhere;
-  }
-
-  .sd-pulse__tag,
-  .sd-pulse__text {
+  .sd-exp__name,
+  .sd-exp__copy {
     overflow-wrap: anywhere;
   }
 
@@ -4036,37 +4119,11 @@ a.sd-partner__name:hover {
   inset: 0;
   z-index: -1;
   background-image:
-    linear-gradient(rgba(96, 62, 249, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(96, 62, 249, 0.06) 1px, transparent 1px);
+    linear-gradient(rgb(var(--sd-purple-rgb) / 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--sd-purple-rgb) / 0.06) 1px, transparent 1px);
   background-size: 40px 40px;
   opacity: 0.7;
   pointer-events: none;
-}
-
-/* Módulo compartido: la misma unidad gráfica (cuadrado lleno/vacío) que arma los bit-patterns
-   de "Para quién es" (`SdManifesto.tsx`) y se repite acá como eco estático para que "Confirmadas"
-   no se sienta como una sección aparte. Sin motion — es sólo el glifo. */
-.sd-module-strip {
-  display: inline-flex;
-  gap: 3px;
-  align-items: center;
-}
-
-.sd-module-strip__bit {
-  width: 7px;
-  height: 7px;
-  border-radius: 1px;
-  border: 1px solid rgba(250, 248, 245, 0.22);
-  background: transparent;
-}
-
-.sd-module-strip__bit.is-on {
-  background: var(--sd-purple);
-  border-color: var(--sd-purple);
-}
-
-.sd-confirmed__strip {
-  margin-bottom: 12px;
 }
 
 .sd-timeline {
@@ -4100,7 +4157,7 @@ a.sd-partner__name:hover {
   font-family: var(--sd-font-display);
   font-size: 1.35rem;
   font-weight: 700;
-  color: #c4b5ff;
+  color: var(--sd-purple-lift);
   letter-spacing: -0.02em;
 }
 
@@ -4114,7 +4171,7 @@ a.sd-partner__name:hover {
   margin: 0;
   font-size: 0.98rem;
   line-height: 1.55;
-  color: rgba(250, 248, 245, 0.7);
+  color: rgb(var(--sd-cream-rgb) / 0.7);
   max-width: 40rem;
 }
 
@@ -4128,24 +4185,6 @@ a.sd-partner__name:hover {
   object-fit: contain;
 }
 
-.sd-logo-tile {
-  position: relative;
-  overflow: hidden;
-}
-
-.sd-logo-tile::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, transparent 40%, rgba(96, 62, 249, 0.25) 50%, transparent 60%);
-  transform: translateX(-120%);
-  transition: transform 0.55s ease;
-}
-
-.sd-logo-tile:hover::after {
-  transform: translateX(120%);
-}
-
 .sd-featured__row:hover .sd-featured__name {
   color: var(--sd-purple);
 }
@@ -4154,9 +4193,15 @@ a.sd-partner__name:hover {
   .sd-text-shine,
   .sd-loader__logo,
   .sd-loader__orbit,
-  .sd-marquee__track,
+  .sd-quien__logo-row,
   .sd-pulse-dot {
     animation: none !important;
+  }
+
+  /* Sin animación el track sigue siendo una sola línea más ancha que la pantalla, así que se
+     entrega el scroll al usuario en vez de recortar marcas. */
+  .sd-quien__marquee {
+    overflow-x: auto;
   }
   /* Entrada con `transition` (no `animation`) que quedaba sin cobertura. */
   .sd-sponsor-strip__logo {

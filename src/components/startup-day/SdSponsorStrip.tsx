@@ -2,8 +2,8 @@ import { SdReveal } from './SdReveal';
 
 /**
  * Marcas que apoyan Startup Day, debajo del hero — como en el banner de difusión.
- * Gris parejo y sin tile de fondo: no son "startups en el piso" (esas van en el carrusel de
- * `#confirmadas`), son sponsors, y acá el logo se lee como crédito, no como protagonista.
+ * Gris parejo y sin tile de fondo: no son "startups en el piso" (esas desfilan en la banda de
+ * "Para quién es"), son sponsors, y acá el logo se lee como crédito, no como protagonista.
  */
 const SD_SPONSOR_STRIP = [
   { id: 'coworkeando', name: 'Coworkeando', logoUrl: '/logos/startup-day/coworkeando.png?v=12', website: 'https://www.coworkeando.com/' },
