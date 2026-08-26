@@ -136,6 +136,7 @@ function AgendaLocked() {
 function AgendaGrilla() {
   return (
     <div id="agenda" className="sd-piso__agenda">
+      <div className="sd-piso__agenda-glow" aria-hidden />
       <AgendaHead />
 
       <SdReveal delay={1} className="sd-agenda">

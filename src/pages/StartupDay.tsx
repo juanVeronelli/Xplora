@@ -238,8 +238,13 @@ function StartupDayContent() {
           <p className="sd-kicker">Inscripción</p>
           <h2 className="sd-h2">¿Venís?</h2>
           <p className="sd-lead">
-            Entrada {SD_EVENT.priceLabel} y cupos limitados. La inscripción se hace en Luma:
-            reservás en un minuto y te llega la confirmación por mail.
+            Entrada {SD_EVENT.priceLabel} y{' '}
+            <span className="sd-signup__urgency">
+              <span className="sd-signup__pulse" aria-hidden />
+              cupos limitados
+            </span>
+            . La inscripción se hace en Luma: reservás en un minuto y te llega la confirmación por
+            mail.
           </p>
 
           <a

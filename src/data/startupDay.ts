@@ -28,7 +28,7 @@ export type StartupDayPartner = {
 };
 
 /** Ruta pública de un logo. El `?v=` es el cache-buster; vive acá y sólo acá. */
-export const LOGO = (file: string) => `/logos/startup-day/${file}?v=12`;
+export const LOGO = (file: string) => `/logos/startup-day/${file}?v=13`;
 
 export const SD_EVENT = {
   title: 'Startup Day',

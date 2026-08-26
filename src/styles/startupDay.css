@@ -1919,11 +1919,9 @@ a.sd-quien__logo:focus-visible {
    son (ver `FILAS` en `StartupDayAgenda.tsx`). */
 .sd-agenda {
   --sd-agenda-cols: clamp(3rem, 5vw, 4.25rem) repeat(2, minmax(0, 1fr));
-  --sd-agenda-gap: clamp(12px, 2vw, 24px);
-  /* Alto de 5 minutos. Subió respecto del diseño original porque ahora la card lleva el logo
-     grande en vez del nombre en texto: con el valor viejo (11px) a una charla de 45 minutos le
-     quedaban 39px para el logo, después de descontar padding, gap y horario. */
-  --sd-agenda-slot: clamp(11px, 1.9vh, 15px);
+  --sd-agenda-gap: clamp(10px, 1.6vw, 18px);
+  /* Achicado a pedido: las cards con logo grande quedaban ocupando demasiado alto de pantalla. */
+  --sd-agenda-slot: clamp(8px, 1.4vh, 11px);
   --sd-agenda-rule: 1px solid rgb(var(--sd-purple-rgb) / 0.18);
   display: grid;
   gap: clamp(0.75rem, 2vh, 1.15rem);
@@ -1987,7 +1985,7 @@ a.sd-quien__logo:focus-visible {
   right: 0;
   transform: translateY(-50%);
   font-family: var(--sd-font-mono);
-  font-size: clamp(0.68rem, 0.9vw, 0.78rem);
+  font-size: clamp(0.62rem, 0.8vw, 0.7rem);
   font-variant-numeric: tabular-nums;
   color: rgb(var(--sd-cream-rgb) / 0.4);
   white-space: nowrap;
@@ -2011,10 +2009,10 @@ a.sd-quien__logo:focus-visible {
 .sd-agenda__card {
   display: flex;
   flex-direction: column;
-  gap: clamp(5px, 1vh, 9px);
+  gap: clamp(4px, 0.7vh, 6px);
   /* Separa dos cards pegadas sin robarle alto a la grilla de tiempo. */
   margin-bottom: 4px;
-  padding: clamp(8px, 1vw, 12px) clamp(10px, 1.4vw, 16px);
+  padding: clamp(6px, 0.7vw, 9px) clamp(8px, 1.1vw, 12px);
   overflow: hidden;
   border: 1px solid rgb(var(--sd-purple-rgb) / 0.22);
   border-radius: var(--sd-radius);
@@ -2056,7 +2054,7 @@ a.sd-quien__logo:focus-visible {
   inset: 0;
   width: 100%;
   height: 100%;
-  max-width: 260px;
+  max-width: 190px;
   object-fit: contain;
   object-position: left center;
   filter: brightness(0) invert(1);
@@ -2074,7 +2072,7 @@ a.sd-quien__logo:focus-visible {
 .sd-agenda__name {
   margin: 0;
   font-family: var(--sd-font-display);
-  font-size: clamp(0.95rem, 1.5vw, 1.15rem);
+  font-size: clamp(0.82rem, 1.15vw, 0.98rem);
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: -0.01em;
@@ -2086,7 +2084,7 @@ a.sd-quien__logo:focus-visible {
   flex: 0 0 auto;
   margin: 0;
   font-family: var(--sd-font-mono);
-  font-size: clamp(0.7rem, 0.95vw, 0.8rem);
+  font-size: clamp(0.62rem, 0.78vw, 0.7rem);
   font-variant-numeric: tabular-nums;
   color: rgb(var(--sd-cream-rgb) / 0.55);
   white-space: nowrap;
@@ -2167,7 +2165,7 @@ a.sd-quien__logo:focus-visible {
   /* Acá la card no tiene alto impuesto por la grilla, así que `flex-basis: 0` dejaría el logo en
      cero: hace falta un piso explícito. */
   .sd-agenda__mark {
-    min-height: clamp(38px, 12vw, 52px);
+    min-height: clamp(30px, 9vw, 40px);
   }
 }
 
@@ -3355,14 +3353,85 @@ a.sd-partner__name:hover {
 }
 
 /* "El lugar" ya no termina en el plano 3D: la agenda vive adentro de la misma sección/banda,
-   como continuación directa ("así va a suceder") en vez de una sección aparte con su propio
-   fondo. `StartupDayAgenda` ya no pinta su propia `<section>` — esto es lo que la separa
-   visualmente del piso sin cortar la banda. */
+   pero con un fondo propio — más oscuro que el `--sd-ink` plano de "El lugar" y de "¿Venís?",
+   como el `--sd-void` de "No importa quién sos". Se rompe el padding de `.sd-band` con el margen
+   negativo de siempre para que el fondo llegue de punta a punta, no sólo del ancho del contenido.
+
+   El degradado ENTRA y SALE en el mismo `--sd-ink` de sus vecinos (arriba "El lugar", abajo
+   "¿Venís?"): no hay salto de color en la costura, sólo un pozo de `--sd-void` en el medio. El
+   glow va en una capa aparte (`.sd-piso__agenda-glow`) enmascarada con el mismo `edge-fade` que
+   usa `.sd-quien`, así el brillo se apaga antes de tocar el borde en vez de quedar cortado en
+   seco contra el límite de la sección. */
 .sd-piso__agenda {
+  --sd-piso-agenda-fade: clamp(64px, 11vh, 140px);
+  /* Mismo problema que el `margin-inline` de acá abajo, ahora del lado del padding: `--sd-pad-x`
+     trae un `%` adentro (`(100% - shell) / 2`) que se resuelve contra el ancho del elemento QUE
+     LO USA. Sobre `.sd-piso__agenda` eso significa el ancho de `.sd-piso` —ya angosto por SU
+     propio padding—, no el del viewport, así que el título quedaba corrido a la izquierda del
+     resto de las secciones. Repetimos la cuenta a mano con `100vw` en vez de `100%` para que
+     resuelva contra el viewport real, igual que el `--sd-pad-x` de todas las demás secciones. */
+  --sd-piso-agenda-pad-x: calc(var(--sd-gutter) + max(0px, (100vw - var(--sd-shell)) / 2));
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   scroll-margin-top: clamp(72px, 12vh, 120px);
   margin-top: clamp(56px, 9vw, 96px);
-  padding-top: clamp(36px, 6vw, 64px);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  /* Full-bleed real: `--sd-pad-x` no sirve acá porque es un `calc()` con `%` adentro, y ese `%`
+     se resuelve contra el ancho del propio elemento donde se USA la variable — en un hijo más
+     angosto que la sección (ya inset por el padding del padre), da un valor mucho más chico que
+     el de `.sd-piso`, y el margen negativo no llegaba a compensar el padding real: quedaba una
+     franja del fondo viejo entre el borde del contenido y el borde de la pantalla. `50% - 50vw`
+     no depende de ningún ancestro: siempre llega al borde real del viewport. */
+  margin-inline: calc(50% - 50vw);
+  padding-inline: var(--sd-piso-agenda-pad-x);
+  padding-block: clamp(48px, 8vw, 88px) clamp(36px, 6vw, 64px);
+  background: linear-gradient(
+    to bottom,
+    var(--sd-ink) 0%,
+    var(--sd-void) 22%,
+    var(--sd-void) 78%,
+    var(--sd-ink) 100%
+  );
+}
+
+.sd-piso__agenda-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+      ellipse 46% 55% at 18% 28%,
+      rgb(var(--sd-purple-rgb) / 0.26) 0%,
+      transparent 68%
+    ),
+    radial-gradient(
+      ellipse 50% 60% at 84% 74%,
+      rgb(var(--sd-purple-rgb) / 0.2) 0%,
+      transparent 70%
+    );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--sd-piso-agenda-fade),
+    #000 calc(100% - var(--sd-piso-agenda-fade)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--sd-piso-agenda-fade),
+    #000 calc(100% - var(--sd-piso-agenda-fade)),
+    transparent 100%
+  );
+}
+
+/* El contenido real va explícitamente por encima del glow (z-index 0): sin esto, cualquier
+   elemento posicionado con z-index auto/0 pinta DESPUÉS del flujo normal y el glow taparía el
+   texto. Mismo patrón que `.sd-quien__body` (z-index 2) sobre `.sd-quien__glow` (z-index 0). */
+.sd-piso__agenda > .sd-agenda__head,
+.sd-piso__agenda > .sd-agenda {
+  position: relative;
+  z-index: 1;
 }
 
 /* ── Inscripción (Luma) ── */
@@ -3370,25 +3439,52 @@ a.sd-partner__name:hover {
    `justify-items` centra cada hijo —que traen sus propios `max-width`, así que sin esto quedaban
    pegados a la izquierda de la caja— y `text-align` centra el texto adentro de cada uno. */
 .sd-signup {
+  position: relative;
+  z-index: 1;
   display: grid;
   justify-items: center;
-  gap: 1rem;
-  max-width: 46rem;
+  gap: 0.85rem;
+  max-width: 44rem;
   margin-inline: auto;
   text-align: center;
 }
 
 .sd-signup__cta {
   margin-top: 0.75rem;
-  padding: 16px 30px;
-  font-size: 1.02rem;
+  padding: 14px 28px;
+  font-size: 0.98rem;
 }
 
 .sd-signup__meta {
   margin: 0;
-  font-size: 0.86rem;
+  font-size: 0.82rem;
   letter-spacing: 0.02em;
   color: rgb(var(--sd-cream-rgb) / 0.55);
+}
+
+/* "Cupos limitados" con el mismo puntito latiendo que ya usa `.sd-smate__note` — urgencia sutil,
+   no un banner rojo. */
+.sd-signup__urgency {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--sd-purple-lift);
+  font-weight: 600;
+}
+
+.sd-signup__pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sd-purple-lift);
+  flex-shrink: 0;
+  animation: sd-smate-pulse 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sd-signup__pulse {
+    animation: none;
+  }
 }
 
 /* ── StartupMate ──
@@ -4000,16 +4096,18 @@ a.sd-partner__name:hover {
   }
 }
 
-/* Último título de sección de la landing — al mismo tamaño que los otros cuatro. Va acotado a
-   `#reservar` porque `.sd-h2` es la regla global que también usan XploraSite y Sponsors. */
+/* Cierre de la landing: pedía ser compacto, no repetir la escala de título gigante de las otras
+   cuatro secciones — acá el peso visual lo lleva el CTA, no el titular. Va acotado a `#reservar`
+   porque `.sd-h2` es la regla global que también usan XploraSite y Sponsors. */
 #reservar .sd-h2 {
   font-size: var(--sd-title);
 }
 
-/* El form cierra hacia el vacío oscuro antes del island */
+/* El form cierra hacia el vacío oscuro antes del island. Padding propio (no el de `.sd-band`,
+   pensado para las secciones grandes) para que el bloque quede más compacto que el resto. */
 #reservar.sd-band--ink {
+  padding-block: clamp(48px, 7vw, 80px) clamp(56px, 8vw, 88px);
   background: linear-gradient(180deg, var(--sd-ink) 0%, var(--sd-ink) 72%, var(--sd-void) 100%);
-  padding-bottom: clamp(64px, 10vw, 96px);
 }
 
 @media (max-width: 560px) {
