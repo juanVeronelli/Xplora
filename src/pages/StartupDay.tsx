@@ -1,28 +1,42 @@
 /**
  * Landing exclusiva startupday.xploraucema.com — funnel Startup Day.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSiteMedia } from '../context/SiteMediaContext';
 import { DEFAULT_LOGO_URL } from '../lib/defaultsMedia';
 import { MAIN_SITE_URL, STARTUP_DAY_CANONICAL } from '../lib/startupDayHost';
 import {
   SD_COMING_SOON,
-  SD_DAY_STORY,
-  SD_EDITION_SPONSORS,
   SD_EVENT,
-  SD_LUMA_URL,
-  SD_STARTUPS,
+  // SD_STARTUPMATE,  ← ver "StartupMate: sección OCULTA" más abajo
+  sdLumaUrl,
 } from '../data/startupDay';
 import { SdReveal } from '../components/startup-day/SdReveal';
 import { SdShell } from '../components/startup-day/SdShell';
+import { SdExperiencia } from '../components/startup-day/SdExperiencia';
+import { SdManifesto } from '../components/startup-day/SdManifesto';
 import { StartupDayAgenda } from '../components/startup-day/StartupDayAgenda';
 import { StartupDayComingSoon } from '../components/startup-day/StartupDayComingSoon';
-import { StartupDayWaitlistForm } from '../components/startup-day/StartupDayWaitlistForm';
-import { StartupDaySponsorCta } from '../components/startup-day/StartupDaySponsorForm';
 import { StartupDayCursor } from '../components/startup-day/StartupDayCursor';
-import { StartupDayHeroFx } from '../components/startup-day/StartupDayHeroFx';
-import { StartupDayWho } from '../components/startup-day/StartupDayWho';
+import { SdAsciiDisc } from '../components/startup-day/SdAsciiDisc';
+import { SdSponsorStrip } from '../components/startup-day/SdSponsorStrip';
+import { StartupDayFloor } from '../components/startup-day/floor/StartupDayFloor';
 import '../styles/startupDay.css';
+
+/* ── StartupMate: sección OCULTA a pedido ────────────────────────────────────────
+   Para volver a mostrarla hay que descomentar TRES cosas, no sólo el bloque de abajo:
+   el import de `SD_STARTUPMATE`, la constante `SD_STARTUPMATE_TAGS`, y el link
+   `#startupmate` del footer en `SdShell.tsx`. Los estilos (`.sd-smate*`) quedaron
+   intactos en `startupDay.css`. */
+/* Tags decorativos de la sección StartupMate — ilustran ejes de matching, no una UI real.
+const SD_STARTUPMATE_TAGS: readonly { label: string; x: number; y: number; d: number }[] = [
+  { label: 'Founder', x: 6, y: 18, d: 0 },
+  { label: 'Technical', x: 78, y: 12, d: 0.6 },
+  { label: 'Idea temprana', x: 14, y: 68, d: 1.2 },
+  { label: 'Busca equipo', x: 70, y: 74, d: 0.3 },
+  { label: 'Producto en marcha', x: 42, y: 8, d: 0.9 },
+];
+*/
 
 function useComingSoonGate() {
   const [gated, setGated] = useState(SD_COMING_SOON);
@@ -66,10 +80,10 @@ export default function StartupDay() {
     if (metaDesc) {
       metaDesc.content = comingSoon
         ? 'Startup Day by Xplora UCEMA. Lo estamos construyendo — pronto disponible. 11 de septiembre 2026. Entrada 100% gratuita.'
-        : 'Startup Day by Xplora UCEMA. 11 de septiembre 2026, 15 a 20 hs, Av. Alem 882. Entrada 100% gratuita. Inscripción abierta.';
+        : 'Startup Day by Xplora UCEMA. 11 de septiembre 2026, Av. Alem 882. Entrada 100% gratuita. Startups, workshops, pitch e inversores.';
     }
 
-    const t = comingSoon ? undefined : window.setTimeout(() => setLoaderDone(true), 600);
+    const t = comingSoon ? undefined : window.setTimeout(() => setLoaderDone(true), 900);
     if (comingSoon) setLoaderDone(true);
 
     return () => {
@@ -96,7 +110,7 @@ export default function StartupDay() {
       active="startupday"
       showLoader
       loaderDone={loaderDone}
-      cta={{ label: 'Inscribirme', href: SD_LUMA_URL }}
+      cta={{ label: 'Inscribirme', href: sdLumaUrl('nav') }}
     >
       <StartupDayContent />
     </SdShell>
@@ -104,76 +118,53 @@ export default function StartupDay() {
 }
 
 function StartupDayContent() {
-  const marqueeRef = useRef<HTMLDivElement>(null);
-  const [marqueeOn, setMarqueeOn] = useState(false);
-
-  useEffect(() => {
-    const el = marqueeRef.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      ([entry]) => setMarqueeOn(entry.isIntersecting),
-      { rootMargin: '120px' },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
-  const rows = [
-    SD_STARTUPS.filter((_, i) => i % 3 === 0),
-    SD_STARTUPS.filter((_, i) => i % 3 === 1),
-    SD_STARTUPS.filter((_, i) => i % 3 === 2),
-  ].map((row) => (row.length ? row : SD_STARTUPS.slice(0, 8)));
-
   return (
     <>
       <section className="sd-hero">
-        <StartupDayHeroFx />
+        <div className="sd-hero__grid">
+          <div className="sd-hero__content">
+            {/* Logo de key art en vez de texto seteado en CSS: después de varias vueltas afinando
+                itálica/tracking/glow a mano para igualar el banner, se usa directamente el
+                wordmark que ya viene diseñado así. */}
+            <h1 className="sd-hero__title">
+              <img
+                className="sd-hero__title-img"
+                src="/logos/startup-day/startup-day-wordmark.png?v=1"
+                alt="Startup Day"
+              />
+            </h1>
 
-        <div className="sd-hero__content">
-          <p className="sd-hero__eyebrow">Xplora · UCEMA · 1ª edición</p>
+            <p className="sd-hero__lede">
+              El mayor evento para startups y builders del año.
+            </p>
 
-          <h1 className="sd-hero__title">
-            <span className="sd-hero__line">Startup</span>
-            <span className="sd-hero__line sd-hero__line--day">Day</span>
-          </h1>
-
-          <p className="sd-hero__lede">
-            Un día con startups argentinas en UCEMA: stands, workshops, pitch e inversores. Primera
-            edición de Xplora. Entrada 100% gratuita.
-          </p>
-
-          <div className="sd-hero__facts">
-            <div>
-              <span className="sd-hero__fact-k">Fecha</span>
-              <strong>11.09.26</strong>
+            <div className="sd-hero__facts">
+              <div>
+                <span className="sd-hero__fact-k">Fecha</span>
+                <strong>11.09</strong>
+              </div>
+              <div>
+                <span className="sd-hero__fact-k">Lugar</span>
+                <strong>Buenos Aires</strong>
+              </div>
             </div>
-            <div>
-              <span className="sd-hero__fact-k">Horario</span>
-              <strong>{SD_EVENT.timeLabel.replace(' a ', ' — ')}</strong>
-            </div>
-            <div>
-              <span className="sd-hero__fact-k">Lugar</span>
-              <strong>Av. Alem 882</strong>
-            </div>
-            <div>
-              <span className="sd-hero__fact-k">Entrada</span>
-              <strong>{SD_EVENT.priceLabel}</strong>
+
+            <div className="sd-hero__actions">
+              <a
+                className="sd-btn sd-btn--primary"
+                href={sdLumaUrl('hero')}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Inscribirme gratis
+              </a>
+              <a className="sd-btn sd-btn--ghost" href="#que-pasa">
+                La experiencia
+              </a>
             </div>
           </div>
 
-          <div className="sd-hero__actions">
-            <a
-              className="sd-btn sd-btn--primary"
-              href={SD_LUMA_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Inscribirme
-            </a>
-            <a className="sd-btn sd-btn--ghost" href="#agenda">
-              Ver agenda
-            </a>
-          </div>
+          <SdAsciiDisc className="sd-hero__disc" />
         </div>
 
         <a className="sd-hero__scroll" href="#para-quien">
@@ -182,179 +173,93 @@ function StartupDayContent() {
         </a>
       </section>
 
-      <StartupDayAgenda />
+      <div id="sponsors" className="sd-sponsor-band">
+        <SdSponsorStrip />
+      </div>
 
-      <StartupDayWho />
+      <SdManifesto />
 
-      <section id="confirmadas" className="sd-band sd-band--ink">
-        <SdReveal>
-          <p className="sd-kicker">Confirmadas</p>
-          <h2 className="sd-h2">Startups en el piso</h2>
+      <SdExperiencia />
+
+      {/* "El lugar" + Agenda fusionados: la agenda ya no es una sección aparte con su propio
+          fondo — es la continuación directa del piso ("así va a suceder"), ver
+          `.sd-piso__agenda` y el comentario en `StartupDayAgenda.tsx`. */}
+      <section id="piso" className="sd-band sd-band--ink sd-piso">
+        <SdReveal className="sd-piso__head">
+          {/* Masthead: título a la izquierda y la regla corriendo hasta el margen derecho. */}
+          <div className="sd-piso__masthead">
+            <h2 className="sd-piso__title">El lugar</h2>
+            <span className="sd-piso__rule" aria-hidden />
+          </div>
+          <p className="sd-piso__lead">
+            Dos salas de workshops, cuatro con stands y el hall alrededor del núcleo de
+            ascensores. Giralo para ver cómo se recorre el día.
+          </p>
         </SdReveal>
 
-        <div
-          ref={marqueeRef}
-          className={`sd-marquee-stack${marqueeOn ? ' is-on' : ''}`}
-          aria-label="Startups confirmadas"
-        >
-          {rows.map((row, rowIndex) => {
-            const dir = rowIndex % 2 === 0 ? 'left' : 'right';
-            const duration = `${42 + rowIndex * 10}s`;
-            return (
-              <div
-                key={rowIndex}
-                className={`sd-marquee-row sd-marquee-row--${dir}`}
-                style={{ ['--sd-marquee-duration' as string]: duration }}
-              >
-                <div className="sd-marquee-row__track">
-                  {[0, 1].map((dup) => (
-                    <div
-                      key={dup}
-                      className="sd-marquee-row__group"
-                      aria-hidden={dup === 1 || undefined}
-                    >
-                      {row.map((co) => {
-                        const href = co.website || co.linkedin || co.instagram;
-                        const inner = co.logoUrl ? (
-                          <img
-                            src={co.logoUrl}
-                            alt={dup === 0 ? co.name : ''}
-                            loading="lazy"
-                            decoding="async"
-                            height={72}
-                          />
-                        ) : (
-                          <span className="sd-logo-tile__name">{co.name}</span>
-                        );
-                        const className = [
-                          'sd-logo-tile',
-                          co.logoTone === 'dark' ? 'sd-logo-tile--invert' : '',
-                        ]
-                          .filter(Boolean)
-                          .join(' ');
-                        if (href) {
-                          return (
-                            <a
-                              key={`${dup}-${co.id}`}
-                              className={className}
-                              href={href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title={co.name}
-                              tabIndex={dup === 1 ? -1 : undefined}
-                            >
-                              {inner}
-                            </a>
-                          );
-                        }
-                        return (
-                          <div
-                            key={`${dup}-${co.id}`}
-                            className={className}
-                            title={co.name}
-                          >
-                            {inner}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <StartupDayFloor />
+
+        <StartupDayAgenda />
       </section>
 
-      <section id="que-pasa" className="sd-band sd-band--purple-wash sd-pulse">
-        <div className="sd-pulse__glow" aria-hidden />
-
-        <SdReveal className="sd-pulse__head">
-          <p className="sd-kicker">{SD_DAY_STORY.kicker}</p>
-          <h2 className="sd-pulse__title">{SD_DAY_STORY.title}</h2>
-          <p className="sd-pulse__meta">{SD_DAY_STORY.meta}</p>
-          <p className="sd-pulse__lead">{SD_DAY_STORY.lead}</p>
-        </SdReveal>
-
-        <div className="sd-pulse__pillars">
-          {SD_DAY_STORY.pillars.map((p, i) => (
-            <SdReveal key={p.tag} delay={(i % 3) as 0 | 1 | 2} className="sd-pulse__pillar" as="article">
-              <p className="sd-pulse__tag">{p.tag}</p>
-              <p className="sd-pulse__copy">{p.text}</p>
-            </SdReveal>
+      {/* StartupMate — OCULTA. Ver la nota arriba del archivo para volver a mostrarla.
+      <section id="startupmate" className="sd-band sd-band--purple-wash sd-smate">
+        <div className="sd-smate__tags" aria-hidden>
+          {SD_STARTUPMATE_TAGS.map((t) => (
+            <span
+              key={t.label}
+              className="sd-smate__tag"
+              style={{ ['--x' as string]: t.x, ['--y' as string]: t.y, ['--d' as string]: t.d }}
+            >
+              {t.label}
+            </span>
           ))}
         </div>
-      </section>
 
-      <section id="sponsors" className="sd-band sd-band--cream sd-spn">
-        <SdReveal className="sd-spn__inner">
-          <p className="sd-spn__label">Sponsors · Primera edición</p>
-
-          <div className="sd-spn__logos" aria-label="Sponsors Startup Day">
-            {SD_EDITION_SPONSORS.map((sp) => {
-              const href = sp.website || sp.linkedin || sp.instagram;
-              const img = sp.logoUrl ? (
-                <img src={sp.logoUrl} alt={sp.name} loading="lazy" decoding="async" />
-              ) : (
-                <span className="sd-spn__brand">{sp.name}</span>
-              );
-              const className = [
-                'sd-spn__logo',
-                sp.logoIcon ? 'sd-spn__logo--icon' : '',
-                sp.logoTone === 'light' ? 'sd-spn__logo--invert' : '',
-              ]
-                .filter(Boolean)
-                .join(' ');
-              return href ? (
-                <a
-                  key={sp.id}
-                  className={className}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {img}
-                </a>
-              ) : (
-                <div key={sp.id} className={className}>
-                  {img}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="sd-spn__foot">
-            <StartupDaySponsorCta className="sd-spn__cta" />
-          </div>
+        <SdReveal className="sd-smate__inner">
+          <p className="sd-kicker">{SD_STARTUPMATE.kicker}</p>
+          <h2 className="sd-smate__headline">
+            <span>Encontrá</span>
+            <span className="sd-smate__headline-accent">a tu cofounder</span>
+          </h2>
+          <p className="sd-smate__name">{SD_STARTUPMATE.name}</p>
+          <p className="sd-smate__tagline">{SD_STARTUPMATE.tagline}</p>
+          <p className="sd-lead">{SD_STARTUPMATE.lead}</p>
+          <p className="sd-smate__note">
+            <span className="sd-smate__pulse" aria-hidden />
+            {SD_STARTUPMATE.note}
+          </p>
         </SdReveal>
       </section>
+      */}
 
       <section id="reservar" className="sd-band sd-band--ink">
-        <div className="sd-reserve">
-          <SdReveal>
-            <p className="sd-kicker">Inscripción abierta</p>
-            <h2 className="sd-h2">Reservá tu lugar</h2>
-            <p className="sd-lead">
-              El evento es 100% gratuito. Inscribite en Luma y asegurate tu entrada al Startup Day.
-            </p>
-            <div style={{ marginTop: 20 }}>
-              <a
-                className="sd-btn sd-btn--primary"
-                href={SD_LUMA_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Inscribirme en Luma
-              </a>
-            </div>
-          </SdReveal>
-          <SdReveal delay={1}>
-            <p className="sd-lead" style={{ marginBottom: 16 }}>
-              ¿Querés que te avisemos novedades? Dejá tu email.
-            </p>
-            <StartupDayWaitlistForm />
-          </SdReveal>
-        </div>
+        <SdReveal className="sd-signup">
+          <p className="sd-kicker">Inscripción</p>
+          <h2 className="sd-h2">¿Venís?</h2>
+          <p className="sd-lead">
+            Entrada {SD_EVENT.priceLabel} y{' '}
+            <span className="sd-signup__urgency">
+              <span className="sd-signup__pulse" aria-hidden />
+              cupos limitados
+            </span>
+            . La inscripción se hace en Luma: reservás en un minuto y te llega la confirmación por
+            mail.
+          </p>
+
+          <a
+            className="sd-btn sd-btn--primary sd-signup__cta"
+            href={sdLumaUrl('inscripcion')}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Inscribirme en Luma
+          </a>
+
+          <p className="sd-signup__meta">
+            {SD_EVENT.dateLabel} · {SD_EVENT.timeLabel} · {SD_EVENT.addressFull}
+          </p>
+        </SdReveal>
       </section>
     </>
   );

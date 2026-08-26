@@ -72,7 +72,7 @@ export default function XploraSite() {
         'Xplora — organización estudiantil de UCEMA. Comunidad, eventos, empleo y Startup Day.';
     }
 
-    const t = window.setTimeout(() => setLoaderDone(true), 600);
+    const t = window.setTimeout(() => setLoaderDone(true), 900);
     return () => {
       window.clearTimeout(t);
       document.title = prevTitle;
@@ -104,7 +104,7 @@ export default function XploraSite() {
       active="xplora"
       showLoader
       loaderDone={loaderDone}
-      cta={undefined}
+      cta={{ label: 'Sumarme', href: SD_XPLORA_SOCIALS.whatsapp }}
       brandBlurb="Organización estudiantil de la Universidad del CEMA. Por y para emprendedores."
     >
       <div className="xp-page">

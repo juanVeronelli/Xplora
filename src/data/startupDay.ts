@@ -3,13 +3,12 @@
 export type StartupDayCompany = {
   id: string;
   name: string;
-  /** Si falta, la pasarela muestra el nombre hasta que suban el logo. */
-  logoUrl?: string;
-  /** `light` = blanco (se invierte en banda crema). `dark` = negro (se invierte en tinta). */
-  logoTone?: 'light' | 'dark';
+  logoUrl: string;
   /** Texto corto para destacadas; opcional en el carrusel. */
   blurb?: string;
   featured?: boolean;
+  /** Fondo claro del tile: para logos oscuros o de color que no se leen sobre la banda ink. */
+  tileLight?: boolean;
   website?: string;
   linkedin?: string;
   instagram?: string;
@@ -21,41 +20,76 @@ export type StartupDayPartner = {
   role: string;
   blurb: string;
   logoUrl?: string;
-  logoTone?: 'light' | 'dark';
-  /** Isotipo cuadrado (no wordmark). */
-  logoIcon?: boolean;
+  /** `icon` achica el logo cuando es un isotipo cuadrado en vez de un wordmark. */
+  logoVariant?: 'icon';
   website?: string;
   linkedin?: string;
   instagram?: string;
 };
 
-const LOGO = (file: string) => `/logos/startup-day/${file}?v=12`;
-const PARTNER = (file: string) => `/logos/partners/${file}?v=2`;
-
-export const SD_LUMA_URL = 'https://luma.com/1ubys1uc';
+/** Ruta pública de un logo. El `?v=` es el cache-buster; vive acá y sólo acá. */
+export const LOGO = (file: string) => `/logos/startup-day/${file}?v=13`;
 
 export const SD_EVENT = {
   title: 'Startup Day',
   dateLabel: '11 de septiembre de 2026',
+  /* La misma fecha en ISO, para los `<time dateTime>` de la agenda. Va acá y no hardcodeada en
+     el componente porque justamente así se desfasó: el markup decía `2026-09-09` mientras todo
+     lo visible decía 11 de septiembre. */
+  dateISO: '2026-09-11',
   timeLabel: '15 a 20 hs',
   address: 'Av. Alem 882',
   addressFull: 'Av. Alem 882, Ciudad de Buenos Aires · UCEMA',
   priceLabel: '100% gratuito',
 } as const;
 
+/** Evento en Luma — única vía de inscripción. */
+export const SD_LUMA_URL = 'https://luma.com/1ubys1uc';
+
 /**
- * Pantalla “en construcción”. Poné `true` para volver al gate.
+ * Link a Luma con UTMs. `placement` identifica desde qué botón salió la visita
+ * (`hero`, `nav`, `agenda`, `inscripcion`…) y llega a Luma como `utm_content`.
+ */
+export function sdLumaUrl(placement: string): string {
+  const url = new URL(SD_LUMA_URL);
+  url.searchParams.set('utm_source', 'startupday-landing');
+  url.searchParams.set('utm_medium', 'web');
+  url.searchParams.set('utm_campaign', 'startup-day-2026');
+  url.searchParams.set('utm_content', placement);
+  return url.toString();
+}
+
+/** Teaser de StartupMate — todavía sin CTA, se presenta en el evento. */
+export const SD_STARTUPMATE = {
+  kicker: 'Próximamente',
+  name: 'StartupMate',
+  tagline: 'El Tinder de cofounders',
+  lead:
+    'Un lugar para encontrar con quién fundar: perfiles, intereses y match entre gente que está buscando equipo para arrancar.',
+  note: 'Lo presentamos en el Startup Day',
+} as const;
+
+/**
+ * Pantalla “en construcción”. Pasar a `false` para publicar la landing.
  * Bypass temporal: `?preview=1` en la URL.
  */
-export const SD_COMING_SOON = false;
+export const SD_COMING_SOON = true;
 
-/** Experiencia Startup Day — tipografía + pilares (brand ink/purple). */
+/**
+ * Agenda bloqueada. Mientras esté en `true` la sección muestra “Agenda próximamente” en vez de
+ * la grilla. Se publicó con las charlas de `SD_CHARLAS` confirmadas; volver a `true` la vuelve
+ * a tapar sin perder los datos.
+ */
+export const SD_AGENDA_LOCKED = false;
+
+/**
+ * Experiencia Startup Day — el título y las cuatro filas del acordeón de `SdExperiencia`.
+ *
+ * Sin `kicker`: la sección arranca directo en el título. El horario no vive acá sino en
+ * `SD_STANDS`, que ya lo comparte con la agenda — así no puede quedar desfasado entre las dos.
+ */
 export const SD_DAY_STORY = {
-  kicker: 'Qué pasa ese día',
   title: 'La experiencia',
-  meta: '15 — 20 hs · UCEMA · 100% gratuito',
-  lead:
-    'Stands abiertos durante todo el evento, workshops con empresas líderes, charlas y espacio para conversar con quienes están construyendo startups.',
   pillars: [
     {
       tag: 'Stands',
@@ -76,16 +110,75 @@ export const SD_DAY_STORY = {
   ],
 } as const;
 
-/** Agenda del día — stands todo el rato + charlas/workshops por aula. */
-export type SdScheduleBeat = {
-  time: string;
-  timeEnd?: string;
-  kind: 'main' | 'workshop' | 'final' | 'talk' | 'stands';
-  label: string;
-  detail?: string;
-  /** Aula M o K. */
-  room?: 'M' | 'K';
+/**
+ * Las dos salas de workshops del 2º piso. Los ids son los mismos que en `SALAS`
+ * (`startupDayFloor.ts`), donde M es "Acá se hacen los workshops" y K "la sala más grande".
+ */
+export const SD_AULAS = [
+  { id: 'm', label: 'Aula M' },
+  { id: 'k', label: 'Aula K' },
+] as const;
+
+export type SdAula = (typeof SD_AULAS)[number]['id'];
+
+/**
+ * Una charla de la grilla.
+ *
+ * `from`/`to` no son sólo texto: `StartupDayAgenda` los convierte en líneas de una grilla CSS,
+ * así que la card queda ubicada y dimensionada por su horario real — los huecos entre charlas y
+ * el largo de cada una salen solos de estos dos valores.
+ */
+export type SdCharla = {
+  aula: SdAula;
+  /** HH:MM en 24h, dentro de la ventana 15:30 — 20:00 que dibuja el riel. */
+  from: string;
+  to: string;
+  name: string;
+  /** Archivo dentro de `/logos/startup-day/`. Sin él la card cae al punto violeta. */
+  logo?: string;
+  /**
+   * Deja el logo en su color en vez de aplanarlo a blanco.
+   *
+   * La card normaliza los logos con `brightness(0) invert(1)`, que respeta el alfa y sirve para
+   * cualquier wordmark. Pero una marca pictórica maciza —sin detalle interno— se aplana a una
+   * silueta blanca y deja de leerse: ahí hace falta el color. Es una propiedad del archivo, no
+   * una decisión de diseño por charla.
+   */
+  logoEnColor?: boolean;
 };
+
+/**
+ * La grilla del día. Reemplazó a un borrador de una sola pista donde 6 de 10 filas decían
+ * "Stands abiertos": el evento son dos aulas en paralelo.
+ *
+ * Faltan los archivos de logo de NEWTOPIA, Derecruiters, Picante y FUD. Cuando estén en
+ * `src/public/logos/startup-day/` alcanza con sumarles la clave `logo:` acá.
+ */
+/* Ojo con qué archivo se elige: la card los pinta con `brightness(0) invert(1)`, que sólo
+   funciona sobre PNG/WebP con alfa. `endeavor.webp` viene sin canal alfa y salía como un
+   rectángulo blanco; `resender.png` es el ícono cuadrado y no el wordmark; y `derecruiters.png`
+   llegó con fondo negro macizo, así que se le quitó con `ffmpeg -vf colorkey`. */
+export const SD_CHARLAS: readonly SdCharla[] = [
+  { aula: 'm', from: '15:30', to: '16:15', name: 'uin', logo: 'uin.png' },
+  { aula: 'm', from: '16:30', to: '17:15', name: 'NEWTOPIA', logo: 'newtopia.png' },
+  { aula: 'm', from: '17:30', to: '18:15', name: 'Derecruiters', logo: 'derecruiters.png' },
+  {
+    aula: 'm',
+    from: '18:30',
+    to: '19:15',
+    name: 'Mercado Libre',
+    logo: 'mercado-libre.png',
+    logoEnColor: true,
+  },
+  { aula: 'm', from: '19:25', to: '20:00', name: 'Pasito', logo: 'quien/pasito.png' },
+
+  { aula: 'k', from: '15:30', to: '16:15', name: 'Endeavor', logo: 'endeavor.png' },
+  { aula: 'k', from: '16:30', to: '17:15', name: 'TQe', logo: 'tqe.webp' },
+  { aula: 'k', from: '17:30', to: '18:15', name: 'Picante', logo: 'picante.png' },
+  { aula: 'k', from: '18:15', to: '18:30', name: 'FUD' },
+  { aula: 'k', from: '18:30', to: '19:15', name: 'Zettios', logo: 'zettios.png' },
+  { aula: 'k', from: '19:25', to: '20:00', name: 'Resender', logo: 'resender-dev.png' },
+];
 
 export const SD_STANDS = {
   from: '15',
@@ -94,247 +187,196 @@ export const SD_STANDS = {
   note: 'Abiertos todo el horario',
 } as const;
 
-export const SD_SCHEDULE: readonly SdScheduleBeat[] = [
-  {
-    time: '15:40',
-    timeEnd: '16:30',
-    kind: 'workshop',
-    label: 'TQe',
-    room: 'M',
-  },
-  {
-    time: '15:40',
-    timeEnd: '16:30',
-    kind: 'main',
-    label: 'Endeavor',
-    room: 'K',
-  },
-  {
-    time: '16:35',
-    timeEnd: '17:20',
-    kind: 'workshop',
-    label: 'Satellites on Fire',
-    room: 'K',
-  },
-  {
-    time: '17:30',
-    timeEnd: '18:15',
-    kind: 'talk',
-    label: 'Derecruiters',
-    room: 'M',
-  },
-  {
-    time: '17:30',
-    timeEnd: '18:15',
-    kind: 'talk',
-    label: 'Picante',
-    room: 'K',
-  },
-  {
-    time: '17:45',
-    timeEnd: '18:20',
-    kind: 'talk',
-    label: 'Mercado Libre',
-    room: 'K',
-  },
-  {
-    time: '18:20',
-    timeEnd: '19:00',
-    kind: 'talk',
-    label: 'Globant',
-    room: 'M',
-  },
-  {
-    time: '18:30',
-    timeEnd: '19:00',
-    kind: 'talk',
-    label: 'NEWTOPIA',
-    room: 'K',
-  },
-  {
-    time: '19:15',
-    timeEnd: '19:45',
-    kind: 'workshop',
-    label: 'Resender y Zettios',
-    room: 'K',
-  },
-] as const;
-
-/** Nodos de aula en mipiso.glb — ids = nombres de mesh/componente. */
-export type SdClassroomId =
-  | 'C-aula_wk_01'
-  | 'C-aula_wk_02'
-  | 'C-aula_stand_01'
-  | 'C-aula_stand_02'
-  | 'C-aula_stand_03'
-  | 'C-aula_stand_05';
-
-export type SdFloorNavId = 'floor' | SdClassroomId;
-
-export type SdClassroomCopy = {
-  tag: string;
-  title: string;
-  time: string;
-  copy: string;
-};
-
-export const SD_FLOOR_OVERVIEW: SdClassroomCopy = {
-  tag: 'Planta',
-  title: 'Piso completo',
-  time: '15 — 20 hs',
-  copy: 'Plano 3D del piso entero. Dos aulas de workshop y cuatro de stands.',
-};
-
-/** Programa por aula — 2 workshops + 4 stands (mipiso.glb). */
-export const SD_CLASSROOMS: Record<SdClassroomId, SdClassroomCopy> = {
-  'C-aula_wk_01': {
-    tag: 'Workshop',
-    title: 'Satellites on Fire',
-    time: '16:35 — 17:20',
-    copy: 'Sesión práctica con una de las startups del piso. Contenido aplicable, no solo expositivo.',
-  },
-  'C-aula_wk_02': {
-    tag: 'Workshop',
-    title: 'TQe',
-    time: '15:40 — 16:30',
-    copy: 'Workshop con empresa del ecosistema. Producto, operación y decisiones reales.',
-  },
-  'C-aula_stand_01': {
-    tag: 'Stands',
-    title: 'Aula de stands 01',
-    time: '15 — 20 hs',
-    copy: 'Recorré equipos, preguntá producto y volvé cuando quieras. El espacio permanece abierto todo el evento.',
-  },
-  'C-aula_stand_02': {
-    tag: 'Stands',
-    title: 'Aula de stands 02',
-    time: '15 — 20 hs',
-    copy: 'Stands abiertos durante todo el día. Conversá con los equipos y volvé cuando quieras.',
-  },
-  'C-aula_stand_03': {
-    tag: 'Stands',
-    title: 'Aula de stands 03',
-    time: '15 — 20 hs',
-    copy: 'Más equipos en el piso. Preguntá cómo construyen producto, equipo y tracción.',
-  },
-  'C-aula_stand_05': {
-    tag: 'Stands',
-    title: 'Aula de stands 05',
-    time: '15 — 20 hs',
-    copy: 'Último bloque de stands. El espacio sigue activo hasta las 20 hs.',
-  },
-};
-
-export const SD_CLASSROOM_IDS = Object.keys(SD_CLASSROOMS) as SdClassroomId[];
-
-/** Lista del mapa: plano general + cada aula. */
-export const SD_FLOOR_NAV: { id: SdFloorNavId; copy: SdClassroomCopy }[] = [
-  { id: 'floor', copy: SD_FLOOR_OVERVIEW },
-  ...SD_CLASSROOM_IDS.map((id) => ({ id, copy: SD_CLASSROOMS[id] })),
-];
-
-export const SD_FLOOR_INERT_NODES = ['C-sala_estar', '_(Loose Entity)'] as const;
-
-/** Escala aproximada del modelo mipiso.glb, en unidades del archivo. */
-export const SD_FLOOR_BOUNDS = { width: 159, height: 13.4, depth: 108 } as const;
-
-function co(
-  id: string,
-  name: string,
-  logo?: string,
-  extra?: Pick<StartupDayCompany, 'logoTone'>,
-): StartupDayCompany {
-  if (!logo) return { id, name, ...extra };
-  const logoUrl = logo.startsWith('/') ? logo : LOGO(logo);
-  return { id, name, logoUrl, ...extra };
-}
-
-/** Startups confirmadas — sin logo se muestra el nombre hasta subir asset. */
+/** Startups confirmadas — logos normalizados en `/logos/startup-day/*.webp`. */
 export const SD_STARTUPS: StartupDayCompany[] = [
-  co('tqe', 'TQe', 'tqe.webp'),
-  co('sof', 'Satellites on Fire', 'satellites-on-fire.webp'),
-  co('pasito', 'Pasito', 'pasito.webp'),
-  co('marz', 'Marz', 'marz.webp'),
-  co('datricas', 'Datricas', 'datricas.webp'),
-  co('elcerokm', 'El Cero Km', 'elcerokm.webp'),
-  co('nomenclator', 'Nomenclator', 'nomenclator.webp'),
-  co('talentum', 'Talentum', 'talentum.webp'),
-  co('fardo', 'Fardo', PARTNER('fardo.webp'), { logoTone: 'dark' }),
-  co('cobrandoapp', 'Cobrandoapp', PARTNER('cobrandoapp.webp')),
-  co('plaude', 'Plaude', PARTNER('plaude-logo.webp')),
-  co('kaizer', 'Kaizer', PARTNER('kaizer.webp')),
-  co('piggy-wallet', 'Piggy Wallet', PARTNER('piggywallet.webp')),
-  co('bata-edu', 'Bata Edu', PARTNER('bataedu_logo.webp')),
-  co('compassguard', 'CompassGuard'),
-  co('squads-ventures', 'Squads Ventures', PARTNER('squadventures.webp')),
-  co('paisanos', 'Paisanos', PARTNER('paisanos.webp')),
-  co('gasti', 'Gasti', PARTNER('gasti-logo.webp')),
-  co('yafu', 'YAFU', PARTNER('yafu-logo-white-web.webp'), { logoTone: 'light' }),
-  co('berry', 'Berry'),
-  co('certenza', 'Certenza', PARTNER('certenza-logo-blue.webp')),
-  co('tuni', 'Tuni', 'tuni.webp'),
-  co('coworkeando', 'Coworkeando', PARTNER('coworkeando.webp')),
-  co('zettios', 'Zettios', PARTNER('zettios-logo.webp'), { logoTone: 'dark' }),
-  co('cresium', 'Cresium', PARTNER('cresium_primary.webp')),
-  co('cooper', 'Cooper', PARTNER('cooper-logo.webp'), { logoTone: 'light' }),
-  co('resender', 'Resender'),
-  co('wip-club', 'Wip club'),
-  co('startups-argentina', 'Startups Argentina'),
-  co('comet', 'Comet', PARTNER('comet-logo-dark.webp'), { logoTone: 'dark' }),
-  co('fluxis', 'fluxis', PARTNER('fluxis.webp')),
-  co('di-venuo', 'Di Venuo', PARTNER('divenuo-wordmark-dark-v1.webp')),
-  co('uin', 'UIN'),
-  co('prestagro', 'Prestagro', PARTNER('nb3u8jqh_logo-prestagro.webp'), { logoTone: 'light' }),
-];
-
-export const SD_EDITION_SPONSORS: StartupDayPartner[] = [
+  {
+    id: 'pasito',
+    name: 'Pasito',
+    logoUrl: LOGO('pasito.webp'),
+    featured: true,
+    blurb:
+      'Producto en mercado. Van a contar cómo armaron equipo, distribución y ritmo de crecimiento desde Argentina.',
+    website: 'https://www.pasito.app/',
+  },
+  {
+    id: 'tqe',
+    name: 'TQe',
+    logoUrl: LOGO('tqe.webp'),
+    featured: true,
+    blurb:
+      'Stand + workshop. Van a bajar método de producto, go-to-market y cómo escalan operación.',
+    website: 'https://www.tqe.com.ar/',
+  },
+  {
+    id: 'sof',
+    name: 'Satellites on Fire',
+    logoUrl: LOGO('satellites-on-fire.webp'),
+    featured: true,
+    blurb:
+      'Stand + workshop. Tech de alto crecimiento: fundraising, equipo y cómo construyen producto.',
+    website: 'https://www.satellitesonfire.com/',
+  },
+  {
+    id: 'marz',
+    name: 'Marz',
+    logoUrl: LOGO('marz.webp'),
+    featured: true,
+    blurb: 'Equipo en pleno funcionamiento. Preguntales cómo priorizan roadmap y ventas.',
+    website: 'https://www.go-marz.com/',
+  },
+  {
+    id: 'datricas',
+    name: 'Datricas',
+    logoUrl: LOGO('datricas.webp'),
+    blurb: 'Datos y producto. Stand abierto para hablar de stack y tracción.',
+    website: 'https://www.datricas.com/',
+  },
+  {
+    id: 'elcerokm',
+    name: 'El cero KM',
+    logoUrl: LOGO('elcerokm.webp'),
+    blurb: 'Startup argentina operativa. Cómo se funda y se sostiene día a día.',
+    website: 'https://elcerokm.com/',
+  },
+  {
+    id: 'nomenclator',
+    name: 'Nomenclator',
+    logoUrl: LOGO('nomenclator.webp'),
+    blurb: 'Equipo construyendo en serio. Vení a preguntar por proceso y métricas.',
+    website: 'https://www.nomenclator.com.ar/',
+  },
+  {
+    id: 'talentum',
+    name: 'Talentum',
+    logoUrl: LOGO('talentum.webp'),
+    blurb: 'Confirmados. Stand para hablar de hiring, cultura y escala.',
+    website: 'https://talentumjobs.com/',
+  },
+  { id: 'fardo', name: 'Fardo', logoUrl: LOGO('fardo.png'), website: 'https://www.heyfardo.com/' },
+  {
+    id: 'cobrando',
+    name: 'Cobrando',
+    logoUrl: LOGO('cobrando.webp'),
+    website: 'https://cobrando.app/',
+    tileLight: true,
+  },
+  { id: 'plaude', name: 'Plaude', logoUrl: LOGO('plaude.png'), website: 'https://plaude.com/' },
+  { id: 'kaizer', name: 'Kaizer', logoUrl: LOGO('kaizer.png'), website: 'https://kaizer.app/' },
+  {
+    id: 'piggywallet',
+    name: 'Piggy Wallet',
+    logoUrl: LOGO('piggywallet.webp'),
+    website: 'https://www.piggywallet.app/',
+  },
+  { id: 'bata', name: 'Bata', logoUrl: LOGO('bata.png'), website: 'https://bataedu.com/' },
+  {
+    id: 'compassguard',
+    name: 'Compass Guard',
+    logoUrl: LOGO('compassguard.webp'),
+    website: 'https://compassguard.xyz/',
+    tileLight: true,
+  },
+  { id: 'paisanos', name: 'Paisanos', logoUrl: LOGO('paisanos.png'), website: 'https://www.paisanos.io/' },
+  { id: 'gasti', name: 'Gasti', logoUrl: LOGO('gasti.png'), website: 'https://gasti.pro/' },
+  { id: 'yafu', name: 'Yafu', logoUrl: LOGO('yafu.png'), website: 'https://yafu.app/' },
+  { id: 'berry', name: 'Berry', logoUrl: LOGO('berry.png'), website: 'https://berry.app/' },
+  {
+    id: 'certenza',
+    name: 'Certenza',
+    logoUrl: LOGO('certenza.png'),
+    website: 'https://certenza.com/',
+    tileLight: true,
+  },
+  { id: 'tuni', name: 'Tuni', logoUrl: LOGO('tuni.webp'), website: 'https://www.tuni.com.ar/' },
   {
     id: 'coworkeando',
     name: 'Coworkeando',
-    logoUrl: PARTNER('coworkeando.webp'),
-    logoIcon: true,
-    role: 'Sponsor',
-    blurb: '',
+    logoUrl: LOGO('coworkeando.png'),
+    website: 'https://www.coworkeando.com/',
+  },
+  { id: 'zettios', name: 'Zettios', logoUrl: LOGO('zettios.png'), website: 'https://www.zettios.com/' },
+  {
+    id: 'cooper',
+    name: 'Cooper',
+    logoUrl: LOGO('cooper.svg'),
+    website: 'https://www.cooperpetcare.app/',
+  },
+  { id: 'resender', name: 'Resender', logoUrl: LOGO('resender.png'), website: 'https://resender.dev/' },
+  {
+    id: 'wipclub',
+    name: 'WIP Club',
+    /** Isotipo azul sobre blanco: va en tile claro para que el fondo no corte la banda ink. */
+    logoUrl: LOGO('wipclub.webp'),
+    tileLight: true,
+    instagram: 'https://www.instagram.com/wipclub.bsas/',
   },
   {
+    id: 'startups-argentina',
+    name: 'Startups Argentina',
+    /** Wordmark sobre fondo cream propio: va en tile claro para que no se recorte. */
+    logoUrl: LOGO('startups-argentina.webp'),
+    website: 'https://www.startupsargentina.com/',
+    tileLight: true,
+  },
+  { id: 'fluxis', name: 'Fluxis', logoUrl: LOGO('fluxis.png'), website: 'https://fluxis.us/' },
+  { id: 'divenuo', name: 'diVenuo', logoUrl: LOGO('divenuo.png'), website: 'https://divenuo.com/' },
+  {
+    id: 'prestagro',
+    name: 'Prestagro',
+    logoUrl: LOGO('prestagro.png'),
+    website: 'https://prestagro.com.ar/',
+  },
+  /** Único asset disponible: el export monocromo del key art, ya en blanco sobre transparente. */
+  { id: 'firmaway', name: 'Firmaway', logoUrl: LOGO('firmaway.svg') },
+  /* Las tres llegaron sólo en versión monocroma clara, que sirve igual para las dos bandas
+     oscuras donde aparecen (el carrusel de confirmadas y "Para quién es"). */
+  { id: 'uin', name: 'UIN', logoUrl: LOGO('uin.png'), website: 'https://uin.tech/' },
+  { id: 'extra', name: 'Extra', logoUrl: LOGO('extra.png'), website: 'https://extra.com.ar/' },
+  { id: 'firstplug', name: 'First Plug', logoUrl: LOGO('firstplug.png'), website: 'https://firstplug.co/' },
+];
+
+/**
+ * Sponsors de la primera edición.
+ *
+ * OJO con la variante del logo: esta sección se renderiza sobre banda **cream**
+ * (`sd-band--cream`) y sin tile de fondo, así que acá van los logos **oscuros**.
+ * Los mismos cuatro aparecen además en el carrusel de confirmadas, que es banda
+ * ink y usa las versiones claras. Por eso hay dos archivos por marca.
+ */
+export const SD_EDITION_SPONSORS: StartupDayPartner[] = [
+  {
     id: 'yafu',
-    name: 'YAFU',
-    logoUrl: PARTNER('yafu-logo-white-web.webp'),
-    logoTone: 'light',
-    role: 'Sponsor',
-    blurb: '',
+    name: 'Yafu',
+    logoUrl: LOGO('yafu-dark.png'),
+    role: 'Sponsor de la primera edición',
+    blurb: 'Sponsor de Startup Day y startup confirmada en el piso.',
+    website: 'https://yafu.app/',
+  },
+  {
+    id: 'coworkeando',
+    name: 'Coworkeando',
+    logoUrl: LOGO('coworkeando-dark.svg'),
+    role: 'Sponsor de la primera edición',
+    blurb: 'Sponsor de Startup Day y startup confirmada en el piso.',
+    website: 'https://www.coworkeando.com/',
   },
   {
     id: 'zettios',
     name: 'Zettios',
-    logoUrl: PARTNER('zettios-logo.webp'),
-    logoTone: 'dark',
-    role: 'Sponsor',
-    blurb: '',
+    logoUrl: LOGO('zettios-dark.svg'),
+    role: 'Sponsor de la primera edición',
+    blurb: 'Sponsor de Startup Day y startup confirmada en el piso.',
+    website: 'https://www.zettios.com/',
   },
   {
-    id: 'cobrandoapp',
-    name: 'cobrando.app',
-    logoUrl: PARTNER('cobrandoapp.webp'),
-    logoIcon: true,
-    role: 'Sponsor',
-    blurb: '',
-  },
-  {
-    id: 'endeavor',
-    name: 'Endeavor',
-    logoUrl: LOGO('endeavor.webp'),
-    role: 'Sponsor',
-    blurb: '',
-    website: 'https://www.endeavor.org.ar/',
-    linkedin: 'https://www.linkedin.com/company/endeavor-argentina/',
-    instagram: 'https://www.instagram.com/endeavorarg/',
+    id: 'cobrando',
+    name: 'Cobrando',
+    logoUrl: LOGO('cobrando.webp'),
+    role: 'Sponsor de la primera edición',
+    blurb: 'Sponsor de Startup Day y startup confirmada en el piso.',
+    website: 'https://cobrando.app/',
   },
 ];
-
-/** @deprecated usar SD_EDITION_SPONSORS */
-export const SD_ENDEAVOR: StartupDayPartner =
-  SD_EDITION_SPONSORS.find((s) => s.id === 'endeavor') ?? SD_EDITION_SPONSORS[0]!;
 
 export const SD_XPLORA_PARTNERS: StartupDayPartner[] = [
   {
@@ -347,7 +389,7 @@ export const SD_XPLORA_PARTNERS: StartupDayPartner[] = [
   {
     id: 'ucemax',
     name: 'UCEMA X',
-    logoUrl: LOGO('ucemax.webp'),
+    logoUrl: LOGO('ucemax.png'),
     role: '',
     blurb: '',
     website: 'https://ucema.edu.ar/educacion-ejecutiva/programas-ejecutivos',
@@ -355,7 +397,7 @@ export const SD_XPLORA_PARTNERS: StartupDayPartner[] = [
   {
     id: 'humming',
     name: 'HUMMING AIRWAYS',
-    logoUrl: LOGO('humming.webp'),
+    logoUrl: LOGO('humming.png'),
     role: '',
     blurb: '',
     website: 'https://www.hummingairways.com/',

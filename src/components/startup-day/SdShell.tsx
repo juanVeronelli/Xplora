@@ -1,7 +1,10 @@
-import { useEffect, useState, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { useSiteMedia } from '../../context/SiteMediaContext';
 import { DEFAULT_LOGO_URL } from '../../lib/defaultsMedia';
-import { mainSiteUrl, startupDayUrl } from '../../lib/startupDayHost';
+import {
+  mainSiteUrl,
+  startupDayUrl,
+} from '../../lib/startupDayHost';
 import {
   SD_EDITION_SPONSORS,
   SD_XPLORA_PARTNERS,
@@ -9,11 +12,9 @@ import {
 } from '../../data/startupDay';
 import { StartupDayCursor } from './StartupDayCursor';
 import { StartupDayLoader } from './StartupDayLoader';
+import { SdPixelWave } from './SdPixelWave';
 import { StartupDayFooterNewsletter } from './StartupDayFooterNewsletter';
 import '../../styles/startupDay.css';
-
-/** CTA de cuenta en nav — apagado hasta abrir el funnel de miembros. */
-const SHOW_MEMBER_LOGIN_CTA = false;
 
 export type SdShellSite = 'startupday' | 'xplora' | 'sponsors';
 
@@ -51,6 +52,8 @@ export function SdShell({
   const { logoUrl } = useSiteMedia();
   const brandLogo = logoUrl || DEFAULT_LOGO_URL;
   const [island, setIsland] = useState(false);
+  /** El nodo que barre `SdPixelWave` al terminar la carga. */
+  const loaderRef = useRef<HTMLDivElement>(null);
 
   const sdHref = startupDayUrl();
   const xpHref = mainSiteUrl();
@@ -86,10 +89,19 @@ export function SdShell({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  /* El modificador por sitio permite acotar estilos a una sola de las tres landings que comparten
+     este shell — hoy lo usan los botones, que en Startup Day van con el tratamiento violeta del
+     key art y en Xplora/Sponsors siguen siendo el pill blanco. */
   return (
-    <div className={`sd-root${loaderDone ? ' is-loaded' : ''}`}>
+    <div className={`sd-root sd-root--${active}${loaderDone ? ' is-loaded' : ''}`}>
       {showCursor ? <StartupDayCursor /> : null}
-      {showLoader ? <StartupDayLoader done={loaderDone} logoUrl={brandLogo} /> : null}
+      {showLoader ? (
+        <>
+          <StartupDayLoader ref={loaderRef} done={loaderDone} logoUrl={brandLogo} />
+          {/* Hermano del loader, nunca hijo: como hijo lo recortaría el mismo clip-path. */}
+          <SdPixelWave play={loaderDone} coverRef={loaderRef} />
+        </>
+      ) : null}
 
       <div className="sd-stage">
         <div className={`sd-nav-shell${island ? ' is-island' : ''}`}>
@@ -130,34 +142,25 @@ export function SdShell({
               </a>
             </nav>
 
-            <div className="sd-top__actions">
-              {SHOW_MEMBER_LOGIN_CTA ? (
-                <a className="sd-top__cta" href={`${xpHref.replace(/\/$/, '')}/cuenta`}>
-                  Iniciar sesión
+            {cta ? (
+              cta.href ? (
+                <a
+                  className="sd-top__cta"
+                  href={cta.href}
+                  {...(cta.href.startsWith('http')
+                    ? { target: '_blank', rel: 'noopener noreferrer' }
+                    : {})}
+                >
+                  {cta.label}
                 </a>
-              ) : null}
-              {cta ? (
-                cta.href ? (
-                  <a
-                    className="sd-top__cta sd-top__cta--secondary"
-                    href={cta.href}
-                    {...(cta.href.startsWith('http')
-                      ? { target: '_blank', rel: 'noopener noreferrer' }
-                      : {})}
-                  >
-                    {cta.label}
-                  </a>
-                ) : (
-                  <button
-                    type="button"
-                    className="sd-top__cta sd-top__cta--secondary"
-                    onClick={cta.onClick}
-                  >
-                    {cta.label}
-                  </button>
-                )
-              ) : null}
-            </div>
+              ) : (
+                <button type="button" className="sd-top__cta" onClick={cta.onClick}>
+                  {cta.label}
+                </button>
+              )
+            ) : (
+              <span className="sd-top__cta-spacer" aria-hidden />
+            )}
           </header>
         </div>
 
@@ -184,10 +187,13 @@ export function SdShell({
                 <div className="sd-footer__col">
                   <h3>Startup Day</h3>
                   <a href="#para-quien">Para quién</a>
-                  <a href="#agenda">Agenda</a>
-                  <a href="#confirmadas">Confirmadas</a>
                   <a href="#sponsors">Sponsors</a>
-                  <a href="#que-pasa">Qué pasa</a>
+                  <a href="#que-pasa">La experiencia</a>
+                  <a href="#piso">El lugar</a>
+                  <a href="#agenda">Agenda</a>
+                  {/* StartupMate oculta — ver `StartupDay.tsx`
+                  <a href="#startupmate">StartupMate</a>
+                  */}
                   <a href="#reservar">Inscripción</a>
                 </div>
               ) : (
@@ -196,14 +202,6 @@ export function SdShell({
                   <a href="/#que-es">El club</a>
                   <a href="/#empresas">Empresas</a>
                   <a href="/sponsors">Sponsors</a>
-                  {SHOW_MEMBER_LOGIN_CTA ? (
-                    <>
-                      <a href="/cuenta">Mi cuenta</a>
-                      <a href="/cuenta/perfil">Mi perfil</a>
-                      <a href="/empleo">Bolsa de empleo</a>
-                      <a href="/cuenta/eventos">Eventos</a>
-                    </>
-                  ) : null}
                   <a href="/#newsletter">Newsletter</a>
                   <a href={sdHref}>Startup Day</a>
                 </div>
