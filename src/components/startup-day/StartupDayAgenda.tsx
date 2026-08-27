@@ -6,7 +6,7 @@ import {
   SD_CHARLAS,
   SD_EVENT,
   SD_STANDS,
-  sdLumaUrl,
+  sdInscripcionUrl,
   type SdCharla,
 } from '../../data/startupDay';
 import { SdReveal } from './SdReveal';
@@ -118,7 +118,7 @@ function AgendaLocked() {
 
         <a
           className="sd-btn sd-btn--primary"
-          href={sdLumaUrl('agenda')}
+          href={sdInscripcionUrl('agenda')}
           target="_blank"
           rel="noopener noreferrer"
         >

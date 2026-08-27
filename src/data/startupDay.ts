@@ -43,18 +43,19 @@ export const SD_EVENT = {
   priceLabel: '100% gratuito',
 } as const;
 
-/** Evento en Luma — única vía de inscripción. */
-export const SD_LUMA_URL = 'https://luma.com/1ubys1uc';
+/**
+ * Formulario de registro (Microsoft Forms) — única vía de inscripción. Reemplazó al evento de
+ * Luma; el `utm_source=landing_xplora` viene en el link que pasó el cliente y se respeta tal cual.
+ */
+export const SD_INSCRIPCION_URL =
+  'https://forms.cloud.microsoft/pages/responsepage.aspx?id=yaQFTVUvhUiT0rJ70z_PtqvSxeN6YjNAlnGbKtc1zLxUNUZDRDVNNDFNSVc3RFVHSDROMFNYRVc4TC4u&utm_source=landing_xplora';
 
 /**
- * Link a Luma con UTMs. `placement` identifica desde qué botón salió la visita
- * (`hero`, `nav`, `agenda`, `inscripcion`…) y llega a Luma como `utm_content`.
+ * Link al formulario con el origen del click. `placement` identifica desde qué botón salió la
+ * visita (`hero`, `nav`, `agenda`, `inscripcion`…) y viaja como `utm_content`.
  */
-export function sdLumaUrl(placement: string): string {
-  const url = new URL(SD_LUMA_URL);
-  url.searchParams.set('utm_source', 'startupday-landing');
-  url.searchParams.set('utm_medium', 'web');
-  url.searchParams.set('utm_campaign', 'startup-day-2026');
+export function sdInscripcionUrl(placement: string): string {
+  const url = new URL(SD_INSCRIPCION_URL);
   url.searchParams.set('utm_content', placement);
   return url.toString();
 }
@@ -70,10 +71,10 @@ export const SD_STARTUPMATE = {
 } as const;
 
 /**
- * Pantalla “en construcción”. Pasar a `false` para publicar la landing.
- * Bypass temporal: `?preview=1` en la URL.
+ * Pantalla “en construcción”. En `false` la landing está publicada; volver a `true` la tapa de
+ * nuevo sin perder nada. Con el gate activo el bypass es `?preview=1` en la URL.
  */
-export const SD_COMING_SOON = true;
+export const SD_COMING_SOON = false;
 
 /**
  * Agenda bloqueada. Mientras esté en `true` la sección muestra “Agenda próximamente” en vez de
@@ -159,25 +160,25 @@ export type SdCharla = {
    rectángulo blanco; `resender.png` es el ícono cuadrado y no el wordmark; y `derecruiters.png`
    llegó con fondo negro macizo, así que se le quitó con `ffmpeg -vf colorkey`. */
 export const SD_CHARLAS: readonly SdCharla[] = [
-  { aula: 'm', from: '15:30', to: '16:15', name: 'uin', logo: 'uin.png' },
-  { aula: 'm', from: '16:30', to: '17:15', name: 'NEWTOPIA', logo: 'newtopia.png' },
-  { aula: 'm', from: '17:30', to: '18:15', name: 'Derecruiters', logo: 'derecruiters.png' },
+  { aula: 'm', from: '15:30', to: '16:15', name: 'Endeavor', logo: 'endeavor.png' },
+  { aula: 'm', from: '16:30', to: '17:15', name: 'TQe', logo: 'tqe.webp' },
+  { aula: 'm', from: '17:30', to: '18:15', name: 'Picante', logo: 'picante.png' },
+  { aula: 'm', from: '18:30', to: '19:00', name: 'Zettios', logo: 'zettios.png' },
+  { aula: 'm', from: '19:05', to: '19:20', name: 'FUD' },
+  { aula: 'm', from: '19:30', to: '20:00', name: 'Resender', logo: 'resender-dev.png' },
+
+  { aula: 'k', from: '15:30', to: '16:15', name: 'Derecruiters', logo: 'derecruiters.png' },
+  { aula: 'k', from: '16:30', to: '17:15', name: 'uin', logo: 'uin.png' },
+  { aula: 'k', from: '17:30', to: '18:15', name: 'NEWTOPIA', logo: 'newtopia.png' },
+  { aula: 'k', from: '18:30', to: '19:15', name: 'Pasito', logo: 'quien/pasito.png' },
   {
-    aula: 'm',
-    from: '18:30',
-    to: '19:15',
+    aula: 'k',
+    from: '19:30',
+    to: '20:00',
     name: 'Mercado Libre',
     logo: 'mercado-libre.png',
     logoEnColor: true,
   },
-  { aula: 'm', from: '19:25', to: '20:00', name: 'Pasito', logo: 'quien/pasito.png' },
-
-  { aula: 'k', from: '15:30', to: '16:15', name: 'Endeavor', logo: 'endeavor.png' },
-  { aula: 'k', from: '16:30', to: '17:15', name: 'TQe', logo: 'tqe.webp' },
-  { aula: 'k', from: '17:30', to: '18:15', name: 'Picante', logo: 'picante.png' },
-  { aula: 'k', from: '18:15', to: '18:30', name: 'FUD' },
-  { aula: 'k', from: '18:30', to: '19:15', name: 'Zettios', logo: 'zettios.png' },
-  { aula: 'k', from: '19:25', to: '20:00', name: 'Resender', logo: 'resender-dev.png' },
 ];
 
 export const SD_STANDS = {
@@ -359,14 +360,6 @@ export const SD_EDITION_SPONSORS: StartupDayPartner[] = [
     role: 'Sponsor de la primera edición',
     blurb: 'Sponsor de Startup Day y startup confirmada en el piso.',
     website: 'https://www.coworkeando.com/',
-  },
-  {
-    id: 'zettios',
-    name: 'Zettios',
-    logoUrl: LOGO('zettios-dark.svg'),
-    role: 'Sponsor de la primera edición',
-    blurb: 'Sponsor de Startup Day y startup confirmada en el piso.',
-    website: 'https://www.zettios.com/',
   },
   {
     id: 'cobrando',

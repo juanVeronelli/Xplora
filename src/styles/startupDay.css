@@ -3434,7 +3434,7 @@ a.sd-partner__name:hover {
   z-index: 1;
 }
 
-/* ── Inscripción (Luma) ── */
+/* ── Inscripción ── */
 /* Centrada en los tres ejes: `margin-inline` centra la caja de 46rem dentro de la banda,
    `justify-items` centra cada hijo —que traen sus propios `max-width`, así que sin esto quedaban
    pegados a la izquierda de la caja— y `text-align` centra el texto adentro de cada uno. */
@@ -3464,29 +3464,6 @@ a.sd-partner__name:hover {
 
 /* "Cupos limitados" con el mismo puntito latiendo que ya usa `.sd-smate__note` — urgencia sutil,
    no un banner rojo. */
-.sd-signup__urgency {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--sd-purple-lift);
-  font-weight: 600;
-}
-
-.sd-signup__pulse {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--sd-purple-lift);
-  flex-shrink: 0;
-  animation: sd-smate-pulse 2.4s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sd-signup__pulse {
-    animation: none;
-  }
-}
-
 /* ── StartupMate ──
    Pasa de teaser de texto a algo con más peso de "lanzamiento de producto": el headline usa la
    misma escala/lenguaje tipográfico del manifiesto de "Para quién es", y unos tags flotantes

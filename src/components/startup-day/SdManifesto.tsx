@@ -24,7 +24,7 @@
 import { useLayoutEffect, useRef } from 'react';
 import gsap from 'gsap';
 
-import { SD_STARTUPS, sdLumaUrl } from '../../data/startupDay';
+import { SD_STARTUPS, sdInscripcionUrl } from '../../data/startupDay';
 
 const ASSET = (file: string) => `/logos/startup-day/quien/${file}?v=1`;
 
@@ -237,7 +237,7 @@ export function SdManifesto() {
           <div className="sd-quien__actions" ref={actionsRef}>
             <a
               className="sd-btn sd-btn--primary"
-              href={sdLumaUrl('para-quien')}
+              href={sdInscripcionUrl('para-quien')}
               target="_blank"
               rel="noopener noreferrer"
             >

@@ -8,9 +8,7 @@ import { SdReveal } from './SdReveal';
 const SD_SPONSOR_STRIP = [
   { id: 'coworkeando', name: 'Coworkeando', logoUrl: '/logos/startup-day/coworkeando.png?v=12', website: 'https://www.coworkeando.com/' },
   { id: 'yafu', name: 'Yafu', logoUrl: '/logos/startup-day/yafu.png?v=12', website: 'https://yafu.app/' },
-  { id: 'zettios', name: 'Zettios', logoUrl: '/logos/startup-day/zettios.png?v=12', website: 'https://www.zettios.com/' },
   { id: 'cobrando', name: 'Cobrando', logoUrl: '/logos/startup-day/cobrando-wordmark.png?v=1', website: 'https://cobrando.app/' },
-  { id: 'resender', name: 'Resender', logoUrl: '/logos/startup-day/resender-dev.png?v=2', website: 'https://resender.dev/' },
 ] as const;
 
 export function SdSponsorStrip({ className }: { className?: string }) {

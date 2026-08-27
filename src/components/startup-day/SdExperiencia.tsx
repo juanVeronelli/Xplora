@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SD_DAY_STORY, sdLumaUrl } from '../../data/startupDay';
+import { SD_DAY_STORY, sdInscripcionUrl } from '../../data/startupDay';
 import { SdReveal } from './SdReveal';
 
 /**
@@ -89,7 +89,7 @@ export function SdExperiencia() {
       <SdReveal delay={2} className="sd-exp__actions">
         <a
           className="sd-btn sd-btn--primary"
-          href={sdLumaUrl('experiencia')}
+          href={sdInscripcionUrl('experiencia')}
           target="_blank"
           rel="noopener noreferrer"
         >
