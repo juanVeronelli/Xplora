@@ -3225,6 +3225,19 @@ a.sd-partner__name:hover {
     grid-template-columns: minmax(0, 1fr) 15rem;
     align-items: stretch;
   }
+
+  /* Sin render 3D no hay primera columna que sostener: la lista de salas se queda con todo
+     el ancho en vez de dejar el hueco de la maqueta. */
+  .sd-piso__layout--sin-render {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* A todo el ancho, una sala por fila dejaría el label y el detalle en dos puntas opuestas
+     de la pantalla. Se reparte en columnas, como ya hace la lista en mobile. */
+  .sd-piso__layout--sin-render .sd-piso__ref {
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: 4px 12px;
+  }
 }
 
 .sd-piso__viewport {
@@ -3323,33 +3336,6 @@ a.sd-partner__name:hover {
   line-height: 1.35;
   text-align: right;
   color: rgb(var(--sd-cream-rgb) / 0.55);
-}
-
-/* Fallback sin WebGL o si el chunk de three no carga */
-.sd-piso__fallback {
-  display: grid;
-  gap: 14px;
-  place-items: center;
-  width: 100%;
-  height: 100%;
-  padding: clamp(14px, 3vw, 26px);
-  box-sizing: border-box;
-}
-
-.sd-piso__fallback img {
-  max-width: 100%;
-  max-height: 78%;
-  object-fit: contain;
-  border-radius: var(--sd-radius);
-}
-
-.sd-piso__fallback-n {
-  margin: 0;
-  max-width: 40rem;
-  text-align: center;
-  font-size: 0.85rem;
-  line-height: 1.55;
-  color: rgb(var(--sd-cream-rgb) / 0.6);
 }
 
 /* "El lugar" ya no termina en el plano 3D: la agenda vive adentro de la misma sección/banda,

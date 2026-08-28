@@ -4,7 +4,8 @@
  * El chunk de `three` pesa más que el resto de la landing junta, así que la escena:
  *   1. se importa con `React.lazy` (chunk aparte),
  *   2. no se monta hasta que la sección está por entrar en pantalla,
- *   3. cae al croquis si no hay WebGL o si el chunk no carga.
+ *   3. reintenta el import si falla y, si ni así carga, la sección se apoya sólo en la lista
+ *      de salas: el viewport no se monta y no queda ni caja vacía ni aviso de error.
  *
  * La identificación de cada sala vive acá, en HTML al costado del canvas, y no dentro del
  * render: pintar los muros de colores para distinguirlas hacía que la maqueta pareciera de
@@ -13,15 +14,35 @@
 import { Component, Suspense, lazy, useEffect, useRef, useState, type ReactNode } from 'react';
 import { SALAS, detalleDe, type Sala } from '../../../data/startupDayFloor';
 
-const FloorScene = lazy(() => import('./FloorScene'));
+/**
+ * Un import dinámico que falla casi siempre falla por algo pasajero: un corte de red o —el
+ * caso frecuente— un deploy nuevo que dejó el HTML viejo apuntando a un hash de chunk que ya
+ * no existe. Por eso se reintenta antes de darlo por perdido; recién si los tres intentos
+ * fallan el error sube al `LimiteDeError`.
+ */
+const ESPERAS_MS = [400, 1200];
+
+function importarEscena(intento = 0): Promise<typeof import('./FloorScene')> {
+  return import('./FloorScene').catch((e) => {
+    if (intento >= ESPERAS_MS.length) throw e;
+    return new Promise<void>((listo) => setTimeout(listo, ESPERAS_MS[intento])).then(() =>
+      importarEscena(intento + 1),
+    );
+  });
+}
+
+const FloorScene = lazy(() => importarEscena());
 
 /** WebGL puede faltar por hardware, por driver bloqueado o por navegador viejo. */
 function hayWebGL(): boolean {
   try {
     const c = document.createElement('canvas');
-    return Boolean(
-      window.WebGLRenderingContext && (c.getContext('webgl2') || c.getContext('webgl')),
-    );
+    const ctx = c.getContext('webgl2') ?? c.getContext('webgl');
+    if (!window.WebGLRenderingContext || !ctx) return false;
+    /* El navegador tiene un cupo de contextos WebGL vivos: si la prueba se queda con el suyo,
+       le compite el lugar al canvas de la escena, que es el que importa. */
+    ctx.getExtension('WEBGL_lose_context')?.loseContext();
+    return true;
   } catch {
     return false;
   }
@@ -38,30 +59,24 @@ const ORDEN: Record<Sala['tipo'], number> = {
 };
 const SALAS_LISTADAS = [...SALAS].sort((a, b) => ORDEN[a.tipo] - ORDEN[b.tipo]);
 
-function CroquisFallback({ motivo }: { motivo: string }) {
-  return (
-    <div className="sd-piso__fallback">
-      <img
-        src="/piso/plano-2do-piso.png"
-        alt="Plano del 2º piso de Av. Alem 882: K y M para workshops, L, N, O y Q con stands, baños y ascensores en el núcleo central."
-        loading="lazy"
-      />
-      <p className="sd-piso__fallback-n">{motivo}</p>
-    </div>
-  );
-}
-
-/** Si el chunk de three falla (red, bloqueo, browser viejo), la sección igual comunica el piso. */
-class LimiteDeError extends Component<{ children: ReactNode }, { falló: boolean }> {
+/**
+ * Si el chunk de three termina de fallar, la sección se queda sin render y punto: avisa hacia
+ * arriba con `onFallo` para que se desmonte el viewport entero. No hay imagen de reemplazo —
+ * la lista de salas al costado ya comunica el piso.
+ */
+class LimiteDeError extends Component<
+  { onFallo: () => void; children: ReactNode },
+  { falló: boolean }
+> {
   state = { falló: false };
   static getDerivedStateFromError() {
     return { falló: true };
   }
+  componentDidCatch() {
+    this.props.onFallo();
+  }
   render() {
-    if (this.state.falló) {
-      return <CroquisFallback motivo="No pudimos cargar la vista 3D. Este es el plano del piso." />;
-    }
-    return this.props.children;
+    return this.state.falló ? null : this.props.children;
   }
 }
 
@@ -69,6 +84,7 @@ export function StartupDayFloor() {
   const ref = useRef<HTMLDivElement>(null);
   const [cerca, setCerca] = useState(false);
   const [webgl, setWebgl] = useState<boolean | null>(null);
+  const [falló, setFalló] = useState(false);
   const [activa, setActiva] = useState<string | null>(null);
 
   useEffect(() => {
@@ -92,21 +108,27 @@ export function StartupDayFloor() {
     return () => obs.disconnect();
   }, []);
 
+  /* Sin WebGL o con el chunk caído no hay nada que mostrar en la caja, así que no va la caja. */
+  const sinRender = webgl === false || falló;
+
   return (
-    <div className="sd-piso__layout" ref={ref}>
-      <div className="sd-piso__viewport">
-        {webgl === false ? (
-          <CroquisFallback motivo="Tu navegador no tiene WebGL. Este es el plano del piso." />
-        ) : cerca && webgl ? (
-          <LimiteDeError>
-            <Suspense fallback={<p className="sd-piso__cargando">Cargando el piso…</p>}>
-              <FloorScene activa={activa} onActivar={setActiva} />
-            </Suspense>
-          </LimiteDeError>
-        ) : (
-          <p className="sd-piso__cargando">Cargando el piso…</p>
-        )}
-      </div>
+    <div
+      className={`sd-piso__layout${sinRender ? ' sd-piso__layout--sin-render' : ''}`}
+      ref={ref}
+    >
+      {sinRender ? null : (
+        <div className="sd-piso__viewport">
+          {cerca && webgl ? (
+            <LimiteDeError onFallo={() => setFalló(true)}>
+              <Suspense fallback={<p className="sd-piso__cargando">Cargando el piso…</p>}>
+                <FloorScene activa={activa} onActivar={setActiva} />
+              </Suspense>
+            </LimiteDeError>
+          ) : (
+            <p className="sd-piso__cargando">Cargando el piso…</p>
+          )}
+        </div>
+      )}
 
       <ul className="sd-piso__ref">
         {SALAS_LISTADAS.map((s) => (
