@@ -1,3 +1,11 @@
+/**
+ * Formulario de registro del Startup Day. Duplica el valor de `SD_INSCRIPCION_URL`
+ * (`src/data/startupDay.ts`) porque el server no comparte bundle con el front: si cambia el link,
+ * hay que tocar los dos. Los `&` van escapados para el HTML del mail.
+ */
+const SD_INSCRIPCION_URL =
+  'https://forms.cloud.microsoft/pages/responsepage.aspx?id=yaQFTVUvhUiT0rJ70z_PtqvSxeN6YjNAlnGbKtc1zLxUNUZDRDVNNDFNSVc3RFVHSDROMFNYRVc4TC4u&amp;utm_source=landing_xplora&amp;utm_content=mail-lista';
+
 /** Logo usado en mails de campaña (mismo asset Cloudinary que el CRM). */
 const EMAIL_LOGO_URL =
   'https://res.cloudinary.com/doe1cks3v/image/upload/v1774141496/logo_sin_fondo_nlqlse.png';
@@ -43,7 +51,7 @@ export function buildStartupDayWaitlistConfirmHtml(opts: {
               </p>
               <p style="margin:0 0 12px;font-size:15px;line-height:1.55;">
                 La inscripción ya está abierta:
-                <a href="https://luma.com/1ubys1uc" style="color:#603ef9;">luma.com/1ubys1uc</a>.
+                <a href="${SD_INSCRIPCION_URL}" style="color:#603ef9;">completá el formulario de registro</a>.
                 Te escribimos a <strong>${escapeHtml(opts.email)}</strong> si hay novedades.
               </p>
               <p style="margin:24px 0 0;font-size:13px;line-height:1.5;color:#7A6E92;">

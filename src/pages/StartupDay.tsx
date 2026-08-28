@@ -9,7 +9,7 @@ import {
   SD_COMING_SOON,
   SD_EVENT,
   // SD_STARTUPMATE,  ← ver "StartupMate: sección OCULTA" más abajo
-  sdLumaUrl,
+  sdInscripcionUrl,
 } from '../data/startupDay';
 import { SdReveal } from '../components/startup-day/SdReveal';
 import { SdShell } from '../components/startup-day/SdShell';
@@ -110,7 +110,7 @@ export default function StartupDay() {
       active="startupday"
       showLoader
       loaderDone={loaderDone}
-      cta={{ label: 'Inscribirme', href: sdLumaUrl('nav') }}
+      cta={{ label: 'Inscribirme', href: sdInscripcionUrl('nav') }}
     >
       <StartupDayContent />
     </SdShell>
@@ -152,7 +152,7 @@ function StartupDayContent() {
             <div className="sd-hero__actions">
               <a
                 className="sd-btn sd-btn--primary"
-                href={sdLumaUrl('hero')}
+                href={sdInscripcionUrl('hero')}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -238,22 +238,17 @@ function StartupDayContent() {
           <p className="sd-kicker">Inscripción</p>
           <h2 className="sd-h2">¿Venís?</h2>
           <p className="sd-lead">
-            Entrada {SD_EVENT.priceLabel} y{' '}
-            <span className="sd-signup__urgency">
-              <span className="sd-signup__pulse" aria-hidden />
-              cupos limitados
-            </span>
-            . La inscripción se hace en Luma: reservás en un minuto y te llega la confirmación por
-            mail.
+            Entrada {SD_EVENT.priceLabel} y cupos limitados. La inscripción se hace en un
+            formulario: lo completás en un minuto y te llega la confirmación por mail.
           </p>
 
           <a
             className="sd-btn sd-btn--primary sd-signup__cta"
-            href={sdLumaUrl('inscripcion')}
+            href={sdInscripcionUrl('inscripcion')}
             target="_blank"
             rel="noopener noreferrer"
           >
-            Inscribirme en Luma
+            Inscribirme gratis
           </a>
 
           <p className="sd-signup__meta">
