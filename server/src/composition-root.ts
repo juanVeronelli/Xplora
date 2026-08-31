@@ -1,6 +1,7 @@
 import express, { type Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import { Loly } from '@kyncode/sdk';
 import type { AppConfig } from './config/env.js';
 import { getAppConfig } from './config/env.js';
 import { SupabaseJwtAuthService } from './services/supabase-auth.service.js';
@@ -58,6 +59,8 @@ export function createApplication(config: AppConfig = getAppConfig()): Express {
 
   setupSpaStaticIfProduction(app, config);
 
+  // KYNCODE: captura global y reenvía a next(err); el handler propio queda intacto.
+  app.use(Loly.expressErrorHandler());
   app.use(errorMiddleware);
 
   return app;

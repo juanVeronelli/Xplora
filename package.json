@@ -13,6 +13,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@kyncode/sdk": "^0.1.3",
     "@react-three/fiber": "^8.18.0",
     "@supabase/supabase-js": "^2.99.3",
     "cloudinary": "^2.5.1",

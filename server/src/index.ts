@@ -3,10 +3,14 @@
  * En producción sirve también el `dist/` del front si existe (SPA).
  */
 import fs from 'fs';
+import { Loly } from '@kyncode/sdk';
 import { loadEnvFromProjectRoot, getAppConfig } from './config/env.js';
 import { createApplication } from './composition-root.js';
 
 loadEnvFromProjectRoot();
+
+// Monitor de eventos fatales del proceso (no altera uncaughtException / exit codes).
+Loly.listenToProcessEvents();
 
 const config = getAppConfig();
 const app = createApplication(config);

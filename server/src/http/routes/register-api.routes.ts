@@ -10,6 +10,7 @@ import type { AppConfig } from '../../config/env.js';
 import type { IAuthService } from '../../services/contracts/auth.interface.js';
 import type { IImageStorageService } from '../../services/contracts/image-storage.interface.js';
 import { createHealthHandler } from '../controllers/health.controller.js';
+import { asyncHandler } from '../middleware/async-handler.js';
 import { createUploadHandler } from '../controllers/upload.controller.js';
 import { createLoginHandler, createLogoutHandler } from '../controllers/auth-login.controller.js';
 import {
@@ -134,6 +135,77 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
   });
 
   app.get('/api/health', createHealthHandler(deps.config));
+
+  // Endpoints de probe KYNCODE: errores de runtime intencionales para validar captura en prod.
+  // Remover cuando el agente termine de validar.
+  app.get(
+    '/api/__kyncode-probe/:n',
+    asyncHandler(async (req) => {
+      const n = Number(req.params.n);
+      switch (n) {
+        case 1: {
+          const err = new Error(
+            'KYNCODE probe #1: unhandled async failure in public waitlist enqueue — job accepted but worker never persisted the row.',
+          );
+          err.name = 'WaitlistEnqueueError';
+          Object.assign(err, { code: 'WAITLIST_ENQUEUE_FAILED', severity: 'error', requiresAgentFix: true });
+          throw err;
+        }
+        case 2: {
+          // Bug de producción: se asume que el lead siempre trae billing.
+          const lead = null as { billing: { planId: string } } | null;
+          const planId = lead!.billing.planId;
+          void planId;
+          return;
+        }
+        case 3: {
+          // Fallo crítico: invariante de pagos rota — saldo negativo tras un cargo "exitoso".
+          const settlement = {
+            chargeId: 'chg_live_xplora_settlement',
+            amountCents: 14900,
+            currency: 'ARS',
+            walletBalanceCents: -4200,
+            status: 'settled' as const,
+          };
+          if (settlement.status === 'settled' && settlement.walletBalanceCents < 0) {
+            const err = new Error(
+              `CRITICAL: settlement ${settlement.chargeId} marked settled with negative wallet balance (${settlement.walletBalanceCents} ${settlement.currency}). Payment ledger invariant broken — requires code fix in settlement/compensation path.`,
+            );
+            err.name = 'LedgerInvariantError';
+            Object.assign(err, {
+              code: 'LEDGER_INVARIANT_BROKEN',
+              severity: 'critical',
+              chargeId: settlement.chargeId,
+              amountCents: settlement.amountCents,
+              walletBalanceCents: settlement.walletBalanceCents,
+              requiresAgentFix: true,
+            });
+            throw err;
+          }
+          return;
+        }
+        case 4: {
+          // Fallo grave: token de sesión de miembro firmado con secreto vacío → auth rota en runtime.
+          const memberJwtSecret = '';
+          if (memberJwtSecret.length < 32) {
+            const err = new Error(
+              'CRITICAL: MEMBER_JWT_SECRET missing/too short at runtime while issuing member session. Auth signing path is broken and must be fixed before traffic can resume.',
+            );
+            err.name = 'MemberAuthConfigError';
+            Object.assign(err, {
+              code: 'MEMBER_JWT_SECRET_INVALID',
+              severity: 'critical',
+              requiresAgentFix: true,
+            });
+            throw err;
+          }
+          return;
+        }
+        default:
+          throw new Error(`KYNCODE probe: índice inválido (${String(req.params.n)})`);
+      }
+    }),
+  );
 
   const subscribeLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
