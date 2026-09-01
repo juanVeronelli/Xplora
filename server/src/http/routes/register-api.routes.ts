@@ -21,6 +21,8 @@ import { createPublicSubscribeHandler } from '../controllers/public-subscribe.co
 import { createPublicCandidatosHandler } from '../controllers/public-candidatos.controller.js';
 import { createPublicSponsorsLeadHandler } from '../controllers/public-sponsors.controller.js';
 import { createPublicStartupDayWaitlistHandler } from '../controllers/public-startup-day-waitlist.controller.js';
+import { createPublicWalletSettlementCheckHandler } from '../controllers/public-wallet-settlement.controller.js';
+import { settleWalletCharge } from '../../services/wallet-settlement.service.js';
 import { uploadSingleCv } from '../middleware/upload.middleware.js';
 import {
   createAdminInsertHandler,
@@ -159,29 +161,13 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
           return;
         }
         case 3: {
-          // Fallo crítico: invariante de pagos rota — saldo negativo tras un cargo "exitoso".
-          const settlement = {
+          // Usa el servicio real de settlement (roto a propósito hasta que el agente lo arregle).
+          settleWalletCharge({
             chargeId: 'chg_live_xplora_settlement',
-            amountCents: 14900,
+            amountCents: 14_900,
             currency: 'ARS',
-            walletBalanceCents: -4200,
-            status: 'settled' as const,
-          };
-          if (settlement.status === 'settled' && settlement.walletBalanceCents < 0) {
-            const err = new Error(
-              `CRITICAL: settlement ${settlement.chargeId} marked settled with negative wallet balance (${settlement.walletBalanceCents} ${settlement.currency}). Payment ledger invariant broken — requires code fix in settlement/compensation path.`,
-            );
-            err.name = 'LedgerInvariantError';
-            Object.assign(err, {
-              code: 'LEDGER_INVARIANT_BROKEN',
-              severity: 'critical',
-              chargeId: settlement.chargeId,
-              amountCents: settlement.amountCents,
-              walletBalanceCents: settlement.walletBalanceCents,
-              requiresAgentFix: true,
-            });
-            throw err;
-          }
+            walletBalanceCents: 20_000,
+          });
           return;
         }
         case 4: {
@@ -223,6 +209,7 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
     subscribeLimiter,
     createPublicStartupDayWaitlistHandler(deps.config),
   );
+  app.get('/api/public/wallet/settlement-check', createPublicWalletSettlementCheckHandler());
 
   app.get('/api/public/eventos', createPublicListHandler(deps.config, 'eventos'));
   app.get('/api/public/charlas', createPublicListHandler(deps.config, 'charlas'));
