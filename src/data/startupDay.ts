@@ -28,7 +28,7 @@ export type StartupDayPartner = {
 };
 
 /** Ruta pública de un logo. El `?v=` es el cache-buster; vive acá y sólo acá. */
-export const LOGO = (file: string) => `/logos/startup-day/${file}?v=13`;
+export const LOGO = (file: string) => `/logos/startup-day/${file}?v=18`;
 
 export const SD_EVENT = {
   title: 'Startup Day',
@@ -161,24 +161,27 @@ export type SdCharla = {
    llegó con fondo negro macizo, así que se le quitó con `ffmpeg -vf colorkey`. */
 export const SD_CHARLAS: readonly SdCharla[] = [
   { aula: 'm', from: '15:30', to: '16:15', name: 'Endeavor', logo: 'endeavor.png' },
-  { aula: 'm', from: '16:30', to: '17:15', name: 'TQe', logo: 'tqe.webp' },
-  { aula: 'm', from: '17:30', to: '18:15', name: 'Picante', logo: 'picante.png' },
+  { aula: 'm', from: '16:15', to: '17:00', name: 'Nerdearla', logo: 'nerdearla.png' },
+  { aula: 'm', from: '17:00', to: '17:45', name: 'TQe', logo: 'tqe.webp' },
+  { aula: 'm', from: '17:45', to: '18:30', name: 'Picante', logo: 'picante.png' },
   { aula: 'm', from: '18:30', to: '19:00', name: 'Zettios', logo: 'zettios.png' },
-  { aula: 'm', from: '19:05', to: '19:20', name: 'FUD' },
+  { aula: 'm', from: '19:05', to: '19:15', name: 'FUD' },
   { aula: 'm', from: '19:30', to: '20:00', name: 'Resender', logo: 'resender-dev.png' },
 
   { aula: 'k', from: '15:30', to: '16:15', name: 'Derecruiters', logo: 'derecruiters.png' },
-  { aula: 'k', from: '16:30', to: '17:15', name: 'uin', logo: 'uin.png' },
+  { aula: 'k', from: '16:15', to: '16:45', name: 'First Plug', logo: 'firstplug.png' },
+  { aula: 'k', from: '16:45', to: '17:15', name: 'uin', logo: 'uin.png' },
   { aula: 'k', from: '17:30', to: '18:15', name: 'NEWTOPIA', logo: 'newtopia.png' },
-  { aula: 'k', from: '18:30', to: '19:15', name: 'Pasito', logo: 'quien/pasito.png' },
+  { aula: 'k', from: '18:15', to: '18:45', name: 'Pasito', logo: 'quien/pasito.png' },
   {
     aula: 'k',
-    from: '19:30',
-    to: '20:00',
-    name: 'Mercado Libre',
+    from: '18:45',
+    to: '19:15',
+    name: 'Meli',
     logo: 'mercado-libre.png',
     logoEnColor: true,
   },
+  { aula: 'k', from: '19:15', to: '20:00', name: 'Belo', logo: 'belo.png' },
 ];
 
 export const SD_STANDS = {
@@ -233,13 +236,6 @@ export const SD_STARTUPS: StartupDayCompany[] = [
     website: 'https://www.datricas.com/',
   },
   {
-    id: 'elcerokm',
-    name: 'El cero KM',
-    logoUrl: LOGO('elcerokm.webp'),
-    blurb: 'Startup argentina operativa. Cómo se funda y se sostiene día a día.',
-    website: 'https://elcerokm.com/',
-  },
-  {
     id: 'nomenclator',
     name: 'Nomenclator',
     logoUrl: LOGO('nomenclator.webp'),
@@ -272,10 +268,9 @@ export const SD_STARTUPS: StartupDayCompany[] = [
   { id: 'bata', name: 'Bata', logoUrl: LOGO('bata.png'), website: 'https://bataedu.com/' },
   {
     id: 'compassguard',
-    name: 'Compass Guard',
-    logoUrl: LOGO('compassguard.webp'),
+    name: 'Compass',
+    logoUrl: LOGO('compassguard.png'),
     website: 'https://compassguard.xyz/',
-    tileLight: true,
   },
   { id: 'paisanos', name: 'Paisanos', logoUrl: LOGO('paisanos.png'), website: 'https://www.paisanos.io/' },
   { id: 'gasti', name: 'Gasti', logoUrl: LOGO('gasti.png'), website: 'https://gasti.pro/' },
@@ -296,12 +291,6 @@ export const SD_STARTUPS: StartupDayCompany[] = [
     website: 'https://www.coworkeando.com/',
   },
   { id: 'zettios', name: 'Zettios', logoUrl: LOGO('zettios.png'), website: 'https://www.zettios.com/' },
-  {
-    id: 'cooper',
-    name: 'Cooper',
-    logoUrl: LOGO('cooper.svg'),
-    website: 'https://www.cooperpetcare.app/',
-  },
   { id: 'resender', name: 'Resender', logoUrl: LOGO('resender.png'), website: 'https://resender.dev/' },
   {
     id: 'wipclub',
@@ -334,6 +323,17 @@ export const SD_STARTUPS: StartupDayCompany[] = [
   { id: 'uin', name: 'UIN', logoUrl: LOGO('uin.png'), website: 'https://uin.tech/' },
   { id: 'extra', name: 'Extra', logoUrl: LOGO('extra.png'), website: 'https://extra.com.ar/' },
   { id: 'firstplug', name: 'First Plug', logoUrl: LOGO('firstplug.png'), website: 'https://firstplug.co/' },
+  { id: 'squads-ventures', name: 'Squads Ventures', logoUrl: LOGO('squads-ventures.svg') },
+  { id: 'talopay', name: 'Talopay', logoUrl: LOGO('talopay.png') },
+  { id: 'braja-finanzas', name: 'Brajá Finanzas', logoUrl: LOGO('braja-finanzas.png') },
+  { id: 'luca', name: 'Luca Money', logoUrl: LOGO('luca.png') },
+  { id: 'belo', name: 'Belo', logoUrl: LOGO('belo.png') },
+  { id: 'crunchloop', name: 'Crunchloop', logoUrl: LOGO('crunchloop.png') },
+  { id: 'genosha', name: 'Genosha', logoUrl: LOGO('genosha.png') },
+  { id: 'nerdearla', name: 'Nerdearla', logoUrl: LOGO('nerdearla.png') },
+  { id: 'stellar', name: 'Stellar', logoUrl: LOGO('stellar.png') },
+  { id: 'baf', name: 'BAF', logoUrl: LOGO('baf.png') },
+  { id: 'referent', name: 'Referent', logoUrl: LOGO('referent.png') },
 ];
 
 /**
