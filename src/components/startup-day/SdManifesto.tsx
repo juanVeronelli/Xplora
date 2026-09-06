@@ -40,11 +40,13 @@ const EXCLUIDAS = new Set(['endeavor', 'mercadolibre', 'mercado-libre', 'globant
  * blanquearlo por filtro fundiría placa y glifo en un bloque macizo. Se muestra tal cual — el
  * mismo tratamiento que el diseño le da a Berry, que en el Figma viene sobre una placa blanca.
  *
- * Berry quedó como único caso: al resto de las marcas con placa (Piggy Wallet, WIP Club, Startups
- * Argentina) se les generó una versión monocroma sobre transparente en `quien/`, que entra por
- * `OVERRIDE`.
+ * Al resto de las marcas con placa (Piggy Wallet, WIP Club, Startups Argentina) se les generó una
+ * versión monocroma sobre transparente en `quien/`, que entra por `OVERRIDE`.
+ *
+ * Berry y Luca Money salieron de este set: sus logos actuales (isotipo + wordmark) vienen sobre
+ * transparente, así que ya blanquean bien con el filtro general.
  */
-const CON_CHIP = new Set(['berry']);
+const CON_CHIP = new Set<string>([]);
 
 /**
  * Reemplazos del logo de `SD_STARTUPS` para esta banda, que es monocroma sobre negro y necesita

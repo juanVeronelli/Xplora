@@ -1909,26 +1909,29 @@ a.sd-quien__logo:focus-visible {
 /* ── Grilla de la agenda ──────────────────────────────────────────────
    Antes esto era una línea de tiempo de una sola pista, con una "espina" cuya altura se calculaba
    leyendo el `getBoundingClientRect()` de cada fila en un `useLayoutEffect` y en un listener de
-   `resize`. El evento son dos aulas en paralelo, y con eso la posición dejó de necesitar JS: el
-   tiempo ES la grilla. Cada columna son 54 filas de 5 minutos y cada card declara
-   `grid-row: inicio / fin`, así que su lugar y su alto salen de su horario real — los huecos son
-   filas vacías y una charla de 15 minutos sale un tercio de alto que una de 45.
+   `resize`. Después pasó a ser el horario real convertido en grid-row (huecos = filas vacías, alto
+   ∝ duración). Ahora es lo más simple de las tres: cada aula es una columna con sus cards apiladas
+   una pegada a la otra, en el orden de la data — sin riel, sin huecos. El horario de cada charla
+   vive adentro de su propia card.
 
-   `--sd-agenda-cols` la comparten el encabezado y la grilla para que las columnas queden a plomo
-   sin `subgrid`; `--sd-agenda-filas` la escribe el componente, que es quien sabe cuántas filas
-   son (ver `FILAS` en `StartupDayAgenda.tsx`). */
+   Acá abajo es el layout base (mobile-first): las cards crecen a su alto natural y la sección
+   scrollea como cualquier otra. De 720px para arriba (ver el media query más abajo) la sección
+   pasa a medir `100dvh` fijo y todo el interior reparte ese alto por flex, así entra entera sin
+   scrollear — con 14 cards no cabía scrollear en +/- 90px de mobile.
+
+   `--sd-agenda-cols` la comparten el encabezado y la grilla para que las dos columnas queden a
+   plomo sin `subgrid`. */
 .sd-agenda {
-  --sd-agenda-cols: clamp(3rem, 5vw, 4.25rem) repeat(2, minmax(0, 1fr));
+  --sd-agenda-cols: repeat(2, minmax(0, 1fr));
   --sd-agenda-gap: clamp(10px, 1.6vw, 18px);
-  /* Achicado a pedido: las cards con logo grande quedaban ocupando demasiado alto de pantalla. */
-  --sd-agenda-slot: clamp(8px, 1.4vh, 11px);
   --sd-agenda-rule: 1px solid rgb(var(--sd-purple-rgb) / 0.18);
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: clamp(0.75rem, 2vh, 1.15rem);
 }
 
 .sd-agenda__head {
-  margin-bottom: clamp(1.75rem, 4vh, 2.75rem);
+  margin-bottom: clamp(1.25rem, 3vh, 2rem);
 }
 
 .sd-agenda__title {
@@ -1974,48 +1977,24 @@ a.sd-quien__logo:focus-visible {
   column-gap: var(--sd-agenda-gap);
 }
 
-/* El riel no declara alto: se estira solo al de las columnas (`stretch` del grid), y por eso los
-   porcentajes de cada marca caen exactos sin medir nada. */
-.sd-agenda__rail {
-  position: relative;
-}
-
-.sd-agenda__tick {
-  position: absolute;
-  right: 0;
-  transform: translateY(-50%);
-  font-family: var(--sd-font-mono);
-  font-size: clamp(0.62rem, 0.8vw, 0.7rem);
-  font-variant-numeric: tabular-nums;
-  color: rgb(var(--sd-cream-rgb) / 0.4);
-  white-space: nowrap;
-}
-
 .sd-agenda__col {
-  display: grid;
-  grid-template-rows: repeat(var(--sd-agenda-filas), var(--sd-agenda-slot));
+  display: flex;
+  flex-direction: column;
   margin: 0;
   padding: 0 0 0 var(--sd-agenda-gap);
   list-style: none;
   border-left: var(--sd-agenda-rule);
 }
 
-.sd-agenda__card.is-corta {
-  align-content: center;
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
+/* Cards pegadas: sin gap ni margin entre ellas. Los bordes se comparten con `margin-top: -1px`
+   —si no, cada seam quedaría con línea doble— y el redondeo va sólo en las puntas del bloque para
+   que la columna entera se lea como un panel único, no como cards sueltas. */
 .sd-agenda__card {
   display: flex;
   flex-direction: column;
-  gap: clamp(4px, 0.7vh, 6px);
-  /* Separa dos cards pegadas sin robarle alto a la grilla de tiempo. */
-  margin-bottom: 4px;
-  padding: clamp(6px, 0.7vw, 9px) clamp(8px, 1.1vw, 12px);
-  overflow: hidden;
+  gap: clamp(6px, 0.8vh, 10px);
+  padding: clamp(12px, 1.6vh, 18px) clamp(12px, 1.4vw, 18px);
   border: 1px solid rgb(var(--sd-purple-rgb) / 0.22);
-  border-radius: var(--sd-radius);
   background: linear-gradient(
     155deg,
     rgb(var(--sd-purple-rgb) / 0.13),
@@ -2023,19 +2002,24 @@ a.sd-quien__logo:focus-visible {
   );
 }
 
-/* El logo se come todo el alto que le deje la card en vez de tener una medida fija, así que una
-   charla de 45 minutos lo muestra más grande que una de 35.
+.sd-agenda__card + .sd-agenda__card {
+  margin-top: -1px;
+}
 
-   La base tiene que ser `0` y no `auto`: con `auto` el tamaño de partida del item es el alto
-   intrínseco de la imagen, y entonces la card crecía con el logo en vez de recortarlo — el de
-   Mercado Libre pedía 126px dentro de una card de 95. Con base 0 el alto sale del sobrante
-   después del horario, y recién ahí el `max-height: 100%` de la imagen tiene contra qué medir. */
+.sd-agenda__card:first-child {
+  border-top-left-radius: var(--sd-radius);
+  border-top-right-radius: var(--sd-radius);
+}
+
+.sd-agenda__card:last-child {
+  border-bottom-left-radius: var(--sd-radius);
+  border-bottom-right-radius: var(--sd-radius);
+}
+
 .sd-agenda__mark {
   position: relative;
-  flex: 1 1 0;
-  min-height: 0;
   width: 100%;
-  /* Sólo para el nombre de fallback, que sí va en flujo. */
+  height: clamp(52px, 8vw, 84px);
   display: flex;
   align-items: center;
 }
@@ -2043,12 +2027,6 @@ a.sd-quien__logo:focus-visible {
 /* `brightness(0) invert(1)` lleva cualquier píxel opaco a blanco puro respetando el alfa — el
    mismo tratamiento que `.sd-quien__logo img`, y por la misma razón: sobre la card oscura, los
    logos que vienen en negro (uin, TQe, Zettios) directamente no se veían. */
-/* Posicionada y no en flujo: `max-height: 100%` no servía porque la caja del logo es un item de
-   flex cuya fila es `auto`, así que el porcentaje quedaba circular y el navegador lo descartaba
-   — el logo de Mercado Libre pedía 126px adentro de una caja de 39 y se recortaba. Con `inset: 0`
-   más `width/height: 100%` el alto queda determinado por los bordes, sin porcentajes que
-   resolver, y `object-fit: contain` escala sin deformar. Los wordmarks anchos (Resender, 7.8:1)
-   topan contra el `max-width` y los compactos (Mercado Libre, 1.4:1) contra el alto. */
 .sd-agenda__mark img {
   position: absolute;
   inset: 0;
@@ -2121,9 +2099,8 @@ a.sd-quien__logo:focus-visible {
 }
 
 /* ── Angosto: se cae el paralelismo ──
-   Dos columnas de cards no entran en un teléfono. El riel se va —cada card ya trae su horario,
-   así que no se pierde información— y cada aula pasa a ser una lista apilada con su rótulo
-   propio, porque el encabezado de dos columnas deja de tener sentido. */
+   Dos columnas de cards no entran en un teléfono, así que cada aula pasa a ser una lista apilada
+   con su propio rótulo (el encabezado de dos columnas deja de tener sentido en una sola). */
 @media (max-width: 719px) {
   .sd-agenda__cols {
     display: none;
@@ -2134,38 +2111,21 @@ a.sd-quien__logo:focus-visible {
     row-gap: clamp(1.5rem, 5vw, 2.25rem);
   }
 
-  .sd-agenda__rail {
-    display: none;
-  }
-
   .sd-agenda__col {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
     padding-left: 0;
     border-left: 0;
   }
 
   .sd-agenda__col::before {
     content: attr(aria-label);
+    display: block;
+    margin-bottom: clamp(8px, 2vw, 12px);
     font-family: var(--sd-font-mono);
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--sd-purple-lift);
-  }
-
-  /* En flex el `grid-row` inline que trae cada card no aplica; sólo hay que neutralizar el
-     margen que en desktop separaba dos cards contiguas. */
-  .sd-agenda__card {
-    margin-bottom: 0;
-  }
-
-  /* Acá la card no tiene alto impuesto por la grilla, así que `flex-basis: 0` dejaría el logo en
-     cero: hace falta un piso explícito. */
-  .sd-agenda__mark {
-    min-height: clamp(30px, 9vw, 40px);
   }
 }
 
@@ -4291,6 +4251,80 @@ a.sd-partner__name:hover {
     transition: none !important;
     opacity: 1 !important;
     transform: none !important;
+  }
+}
+
+/* ── Ancho: la sección de agenda entra entera en una pantalla ──
+   Va al final del archivo a propósito: la definición base de `.sd-piso__agenda` (más arriba, con
+   el fondo y el padding) tiene la misma especificidad que este media query, así que sin importar
+   dónde esté el `@media`, gana la que quede última en el orden de cascada — y tiene que ser ésta.
+
+   De 720px para arriba hay lugar para las dos columnas en paralelo, así que la sección pasa a
+   medir `100dvh` fijo y reparte ese alto por flex en cascada (sección → `.sd-agenda` → grilla →
+   columna → card → logo) en vez de dejar que cada card crezca a su alto natural. Con 7 cards por
+   aula eso no entraba en una pantalla sin scrollear, que es justo lo que se evita acá. Sólo a
+   partir de 720px: en mobile una sola columna con 14 cards apiladas necesita su propio scroll
+   natural, y forzarla a 100dvh las hubiera dejado ilegibles. */
+@media (min-width: 720px) {
+  .sd-piso__agenda {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    padding-block: clamp(20px, 3vh, 36px);
+  }
+
+  .sd-agenda {
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: clamp(0.5rem, 1.4vh, 0.85rem);
+  }
+
+  .sd-agenda__head {
+    flex: 0 0 auto;
+    margin-bottom: clamp(0.5rem, 1.6vh, 1rem);
+  }
+
+  .sd-agenda__title {
+    font-size: clamp(1.6rem, 3.4vh, var(--sd-title));
+  }
+
+  .sd-agenda__sub {
+    margin-top: clamp(0.4rem, 1vh, 0.7rem);
+    font-size: clamp(0.85rem, 1.6vh, 1.1rem);
+    line-height: 1.4;
+  }
+
+  .sd-agenda__grid {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  /* `min-height: 0` pisa el `auto` por defecto de los ítems de grid: sin esto, el alto mínimo de
+     contenido de las 7 cards empujaría la fila más alta que el `100dvh` disponible. */
+  .sd-agenda__col {
+    min-height: 0;
+  }
+
+  .sd-agenda__card {
+    flex: 1 1 0;
+    min-height: 0;
+    justify-content: center;
+    gap: clamp(2px, 0.6vh, 6px);
+    padding-block: clamp(4px, 0.8vh, 10px);
+  }
+
+  .sd-agenda__mark {
+    height: auto;
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  .sd-agenda__note {
+    flex: 0 0 auto;
+    margin-top: clamp(0.4rem, 1vh, 0.7rem);
+    padding-top: clamp(0.5rem, 1.2vh, 0.85rem);
+    font-size: clamp(0.72rem, 0.9vw, 0.85rem);
   }
 }
 
